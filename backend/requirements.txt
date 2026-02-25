@@ -1,0 +1,42 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.14.0
+
+# Config / validation
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+
+# File upload
+python-multipart==0.0.20
+
+# WebSocket
+websockets==14.1
+
+# OpenAI (GPT-4 + Whisper API fallback)
+openai>=1.0.0
+
+# Audio processing
+librosa==0.11.0
+soundfile==0.13.1
+ffmpeg-python==0.2.0
+numpy>=1.24
+
+# Transcription — faster-whisper (GPU, float16)
+faster-whisper==1.2.1
+
+# Voice Activity Detection
+silero-vad==6.2.1
+
+# Diarization
+pyannote.audio==3.3.2
+huggingface-hub>=0.20
+
+# Utilities
+python-jose[cryptography]==3.3.0
+httpx==0.28.1

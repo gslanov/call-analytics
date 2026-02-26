@@ -36,14 +36,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     # Data paths
-    uploads_dir: str = "/app/data/uploads"
-    audio_dir: str = "/app/data/audio"
-    mango_sftp_dir: str = "/app/data/mango_sftp/uploads"
+    uploads_dir: str = "/app/call-analytics/data/uploads"
+    audio_dir: str = "/app/call-analytics/data/audio"
+    mango_sftp_dir: str = "/app/call-analytics/data/mango_sftp/uploads"
 
     # Calltouch
     calltouch_site_id: str = ""
     calltouch_api_key: str = ""
-    calltouch_call_records_path: str = "/app/data/calltouch_records"
+    calltouch_call_records_path: str = "/app/call-analytics/data/calltouch_records"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

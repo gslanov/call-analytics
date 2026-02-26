@@ -7,6 +7,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
     SmallInteger,
     String,
     Text,
@@ -49,6 +50,12 @@ class File(Base):
     progress: Mapped[int] = mapped_column(SmallInteger, server_default="0")   # 0-100%
     retry_count: Mapped[int] = mapped_column(SmallInteger, server_default="0")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Calltouch fields
+    callerphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    calledphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    operatorphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    order_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
@@ -137,4 +144,33 @@ class Analysis(Base):
         Index("idx_analyses_loyalty", "loyalty"),
         Index("idx_analyses_kindness", "kindness"),
         Index("idx_analyses_overall", "overall"),
+    )
+
+
+class CallRecord(Base):
+    __tablename__ = "call_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    calltouch_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    file_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("files.id", ondelete="SET NULL"), nullable=True
+    )
+    callerphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    calledphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    operatorphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    order_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    call_date: Mapped[datetime | None] = mapped_column(nullable=True)
+    status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    has_recording: Mapped[bool] = mapped_column(server_default="false")
+    local_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    raw_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_call_records_calltouch_id", "calltouch_id"),
+        Index("idx_call_records_callerphone", "callerphone"),
+        Index("idx_call_records_created", "created_at"),
     )

@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     audio_dir: str = "/app/data/audio"
     mango_sftp_dir: str = "/app/data/mango_sftp/uploads"
 
+    # Calltouch
+    calltouch_site_id: str = ""
+    calltouch_api_key: str = ""
+    calltouch_call_records_path: str = "/app/data/calltouch_records"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str) -> str:

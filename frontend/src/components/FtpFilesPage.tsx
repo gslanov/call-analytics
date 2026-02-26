@@ -5,14 +5,14 @@ import { fetchFtpFiles, ftpStreamUrl, ftpDownloadUrl, sendFtpToWhisper } from '.
 import type { FtpFile, FtpFilesPage as FtpFilesPageData, FtpFilters } from '../lib/api'
 
 const MOCK_FILES: FtpFile[] = [
-  { id: 'ftp-1', filename: 'call_001_ivanov.mp3', size: 2500000, date: '2026-02-26T14:30:00Z', duration_sec: 125 },
-  { id: 'ftp-2', filename: 'call_002_petrov.mp3', size: 1800000, date: '2026-02-26T13:15:00Z', duration_sec: 87 },
-  { id: 'ftp-3', filename: 'call_003_sidorov.wav', size: 4200000, date: '2026-02-25T17:45:00Z', duration_sec: 210 },
-  { id: 'ftp-4', filename: 'call_004_ivanova.mp3', size: 3100000, date: '2026-02-25T11:00:00Z', duration_sec: 155 },
+  { id: 'ftp-1', filename: 'call_001_ivanov.mp3', size: 2500000, date: '2026-02-26T14:30:00Z', duration_sec: 125, callerphone: '+79161234567', operatorphone: '+74951234567', order_id: 'ORD-1001', lead_name: 'Иванов' },
+  { id: 'ftp-2', filename: 'call_002_petrov.mp3', size: 1800000, date: '2026-02-26T13:15:00Z', duration_sec: 87, callerphone: '+79035559988', operatorphone: '+74951234568' },
+  { id: 'ftp-3', filename: 'call_003_sidorov.wav', size: 4200000, date: '2026-02-25T17:45:00Z', duration_sec: 210, callerphone: '+79261112233', operatorphone: '+74951234569', order_id: 'ORD-1002' },
+  { id: 'ftp-4', filename: 'call_004_ivanova.mp3', size: 3100000, date: '2026-02-25T11:00:00Z', duration_sec: 155, callerphone: '+79099876543' },
   { id: 'ftp-5', filename: 'call_005_novikov.mp3', size: 980000, date: '2026-02-24T09:30:00Z', duration_sec: 48 },
-  { id: 'ftp-6', filename: 'mango_call_20260224_150022.mp3', size: 5400000, date: '2026-02-24T15:00:00Z', duration_sec: 270 },
-  { id: 'ftp-7', filename: 'mango_call_20260223_090100.mp3', size: 2100000, date: '2026-02-23T09:01:00Z', duration_sec: 103 },
-  { id: 'ftp-8', filename: 'call_008_kuzmin.mp3', size: 1650000, date: '2026-02-22T16:20:00Z', duration_sec: 82 },
+  { id: 'ftp-6', filename: 'mango_call_20260224_150022.mp3', size: 5400000, date: '2026-02-24T15:00:00Z', duration_sec: 270, callerphone: '+79161111111', operatorphone: '+74951234567', order_id: 'ORD-1003', lead_name: 'Сидоров' },
+  { id: 'ftp-7', filename: 'mango_call_20260223_090100.mp3', size: 2100000, date: '2026-02-23T09:01:00Z', duration_sec: 103, callerphone: '+79052223344' },
+  { id: 'ftp-8', filename: 'call_008_kuzmin.mp3', size: 1650000, date: '2026-02-22T16:20:00Z', duration_sec: 82, callerphone: '+79167778899', operatorphone: '+74951234568', order_id: 'ORD-1004' },
 ]
 
 function formatSize(bytes: number): string {
@@ -42,6 +42,9 @@ export function FtpFilesPage() {
   const [dateTo, setDateTo] = useState('')
   const [durationMin, setDurationMin] = useState('')
   const [durationMax, setDurationMax] = useState('')
+  const [callerphone, setCallerphone] = useState('')
+  const [operatorphone, setOperatorphone] = useState('')
+  const [orderFilter, setOrderFilter] = useState('')
 
   // Table state
   const [files, setFiles] = useState<FtpFile[]>([])
@@ -62,6 +65,7 @@ export function FtpFilesPage() {
 
   const load = useCallback(async (
     q: string, df: string, dt: string, dmin: string, dmax: string,
+    caller: string, operator: string, order: string,
     p: number, lim: number
   ) => {
     setIsLoading(true)
@@ -73,6 +77,9 @@ export function FtpFilesPage() {
       if (dt) filters.date_to = dt
       if (dmin) filters.duration_min = Number(dmin)
       if (dmax) filters.duration_max = Number(dmax)
+      if (caller) filters.callerphone = caller
+      if (operator) filters.operatorphone = operator
+      if (order) filters.order_id = order
       const data: FtpFilesPageData = await fetchFtpFiles(filters, p, lim)
       setFiles(data.items)
       setTotal(data.total)
@@ -88,21 +95,21 @@ export function FtpFilesPage() {
 
   // Initial load
   useEffect(() => {
-    load('', '', '', '', '', 1, 20)
+    load('', '', '', '', '', '', '', '', 1, 20)
   }, [load])
 
   // Debounced search
   useEffect(() => {
     const t = setTimeout(() => {
       setPage(1)
-      load(search, dateFrom, dateTo, durationMin, durationMax, 1, limit)
+      load(search, dateFrom, dateTo, durationMin, durationMax, callerphone, operatorphone, orderFilter, 1, limit)
     }, 300)
     return () => clearTimeout(t)
   }, [search]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApplyFilters = () => {
     setPage(1)
-    load(search, dateFrom, dateTo, durationMin, durationMax, 1, limit)
+    load(search, dateFrom, dateTo, durationMin, durationMax, callerphone, operatorphone, orderFilter, 1, limit)
   }
 
   const handleResetFilters = () => {
@@ -111,19 +118,22 @@ export function FtpFilesPage() {
     setDateTo('')
     setDurationMin('')
     setDurationMax('')
+    setCallerphone('')
+    setOperatorphone('')
+    setOrderFilter('')
     setPage(1)
-    load('', '', '', '', '', 1, limit)
+    load('', '', '', '', '', '', '', '', 1, limit)
   }
 
   const handlePageChange = (p: number) => {
     setPage(p)
-    load(search, dateFrom, dateTo, durationMin, durationMax, p, limit)
+    load(search, dateFrom, dateTo, durationMin, durationMax, callerphone, operatorphone, orderFilter, p, limit)
   }
 
   const handleLimitChange = (l: number) => {
     setLimit(l)
     setPage(1)
-    load(search, dateFrom, dateTo, durationMin, durationMax, 1, l)
+    load(search, dateFrom, dateTo, durationMin, durationMax, callerphone, operatorphone, orderFilter, 1, l)
   }
 
   // Selection
@@ -213,7 +223,40 @@ export function FtpFilesPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Мин. длительность (сек)</label>
+            <label className="text-xs text-gray-500 mb-1 block">Телефон звонящего</label>
+            <input
+              type="text"
+              value={callerphone}
+              onChange={(e) => setCallerphone(e.target.value)}
+              placeholder="+79161234567"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Номер оператора</label>
+            <input
+              type="text"
+              value={operatorphone}
+              onChange={(e) => setOperatorphone(e.target.value)}
+              placeholder="+74951234567"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Номер заказа</label>
+            <input
+              type="text"
+              value={orderFilter}
+              onChange={(e) => setOrderFilter(e.target.value)}
+              placeholder="ORD-1001"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Мин. длит. (сек)</label>
             <input
               type="number"
               value={durationMin}
@@ -224,17 +267,19 @@ export function FtpFilesPage() {
                          focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Макс. длительность (сек)</label>
-            <input
-              type="number"
-              value={durationMax}
-              onChange={(e) => setDurationMax(e.target.value)}
-              placeholder="3600"
-              min="0"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 mb-1 block">Макс. длит. (сек)</label>
+              <input
+                type="number"
+                value={durationMax}
+                onChange={(e) => setDurationMax(e.target.value)}
+                placeholder="3600"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
           </div>
           <div className="sm:col-span-2 flex items-end gap-2">
             <button
@@ -334,7 +379,10 @@ export function FtpFilesPage() {
                   <th className={thClass}>Файл</th>
                   <th className={thClass}>Размер</th>
                   <th className={thClass}>Дата</th>
-                  <th className={thClass}>Длительность</th>
+                  <th className={thClass}>Длит.</th>
+                  <th className={thClass}>Телефон</th>
+                  <th className={thClass}>Оператор</th>
+                  <th className={thClass}>Заказ</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Действия
                   </th>
@@ -365,6 +413,24 @@ export function FtpFilesPage() {
                       <td className={tdClass}>{formatSize(file.size)}</td>
                       <td className={tdClass}>{formatDate(file.date)}</td>
                       <td className={tdClass}>{formatDuration(file.duration_sec)}</td>
+                      <td className={tdClass}>
+                        {file.callerphone ? (
+                          <span className="font-mono">{file.callerphone}</span>
+                        ) : '—'}
+                        {file.lead_name && (
+                          <span className="ml-1 text-xs text-gray-400">({file.lead_name})</span>
+                        )}
+                      </td>
+                      <td className={tdClass}>
+                        {file.operatorphone ? (
+                          <span className="font-mono">{file.operatorphone}</span>
+                        ) : '—'}
+                      </td>
+                      <td className={tdClass}>
+                        {file.order_id ? (
+                          <span className="text-blue-600 font-medium">{file.order_id}</span>
+                        ) : '—'}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 flex-wrap">
                           <button
@@ -397,7 +463,7 @@ export function FtpFilesPage() {
                     </tr>
                     {playingId === file.id && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-3 bg-gray-900">
+                        <td colSpan={9} className="px-6 py-3 bg-gray-900">
                           <AudioPlayer src={ftpStreamUrl(file.filename)} />
                         </td>
                       </tr>

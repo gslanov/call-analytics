@@ -25,6 +25,7 @@ async def lifespan(app: FastAPI):
     # Startup: ensure data dirs exist
     Path(settings.uploads_dir).mkdir(parents=True, exist_ok=True)
     Path(settings.audio_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.calltouch_call_records_path).mkdir(parents=True, exist_ok=True)
 
     # Recover interrupted files and start queue worker
     from app.services.queue import QueueManager
@@ -81,7 +82,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-from app.routers import audio, health, operators, results, sftp, upload, ws
+from app.routers import audio, calltouch, health, operators, results, sftp, upload, ws
 
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(ws.router, prefix="/api/v1")
@@ -90,3 +91,4 @@ app.include_router(operators.router, prefix="/api/v1")
 app.include_router(audio.router, prefix="/api/v1")
 app.include_router(sftp.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
+app.include_router(calltouch.router, prefix="/api/v1")

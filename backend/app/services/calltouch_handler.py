@@ -18,18 +18,33 @@ CALLTOUCH_API_URL = "https://api.calltouch.ru/calls-service/RestAPI"
 
 
 def parse_calltime(calltime_value) -> int:
-    """Parse calltime from various formats (unix timestamp, string, etc)."""
+    """Parse calltime from various formats (unix timestamp, datetime string, etc)."""
     if not calltime_value:
         return 0
     try:
-        # If it's already an int/float
+        # If it's already an int/float (unix timestamp)
         if isinstance(calltime_value, (int, float)):
             return int(calltime_value)
-        # Try to convert string to int
+        # If it's a string
         if isinstance(calltime_value, str):
-            return int(calltime_value)
-    except (ValueError, TypeError) as e:
-        logger.warning("Could not parse calltime '%s': %s", calltime_value, e)
+            # Try direct int conversion first (unix timestamp as string)
+            try:
+                return int(calltime_value)
+            except ValueError:
+                # Try parsing as datetime string (e.g., "2026-02-26 20:03:37")
+                try:
+                    dt = datetime.strptime(calltime_value, "%Y-%m-%d %H:%M:%S")
+                    return int(dt.timestamp())
+                except ValueError:
+                    # Try ISO format (e.g., "2026-02-26T20:03:37")
+                    try:
+                        dt = datetime.fromisoformat(calltime_value.replace("Z", "+00:00"))
+                        return int(dt.timestamp())
+                    except ValueError:
+                        logger.warning("Could not parse calltime '%s': unsupported format", calltime_value)
+                        return 0
+    except Exception as e:
+        logger.warning("Error parsing calltime '%s': %s", calltime_value, e)
     return 0
 
 

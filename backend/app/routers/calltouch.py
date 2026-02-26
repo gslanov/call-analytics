@@ -40,8 +40,15 @@ async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
     # Log incoming webhook data for debugging - FULL DATA
     logger.info("Calltouch webhook received - RAW DATA: %s", json.dumps(call_data, ensure_ascii=False, default=str)[:500])
 
+    # If empty data (test ping from Calltouch), return success
+    if not call_data:
+        logger.info("Empty webhook data received (test ping)")
+        return {"status": "success", "message": "Webhook endpoint is active"}
+
+    # If no ID, log and continue (may be test or incomplete data)
     if not call_data.get("id"):
-        raise HTTPException(status_code=400, detail="Call ID is required")
+        logger.warning("Webhook received without ID field: %s", call_data)
+        return {"status": "success", "message": "Webhook received (no ID, skipping processing)"}
 
     result = process_webhook(call_data)
 

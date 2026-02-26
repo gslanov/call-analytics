@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { AudioPlayer } from './AudioPlayer'
 import { Pagination } from './Pagination'
-import { fetchFtpFiles, ftpStreamUrl, ftpDownloadUrl, sendFtpToWhisper, fetchAvailableJsonFields, searchCalltouchByField } from '../lib/api'
+import { fetchFtpFiles, ftpStreamUrl, ftpDownloadUrl, sendFtpToWhisper, fetchAvailableJsonFields } from '../lib/api'
 import type { FtpFile, FtpFilesPage as FtpFilesPageData, FtpFilters } from '../lib/api'
 
 const MOCK_FILES: FtpFile[] = [

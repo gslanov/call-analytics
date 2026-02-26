@@ -20,18 +20,22 @@ def get_db():
         db.close()
 
 
-@router.post("/webhook")
+@router.api_route("/webhook", methods=["GET", "POST"])
 async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
     import logging
     import json
     logger = logging.getLogger(__name__)
 
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        call_data = await request.json()
+    # Support GET query params, POST form data, and POST JSON
+    if request.method == "GET":
+        call_data = dict(request.query_params)
     else:
-        form = await request.form()
-        call_data = dict(form)
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            call_data = await request.json()
+        else:
+            form = await request.form()
+            call_data = dict(form)
 
     # Log incoming webhook data for debugging - FULL DATA
     logger.info("Calltouch webhook received - RAW DATA: %s", json.dumps(call_data, ensure_ascii=False, default=str)[:500])

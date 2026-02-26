@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { AudioPlayer } from './AudioPlayer'
 import { Pagination } from './Pagination'
-import { fetchFtpFiles, ftpStreamUrl, ftpDownloadUrl, sendFtpToWhisper } from '../lib/api'
+import { fetchFtpFiles, ftpStreamUrl, ftpDownloadUrl, sendFtpToWhisper, fetchAvailableJsonFields, searchCalltouchByField } from '../lib/api'
 import type { FtpFile, FtpFilesPage as FtpFilesPageData, FtpFilters } from '../lib/api'
 
 const MOCK_FILES: FtpFile[] = [
@@ -45,6 +45,12 @@ export function FtpFilesPage() {
   const [callerphone, setCallerphone] = useState('')
   const [operatorphone, setOperatorphone] = useState('')
   const [orderFilter, setOrderFilter] = useState('')
+
+  // JSON параметры
+  const [availableFields, setAvailableFields] = useState<string[]>([])
+  const [selectedFields, setSelectedFields] = useState<string[]>([])
+  const [dynamicFilters, setDynamicFilters] = useState<Record<string, string>>({})
+  const [loadingFields, setLoadingFields] = useState(false)
 
   // Table state
   const [files, setFiles] = useState<FtpFile[]>([])
@@ -97,6 +103,22 @@ export function FtpFilesPage() {
   useEffect(() => {
     load('', '', '', '', '', '', '', '', 1, 20)
   }, [load])
+
+  // Load available JSON fields
+  useEffect(() => {
+    const loadFields = async () => {
+      setLoadingFields(true)
+      try {
+        const data = await fetchAvailableJsonFields()
+        setAvailableFields(data.fields)
+      } catch (e) {
+        console.error('Failed to load JSON fields:', e)
+      } finally {
+        setLoadingFields(false)
+      }
+    }
+    loadFields()
+  }, [])
 
   // Debounced search
   useEffect(() => {
@@ -317,6 +339,87 @@ export function FtpFilesPage() {
         </div>
       )}
 
+      {/* JSON Parameters Panel */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-6 py-4">
+        <h2 className="text-base font-semibold text-gray-800 mb-3">Дополнительные параметры Calltouch</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-2">
+            <label className="text-xs text-gray-500 mb-1 block">Добавить параметр JSON</label>
+            <select
+              disabled={loadingFields || availableFields.length === 0}
+              onChange={(e) => {
+                const field = e.target.value
+                if (field && !selectedFields.includes(field)) {
+                  setSelectedFields([...selectedFields, field])
+                  setDynamicFilters({...dynamicFilters, [field]: ''})
+                }
+                e.target.value = ''
+              }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">
+                {loadingFields ? 'Загрузка...' : availableFields.length === 0 ? 'Параметры не найдены' : 'Выберите параметр'}
+              </option>
+              {availableFields
+                .filter(f => !selectedFields.includes(f))
+                .map(field => (
+                  <option key={field} value={field}>
+                    {field}
+                  </option>
+                ))}
+            </select>
+          </div>
+          {selectedFields.length > 0 && (
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSelectedFields([])
+                  setDynamicFilters({})
+                }}
+                className="w-full px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg
+                           hover:bg-gray-200 transition-colors"
+              >
+                Очистить параметры
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Dynamic filters for selected fields */}
+        {selectedFields.length > 0 && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-gray-200">
+            {selectedFields.map(field => (
+              <div key={field} className="relative">
+                <label className="text-xs text-gray-500 mb-1 block">{field}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={dynamicFilters[field] || ''}
+                    onChange={(e) => setDynamicFilters({...dynamicFilters, [field]: e.target.value})}
+                    placeholder={`Поиск по ${field}`}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedFields(selectedFields.filter(f => f !== field))
+                      const newFilters = {...dynamicFilters}
+                      delete newFilters[field]
+                      setDynamicFilters(newFilters)
+                    }}
+                    className="px-2 py-2 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Удалить параметр"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Table card */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Card header */}
@@ -383,6 +486,9 @@ export function FtpFilesPage() {
                   <th className={thClass}>Телефон</th>
                   <th className={thClass}>Оператор</th>
                   <th className={thClass}>Заказ</th>
+                  {selectedFields.map(field => (
+                    <th key={field} className={thClass}>{field}</th>
+                  ))}
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Действия
                   </th>
@@ -431,6 +537,23 @@ export function FtpFilesPage() {
                           <span className="text-blue-600 font-medium">{file.order_id}</span>
                         ) : '—'}
                       </td>
+                      {selectedFields.map(field => (
+                        <td key={field} className={tdClass}>
+                          {dynamicFilters[field] ? (
+                            (file as any)[field] ? (
+                              String((file as any)[field]).toLowerCase().includes(dynamicFilters[field].toLowerCase()) ? (
+                                <span className="bg-yellow-100 px-2 py-1 rounded text-xs">
+                                  {String((file as any)[field]).substring(0, 30)}
+                                </span>
+                              ) : '—'
+                            ) : '—'
+                          ) : (
+                            (file as any)[field] ? (
+                              <span className="text-sm">{String((file as any)[field]).substring(0, 30)}</span>
+                            ) : '—'
+                          )}
+                        </td>
+                      ))}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 flex-wrap">
                           <button
@@ -463,7 +586,7 @@ export function FtpFilesPage() {
                     </tr>
                     {playingId === file.id && (
                       <tr>
-                        <td colSpan={9} className="px-6 py-3 bg-gray-900">
+                        <td colSpan={9 + selectedFields.length} className="px-6 py-3 bg-gray-900">
                           <AudioPlayer src={ftpStreamUrl(file.filename)} />
                         </td>
                       </tr>

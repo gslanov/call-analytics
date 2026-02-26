@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
@@ -102,3 +104,66 @@ def sync_calltouch(db: Session = Depends(get_db)):
             updated += 1
     db.commit()
     return {"status": "ok", "updated": updated}
+
+
+@router.get("/available-fields")
+def get_available_json_fields(db: Session = Depends(get_db)):
+    """Получить все доступные JSON ключи из raw_data записей Calltouch."""
+    records = db.query(CallRecord.raw_data).filter(CallRecord.raw_data.isnot(None)).limit(100).all()
+
+    all_fields = set()
+    for record in records:
+        if record[0]:
+            # Собрать все ключи из raw_data рекурсивно
+            def extract_keys(obj, prefix=""):
+                if isinstance(obj, dict):
+                    for key, value in obj.items():
+                        full_key = f"{prefix}.{key}" if prefix else key
+                        all_fields.add(full_key)
+                        if isinstance(value, (dict, list)):
+                            extract_keys(value, full_key)
+                elif isinstance(obj, list) and obj:
+                    if isinstance(obj[0], dict):
+                        extract_keys(obj[0], prefix)
+
+            extract_keys(record[0])
+
+    return {"fields": sorted(list(all_fields))}
+
+
+@router.get("/search-by-field")
+def search_calltouch_by_field(
+    field: str = Query(..., description="JSON field path (e.g., 'utm_source' or 'call.status')"),
+    value: str = Query(..., description="Value to search for"),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Поиск записей Calltouch по любому полю из JSON."""
+    records = db.query(CallRecord).filter(CallRecord.raw_data.isnot(None)).limit(limit).all()
+
+    results = []
+    for record in records:
+        try:
+            # Получить значение из nested JSON по пути field
+            obj = record.raw_data
+            for key in field.split('.'):
+                if isinstance(obj, dict):
+                    obj = obj.get(key)
+                else:
+                    break
+
+            # Проверить совпадение значения (case-insensitive)
+            if obj and str(obj).lower().find(value.lower()) >= 0:
+                results.append({
+                    "calltouch_id": record.calltouch_id,
+                    "callerphone": record.callerphone,
+                    "operatorphone": record.operatorphone,
+                    "order_id": record.order_id,
+                    "field": field,
+                    "field_value": obj,
+                    "raw_data": record.raw_data
+                })
+        except Exception:
+            pass
+
+    return {"results": results, "count": len(results)}

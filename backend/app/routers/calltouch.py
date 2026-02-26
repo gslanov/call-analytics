@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import CallRecord, File
-from app.services.calltouch_handler import process_webhook
+from app.services.calltouch_handler import process_webhook, parse_calltime
 
 router = APIRouter(prefix="/calltouch", tags=["calltouch"])
 
@@ -22,12 +22,19 @@ def get_db():
 
 @router.post("/webhook")
 async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
+    import logging
+    logger = logging.getLogger(__name__)
+
     content_type = request.headers.get("content-type", "")
     if "application/json" in content_type:
         call_data = await request.json()
     else:
         form = await request.form()
         call_data = dict(form)
+
+    # Log incoming webhook data for debugging
+    logger.info("Calltouch webhook received: call_id=%s, calltime=%s, keys=%s",
+                call_data.get("id"), call_data.get("calltime"), list(call_data.keys()))
 
     if not call_data.get("id"):
         raise HTTPException(status_code=400, detail="Call ID is required")
@@ -38,7 +45,7 @@ async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
         call_id = call_data["id"]
         existing = db.query(CallRecord).filter(CallRecord.calltouch_id == call_id).first()
         if not existing:
-            call_timestamp = int(call_data.get("calltime") or 0)
+            call_timestamp = parse_calltime(call_data.get("calltime"))
             call_date = datetime.fromtimestamp(call_timestamp) if call_timestamp else None
             record = CallRecord(
                 calltouch_id=call_id,

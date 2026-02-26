@@ -17,6 +17,22 @@ logger = logging.getLogger(__name__)
 CALLTOUCH_API_URL = "https://api.calltouch.ru/calls-service/RestAPI"
 
 
+def parse_calltime(calltime_value) -> int:
+    """Parse calltime from various formats (unix timestamp, string, etc)."""
+    if not calltime_value:
+        return 0
+    try:
+        # If it's already an int/float
+        if isinstance(calltime_value, (int, float)):
+            return int(calltime_value)
+        # Try to convert string to int
+        if isinstance(calltime_value, str):
+            return int(calltime_value)
+    except (ValueError, TypeError) as e:
+        logger.warning("Could not parse calltime '%s': %s", calltime_value, e)
+    return 0
+
+
 def get_call_recording(call_id: str) -> tuple[bytes | None, str | None]:
     url = f"{CALLTOUCH_API_URL}/{settings.calltouch_site_id}/calls-diary/calls/{call_id}/download"
     params = {"clientApiId": settings.calltouch_api_key}
@@ -34,7 +50,7 @@ def get_call_recording(call_id: str) -> tuple[bytes | None, str | None]:
 def save_call_to_disk(call_id: str, call_data: dict, recording_content: bytes | None = None) -> str | None:
     """Сохраняет метаданные и запись на диск. Возвращает путь к директории или None."""
     try:
-        call_timestamp = int(call_data.get("calltime") or 0)
+        call_timestamp = parse_calltime(call_data.get("calltime"))
         call_dt = datetime.fromtimestamp(call_timestamp) if call_timestamp else datetime.now()
 
         local_path = Path(settings.calltouch_call_records_path) / call_dt.strftime("%Y/%m/%d") / f"call_{call_id}"

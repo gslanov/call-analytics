@@ -58,12 +58,19 @@ async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
         if not existing:
             call_timestamp = parse_calltime(call_data.get("calltime"))
             call_date = datetime.fromtimestamp(call_timestamp) if call_timestamp else None
+            # Parse duration safely (handle template variables like {duration})
+            duration_val = call_data.get("duration")
+            try:
+                duration = int(duration_val) if duration_val and not duration_val.startswith("{") else None
+            except (ValueError, TypeError):
+                duration = None
+
             record = CallRecord(
                 calltouch_id=call_id,
                 callerphone=call_data.get("callerphone"),
                 calledphone=call_data.get("calledphone"),
                 operatorphone=call_data.get("operatorphone"),
-                duration=int(call_data.get("duration") or 0) or None,
+                duration=duration,
                 order_id=call_data.get("order_id") or None,
                 call_date=call_date,
                 status=call_data.get("status"),

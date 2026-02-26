@@ -23,6 +23,7 @@ def get_db():
 @router.post("/webhook")
 async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
     import logging
+    import json
     logger = logging.getLogger(__name__)
 
     content_type = request.headers.get("content-type", "")
@@ -32,9 +33,8 @@ async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         call_data = dict(form)
 
-    # Log incoming webhook data for debugging
-    logger.info("Calltouch webhook received: call_id=%s, calltime=%s, keys=%s",
-                call_data.get("id"), call_data.get("calltime"), list(call_data.keys()))
+    # Log incoming webhook data for debugging - FULL DATA
+    logger.info("Calltouch webhook received - RAW DATA: %s", json.dumps(call_data, ensure_ascii=False, default=str)[:500])
 
     if not call_data.get("id"):
         raise HTTPException(status_code=400, detail="Call ID is required")

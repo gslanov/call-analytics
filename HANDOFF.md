@@ -11,7 +11,7 @@
 - ✅ Сервер (23.94.143.122 онлайн и работает)
 
 ## Статус развертывания
-🚀 **LIVE на производстве**
+🚀 **LIVE на производстве** (обновлено 2026-02-26 16:30)
 
 | Сервис | Статус | Порт | Описание |
 |--------|--------|------|---------|
@@ -19,6 +19,7 @@
 | Backend (FastAPI) | ✅ Running | 8001 | API - http://23.94.143.122:8001/docs |
 | Database (PostgreSQL) | ✅ Healthy | 5432 | Persistent storage |
 | МАНГО Sync | ✅ Running | - | Scheduled FTP sync daily + 6h fallback |
+| Calltouch JSON Fields | ✅ Active | 8001 | 10 fields, dynamic table filtering |
 
 ## Технический стек
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS
@@ -88,13 +89,15 @@ FRONTEND_PORT=3000
 ✅ 5dd055f - Initial commit: full system with design docs
 ```
 
-## Calltouch Integration — 🔄 В ПРОЦЕССЕ РАЗВЕРТЫВАНИЯ (2026-02-26)
+## Calltouch Integration — ✅ ЗАВЕРШЕНО (2026-02-26)
 
 ### Реализованный функционал ✅
 - ✅ Backend webhook handler: `POST /api/v1/calltouch/webhook`
-- ✅ Calltouch metadata router с 3 endpoints:
+- ✅ Calltouch metadata router с 4 endpoints:
   - `POST /api/v1/calltouch/webhook` — получение webhook от Calltouch
   - `GET /api/v1/calltouch/metadata/{file_id}` — получение метаданных
+  - `GET /api/v1/calltouch/available-fields` — получение всех JSON ключей метаданных
+  - `GET /api/v1/calltouch/search-by-field` — поиск по любому JSON полю
   - `POST /api/v1/calltouch/sync` — синхронизация данных
 - ✅ Calltouch service handler:
   - `get_call_recording()` — загрузка записи из Calltouch API
@@ -103,15 +106,21 @@ FRONTEND_PORT=3000
 - ✅ New `CallRecord` model для хранения полных метаданных Calltouch
 - ✅ Extended `File` model с Calltouch fields:
   - `callerphone`, `calledphone`, `operatorphone`, `duration`, `order_id`
-- ✅ Database migration (e8c5f2a1b9d7) для добавления колонок
-- ✅ **Database schema applied** — все колонки успешно добавлены в таблицу files
-- ✅ Frontend FtpFilesPage обновлена с фильтрами по Calltouch метаданным
+- ✅ Database migration для добавления колонок в таблицу files
+- ✅ **Database schema applied** — все колонки успешно добавлены и в production
+- ✅ Frontend FtpFilesPage с динамическим выбором JSON параметров Calltouch
+- ✅ Dynamic JSON Parameters UI:
+  - Dropdown для выбора любого JSON параметра из метаданных
+  - Dynamic table columns для каждого выбранного параметра
+  - Real-time фильтрация по значениям выбранных параметров
+  - Visual highlighting для matching значений
+  - Easy add/remove параметров с кнопкой X
 
 ### Статус развертывания
 - ✅ Database: Колонки добавлены, индексы созданы
-- 🔄 Backend: Код готов, контейнер пересобирается (медленная сборка)
-- ✅ Frontend: UI обновлена с новыми фильтрами
-- ⏳ Docker images: Пересборка в процессе
+- ✅ Backend: Все endpoints deployed и working (10 JSON fields extracted)
+- ✅ Frontend: UI полностью обновлена с динамическими параметрами
+- ✅ Docker images: Успешно собраны и deployed
 
 ### Configuration
 ```

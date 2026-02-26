@@ -89,7 +89,7 @@ FRONTEND_PORT=3000
 ✅ 5dd055f - Initial commit: full system with design docs
 ```
 
-## Calltouch Integration — ✅ ЗАВЕРШЕНО (2026-02-26)
+## Calltouch Integration — ✅ ПОЛНОСТЬЮ ЗАВЕРШЕНО (2026-02-26 17:37)
 
 ### Реализованный функционал ✅
 - ✅ Backend webhook handler: `POST /api/v1/calltouch/webhook`
@@ -117,10 +117,25 @@ FRONTEND_PORT=3000
   - Easy add/remove параметров с кнопкой X
 
 ### Статус развертывания
-- ✅ Database: Колонки добавлены, индексы созданы
-- ✅ Backend: Все endpoints deployed и working (10 JSON fields extracted)
+- ✅ Database: Колонки добавлены, индексы созданы, записи сохраняются
+- ✅ Backend: Все endpoints working + гибкий парсинг calltime (datetime string, unix timestamp)
+- ✅ Webhook endpoint: Принимает данные от Calltouch и сохраняет на диск
+- ✅ Файловое хранилище: `/app/call-analytics/data/calltouch_records/YYYY/MM/DD/call_<ID>/`
 - ✅ Frontend: UI полностью обновлена с динамическими параметрами
 - ✅ Docker images: Успешно собраны и deployed
+
+### Webhook Configuration (нужно настроить в админке Calltouch)
+```
+URL: http://23.94.143.122:8001/api/v1/calltouch/webhook
+Метод: POST
+Данные: Form Data или JSON
+События: Завершенные звонки с записями
+```
+
+### Поддерживаемые форматы calltime
+- Unix timestamp (1740572400)
+- Datetime string (2026-02-26 20:30:00)
+- ISO format (2026-02-26T20:30:00)
 
 ### Configuration
 ```

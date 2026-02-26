@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # Data paths
     uploads_dir: str = "/app/data/uploads"
     audio_dir: str = "/app/data/audio"
+    mango_sftp_dir: str = "/app/data/mango_sftp/uploads"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -88,24 +88,71 @@ FRONTEND_PORT=3000
 ✅ 5dd055f - Initial commit: full system with design docs
 ```
 
+## SFTP Сервер — Конфигурация ✅ ЗАВЕРШЕНО
+
+### Статус настройки (2026-02-26)
+✅ **SFTP сервер полностью настроен и готов к работе**
+
+- ✅ Пользователь `mango_sftp` создан
+- ✅ SSH конфиг обновлен с chroot для безопасности
+- ✅ `.env` обновлен с SFTP реквизитами
+- ✅ Docker-compose контейнеры перезагружены
+- ✅ Синхронизация записей активирована
+
+### Реквизиты подключения SFTP
+```
+Хост:     23.94.143.122
+Порт:     22 (SFTP)
+User:     mango_sftp
+Password: Mango@SFTP2024!
+Path:     /uploads (chroot в /app/call-analytics/data/mango_sftp)
+```
+
+### Текущий .env на сервере
+```
+MANGO_FTP_HOST=23.94.143.122
+MANGO_FTP_PORT=22
+MANGO_FTP_USER=mango_sftp
+MANGO_FTP_PASSWORD=Mango@SFTP2024!
+MANGO_FTP_TYPE=sftp
+MANGO_FTP_PATH=/uploads
+```
+
+### Проверка работы
+```bash
+# Проверить подключение
+sftp mango_sftp@23.94.143.122
+
+# Загрузить тестовый файл
+echo "test" | sftp mango_sftp@23.94.143.122 -b - << EOF
+put test.wav
+quit
+EOF
+
+# Проверить логи синхро
+docker-compose logs -f mango-sync
+```
+
+**Подробнее**: см. [SFTP_CONFIG.md](./SFTP_CONFIG.md)
+
+---
+
 ## Следующие шаги
-1. **ОБЯЗАТЕЛЬНО**: Отредактировать `.env` с реальными МАНГО FTP данными
+
+1. **Опционально**: Добавить OpenAI API key для GPT-4 анализа
    ```bash
    ssh root@23.94.143.122
-   nano /app/call-analytics/.env
-   docker-compose restart mango-sync backend
+   echo "OPENAI_API_KEY=sk-xxx" >> /app/call-analytics/.env
+   docker-compose restart backend
    ```
 
-2. **Опционально**: Добавить OpenAI API key для GPT-4 анализа
-   - Без ключа система работает с graceful degradation (базовый анализ)
-
-3. **Мониторинг**: Проверить логи
+2. **Мониторинг**: Проверить логи
    ```bash
    docker-compose logs -f backend
    docker-compose logs -f mango-sync
    ```
 
-4. **Тестирование**: Загрузить тестовый файл
+3. **Тестирование**: Загрузить тестовый файл
    ```bash
    curl -X POST http://23.94.143.122:8001/api/v1/upload \
      -F "files=@test_call.mp3" \
@@ -119,6 +166,7 @@ FRONTEND_PORT=3000
 - [ ] Backup strategy для PostgreSQL
 - [ ] Load balancing (если >1000 files/day)
 - [ ] Error handling graceful degradation (4 levels) - реализовано в pipeline
+- [x] SFTP сервер для загрузки записей — ✅ ГОТОВО
 
 ## Файлы документации
 - `VISION.md` - Vision team видение проекта

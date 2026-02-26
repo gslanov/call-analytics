@@ -28,7 +28,7 @@ export interface AnalysisResult {
   created_at: string
 }
 
-export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results'
+export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files'
 
 export type ProcessingStatus =
   | 'queued'

@@ -5,6 +5,7 @@ import { ProgressView } from './components/ProgressView'
 import { ResultsTable } from './components/ResultsTable'
 import { FilterBar } from './components/FilterBar'
 import { AnalysisDetail } from './components/AnalysisDetail'
+import { FtpFilesPage } from './components/FtpFilesPage'
 import { useUpload } from './hooks/useUpload'
 import { useResults } from './hooks/useResults'
 import type { AppState, ProcessingFile } from './types'
@@ -80,6 +81,16 @@ function App() {
               }`}
             >
               Результаты
+            </button>
+            <button
+              onClick={() => setAppState('ftp_files')}
+              className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                appState === 'ftp_files'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              FTP Файлы
             </button>
             <button
               onClick={handleReset}
@@ -170,6 +181,9 @@ function App() {
               onBack={() => setSelectedResultId(null)}
             />
           )}
+
+          {/* FTP Files state */}
+          {appState === 'ftp_files' && <FtpFilesPage />}
 
         </div>
       </main>

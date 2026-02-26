@@ -38,6 +38,7 @@ services:
     volumes:
       - ./data/uploads:/app/data/uploads
       - ./data/audio:/app/data/audio
+      - ./data/mango_sftp/uploads:/app/data/mango_sftp/uploads
     restart: unless-stopped
 
   # Frontend (React)

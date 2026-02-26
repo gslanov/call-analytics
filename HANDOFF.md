@@ -88,6 +88,42 @@ FRONTEND_PORT=3000
 ✅ 5dd055f - Initial commit: full system with design docs
 ```
 
+## Calltouch Integration — 🔄 В ПРОЦЕССЕ РАЗВЕРТЫВАНИЯ (2026-02-26)
+
+### Реализованный функционал ✅
+- ✅ Backend webhook handler: `POST /api/v1/calltouch/webhook`
+- ✅ Calltouch metadata router с 3 endpoints:
+  - `POST /api/v1/calltouch/webhook` — получение webhook от Calltouch
+  - `GET /api/v1/calltouch/metadata/{file_id}` — получение метаданных
+  - `POST /api/v1/calltouch/sync` — синхронизация данных
+- ✅ Calltouch service handler:
+  - `get_call_recording()` — загрузка записи из Calltouch API
+  - `save_call_to_disk()` — сохранение записи + метаданных на диск
+  - `process_webhook()` — обработка webhook данных
+- ✅ New `CallRecord` model для хранения полных метаданных Calltouch
+- ✅ Extended `File` model с Calltouch fields:
+  - `callerphone`, `calledphone`, `operatorphone`, `duration`, `order_id`
+- ✅ Database migration (e8c5f2a1b9d7) для добавления колонок
+- ✅ **Database schema applied** — все колонки успешно добавлены в таблицу files
+- ✅ Frontend FtpFilesPage обновлена с фильтрами по Calltouch метаданным
+
+### Статус развертывания
+- ✅ Database: Колонки добавлены, индексы созданы
+- 🔄 Backend: Код готов, контейнер пересобирается (медленная сборка)
+- ✅ Frontend: UI обновлена с новыми фильтрами
+- ⏳ Docker images: Пересборка в процессе
+
+### Configuration
+```
+CALLTOUCH_SITE_ID=<site-id>
+CALLTOUCH_API_KEY=<api-key>
+CALLTOUCH_CALL_RECORDS_PATH=/app/data/calltouch_records
+```
+
+**Подробнее**: см. [CALLTOUCH_INTEGRATION.md](./CALLTOUCH_INTEGRATION.md)
+
+---
+
 ## SFTP Сервер + FTP Files Browser — ✅ ЗАВЕРШЕНО (2026-02-26)
 
 ### SFTP Конфигурация ✅

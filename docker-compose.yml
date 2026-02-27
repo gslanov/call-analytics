@@ -39,6 +39,7 @@ services:
       - ./data/uploads:/app/data/uploads
       - ./data/audio:/app/data/audio
       - ./data/mango_sftp/uploads:/app/data/mango_sftp/uploads
+      - ./data/calltouch_records:/app/data/calltouch_records
     restart: unless-stopped
 
   # Frontend (React)

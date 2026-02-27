@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # Calltouch
     calltouch_site_id: str = ""
     calltouch_api_key: str = ""
-    calltouch_call_records_path: str = "/app/call-analytics/data/calltouch_records"
+    calltouch_call_records_path: str = "/app/data/calltouch_records"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

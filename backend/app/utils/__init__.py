@@ -32,6 +32,45 @@ def _mask_phone(phone: str) -> str:
     return masked
 
 
+def parse_call_filename(name: str) -> dict[str, str | None]:
+    """Парсит информацию о звонке из имени файла.
+
+    Форматы:
+      2026-04-04__19-51-19__79252463351__Менеджер Галина.mp3
+      2026-04-04__09-49-23__Менеджер Анастасия__79160870602.mp3
+
+    Returns: {call_date: "04.04", call_time: "19:51", caller_phone: "**3351"}
+    """
+    stem = os.path.splitext(name)[0]
+    parts = stem.split("__")
+    result: dict[str, str | None] = {"call_date": None, "call_time": None, "caller_phone": None}
+
+    if len(parts) < 3:
+        return result
+
+    # Часть 1: дата (2026-04-04 → 04.04)
+    date_match = re.match(r"(\d{4})-(\d{2})-(\d{2})", parts[0])
+    if date_match:
+        result["call_date"] = f"{date_match.group(3)}.{date_match.group(2)}"
+
+    # Часть 2: время (19-51-19 → 19:51)
+    time_match = re.match(r"(\d{2})-(\d{2})", parts[1])
+    if time_match:
+        result["call_time"] = f"{time_match.group(1)}:{time_match.group(2)}"
+
+    # Части 3+4: телефон — тот, что начинается с цифры
+    for part in parts[2:]:
+        cleaned = part.strip()
+        if cleaned and cleaned[0].isdigit():
+            # Убираем нецифровые символы, берём последние 4 цифры
+            digits = re.sub(r"\D", "", cleaned)
+            if len(digits) >= 4:
+                result["caller_phone"] = f"**{digits[-4:]}"
+            break
+
+    return result
+
+
 def sanitize_filename(raw: str) -> str:
     """Очистить имя файла: убрать путь, null-байты, скрытые точки.
 

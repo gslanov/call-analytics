@@ -44,9 +44,11 @@ SORT_COLUMNS = {
 
 
 def _make_list_item(db_file: File) -> ResultListItem:
+    from app.utils import parse_call_filename
     analysis = None
     if db_file.analysis:
         analysis = AnalysisSchema.model_validate(db_file.analysis)
+    call_info = parse_call_filename(db_file.original_name)
     return ResultListItem(
         file_id=db_file.id,
         original_name=db_file.original_name,
@@ -60,6 +62,9 @@ def _make_list_item(db_file: File) -> ResultListItem:
         created_at=db_file.created_at,
         analysis=analysis,
         diarization_method=db_file.diarization.method if db_file.diarization else None,
+        call_date=call_info["call_date"],
+        call_time=call_info["call_time"],
+        caller_phone=call_info["caller_phone"],
     )
 
 

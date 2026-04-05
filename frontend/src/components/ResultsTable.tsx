@@ -54,12 +54,6 @@ function formatDate(iso: string) {
   })
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru-RU', {
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
 function audioType(method?: string | null): { label: string; color: string } {
   if (method === 'channel_split') return { label: 'стерео', color: 'text-green-600' }
   if (method === 'llm_diarization') return { label: 'моно', color: 'text-orange-500' }
@@ -229,7 +223,7 @@ export function ResultsTable({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className={colClass} onClick={() => toggleSort('created_at')}>
-                  Дата <SortIcon col="created_at" sort={filters.sort} order={filters.order} />
+                  Звонок <SortIcon col="created_at" sort={filters.sort} order={filters.order} />
                 </th>
                 <th className={colClass} onClick={() => toggleSort('operator_name')}>
                   Оператор <SortIcon col="operator_name" sort={filters.sort} order={filters.order} />
@@ -259,16 +253,21 @@ export function ResultsTable({
                       className={`border-b border-gray-100 cursor-pointer transition-colors ${rowBg(r.analysis?.overall)}`}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(r.created_at)}</div>
-                        <div className="text-[10px] text-gray-400">{formatTime(r.created_at)}</div>
+                        <div className="text-sm text-gray-700 font-medium">
+                          {r.call_date ?? formatDate(r.created_at)}{' '}
+                          <span className="text-gray-400 font-normal">{r.call_time ?? ''}</span>
+                        </div>
+                        {r.caller_phone && (
+                          <div className="text-[11px] text-gray-400">{r.caller_phone}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-800">{r.operator_name}</div>
                         {r.diarization_method && (
-                          <span className={`text-[10px] font-medium ${audioType(r.diarization_method).color}`}>
+                          <span className={`text-[10px] ${audioType(r.diarization_method).color}`}>
                             {audioType(r.diarization_method).label}
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-800 whitespace-nowrap">
-                        {r.operator_name}
                       </td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.standard} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.loyalty} /></td>

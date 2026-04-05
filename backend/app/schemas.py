@@ -93,6 +93,9 @@ class ResultListItem(BaseModel):
     created_at: datetime
     analysis: AnalysisSchema | None
     diarization_method: str | None = None  # channel_split / llm_diarization / pyannote
+    call_date: str | None = None      # "04.04" — из имени файла
+    call_time: str | None = None      # "19:51" — из имени файла
+    caller_phone: str | None = None   # "**3351" — последние 4 цифры
 
 
 class PaginatedResults(BaseModel):

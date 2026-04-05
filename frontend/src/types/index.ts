@@ -26,7 +26,10 @@ export interface AnalysisResult {
     summary: string
   }
   created_at: string
-  diarization_method?: string | null  // channel_split / llm_diarization / pyannote
+  diarization_method?: string | null
+  call_date?: string | null    // "04.04"
+  call_time?: string | null    // "19:51"
+  caller_phone?: string | null // "**3351"
 }
 
 export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files'

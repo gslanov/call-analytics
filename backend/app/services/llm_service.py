@@ -62,9 +62,10 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
   "overall": <средневзвешенное: standard*0.4 + loyalty*0.3 + kindness*0.3>,
   "summary": "<2-3 предложения на русском: что хорошо, что улучшить>",
   "quotes": [
-    {"text": "<точная цитата из транскрипта>", "criterion": "<standard|loyalty|kindness>", "sentiment": "<positive|negative>"}
+    {"text": "<точная цитата ОПЕРАТОРА>", "criterion": "<standard|loyalty|kindness>", "sentiment": "<positive|negative>"}
   ]
 }
+ВАЖНО: цитаты (quotes) — ТОЛЬКО из реплик ОПЕРАТОРА. Мы оцениваем работу оператора, НЕ клиента.
 Цитат: 3-6 штук (и положительные, и отрицательные). Никакого текста вне JSON."""
 
 STRICT_SYSTEM_PROMPT = SYSTEM_PROMPT + (

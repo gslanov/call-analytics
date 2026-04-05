@@ -41,21 +41,16 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
     return (
       <div className="max-h-[600px] overflow-y-auto pr-1">
         <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm leading-relaxed text-gray-700">
-          {segments.map((seg, i) => {
-            const matchedQuote = findQuoteMatch(seg.text, quotes)
-            return (
-              <span
-                key={i}
-                className={`cursor-pointer hover:bg-blue-100 rounded transition-colors ${
-                  matchedQuote ? 'bg-yellow-100 border-b-2 border-yellow-400' : ''
-                }`}
-                onClick={() => onTimestampClick?.(seg.start)}
-                title={`${fmt(seg.start)}${matchedQuote ? ` · ${CRITERION_LABEL[matchedQuote.criterion] ?? ''}` : ''}`}
-              >
-                {seg.text}{' '}
-              </span>
-            )
-          })}
+          {segments.map((seg, i) => (
+            <span
+              key={i}
+              className="cursor-pointer hover:bg-blue-100 rounded transition-colors"
+              onClick={() => onTimestampClick?.(seg.start)}
+              title={fmt(seg.start)}
+            >
+              {seg.text}{' '}
+            </span>
+          ))}
         </div>
       </div>
     )
@@ -65,13 +60,16 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
     <div className="flex flex-col gap-0.5 max-h-[600px] overflow-y-auto pr-1 text-sm">
       {segments.map((seg, i) => {
         const isOperator = seg.speaker === 'operator'
-        const matchedQuote = findQuoteMatch(seg.text, quotes)
+        // Плашки оценки — ТОЛЬКО у оператора
+        const matchedQuote = isOperator ? findQuoteMatch(seg.text, quotes) : undefined
 
         return (
           <div
             key={i}
-            className={`flex items-start gap-0 cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-gray-50 ${
-              matchedQuote ? 'bg-yellow-50' : ''
+            className={`flex items-start gap-0 cursor-pointer rounded px-1 py-0.5 transition-colors ${
+              isOperator
+                ? 'bg-blue-50 hover:bg-blue-100'
+                : 'hover:bg-gray-50'
             }`}
             onClick={() => onTimestampClick?.(seg.start)}
           >
@@ -84,11 +82,11 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
               {isOperator ? 'Оп:' : 'Кл:'}
             </span>
             <span className={`flex-1 leading-snug ${
-              isOperator ? 'text-gray-800' : 'text-gray-600'
+              isOperator ? 'text-gray-800' : 'text-gray-500'
             }`}>
               {seg.text}
               {matchedQuote && (
-                <span className="ml-1 text-[10px] text-yellow-600 font-medium">
+                <span className="ml-1.5 inline-flex items-center text-[10px] text-yellow-700 bg-yellow-100 rounded px-1 py-0 font-medium">
                   ★ {CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}
                 </span>
               )}

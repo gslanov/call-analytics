@@ -423,10 +423,18 @@ class DiarizationService:
         from pyannote.audio import Pipeline
 
         logger.info("Loading pyannote/speaker-diarization-3.1 …")
-        self._pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
-            use_auth_token=settings.hf_token,
-        )
+        try:
+            # pyannote 4.x
+            self._pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization-3.1",
+                token=settings.hf_token,
+            )
+        except TypeError:
+            # pyannote 3.x fallback
+            self._pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization-3.1",
+                use_auth_token=settings.hf_token,
+            )
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self._pipeline.to(torch.device(device))
         logger.info("pyannote pipeline loaded on %s", device)

@@ -215,18 +215,15 @@ class DiarizationService:
         path: Path,
         word_timestamps: list[dict[str, Any]],
     ) -> DiarizationResult:
-        """pyannote/speaker-diarization-3.1 on mono audio."""
+        """pyannote/speaker-diarization-3.1 on mono audio.
+
+        Fallback без HF_TOKEN: GPT-4o размечает роли по тексту.
+        """
         warnings: list[str] = []
 
         if not settings.hf_token:
-            logger.warning(
-                "HF_TOKEN not set — pyannote unavailable, returning single-speaker result"
-            )
-            warnings.append(
-                "Диаризация недоступна: HF_TOKEN не настроен. "
-                "Весь текст помечен как оператор."
-            )
-            return self._fallback_single_speaker(path, word_timestamps, warnings)
+            logger.info("HF_TOKEN not set — using GPT-4o for mono diarization")
+            return self._diarize_mono_llm(path, word_timestamps)
 
         self._load_pipeline()
 
@@ -291,6 +288,117 @@ class DiarizationService:
             confidence=confidence,
             num_speakers=num_speakers,
             warnings=warnings,
+        )
+
+    def _diarize_mono_llm(
+        self,
+        path: Path,
+        word_timestamps: list[dict[str, Any]],
+    ) -> DiarizationResult:
+        """Разметка ролей моно-записи через GPT-4o.
+
+        Группируем слова в фразы по паузам, отправляем текст в GPT-4o
+        с просьбой разметить operator/client для каждой фразы.
+        """
+        import json
+
+        # Шаг 1: группируем слова в фразы по паузам
+        phrases: list[dict[str, Any]] = []
+        current_words: list[dict[str, Any]] = []
+
+        for w in word_timestamps:
+            if current_words:
+                gap = float(w["start"]) - float(current_words[-1]["end"])
+                if gap > self.PHRASE_GAP_SEC:
+                    phrases.append({
+                        "text": " ".join(ww["word"] for ww in current_words),
+                        "start": float(current_words[0]["start"]),
+                        "end": float(current_words[-1]["end"]),
+                    })
+                    current_words = []
+            current_words.append(w)
+        if current_words:
+            phrases.append({
+                "text": " ".join(ww["word"] for ww in current_words),
+                "start": float(current_words[0]["start"]),
+                "end": float(current_words[-1]["end"]),
+            })
+
+        if not phrases:
+            return self._fallback_single_speaker(path, word_timestamps, [])
+
+        # Шаг 2: формируем запрос для GPT-4o
+        numbered_lines = "\n".join(
+            f"{i+1}. {p['text']}" for i, p in enumerate(phrases)
+        )
+
+        prompt = (
+            "Это транскрипт телефонного звонка в контакт-центр доставки пирогов. "
+            "Говорят два человека: оператор (operator) и клиент (client). "
+            "Оператор обычно начинает первым с приветствия.\n\n"
+            "Для КАЖДОЙ строки укажи роль: operator или client.\n"
+            "Верни ТОЛЬКО JSON-массив строк, например: "
+            '[\"operator\",\"client\",\"operator\",...]\n'
+            f"Строк ровно {len(phrases)}. Никакого текста кроме JSON.\n\n"
+            f"{numbered_lines}"
+        )
+
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.openai_api_key)
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                temperature=0,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=30,
+            )
+            raw = (response.choices[0].message.content or "").strip()
+            # Убираем markdown fence если есть
+            if raw.startswith("```"):
+                raw = "\n".join(
+                    l for l in raw.splitlines() if not l.strip().startswith("```")
+                ).strip()
+            roles = json.loads(raw)
+        except Exception as exc:
+            logger.warning("GPT-4o diarization failed: %s — falling back to single speaker", exc)
+            return self._fallback_single_speaker(path, word_timestamps, [
+                f"LLM-диаризация не удалась: {exc}. Весь текст помечен как оператор."
+            ])
+
+        # Шаг 3: применяем роли к фразам
+        transcript_segments: list[TranscriptSegment] = []
+        for i, phrase in enumerate(phrases):
+            role = "operator"
+            if i < len(roles) and roles[i] in ("operator", "client"):
+                role = roles[i]
+            transcript_segments.append(
+                TranscriptSegment(
+                    speaker=role,
+                    start=phrase["start"],
+                    end=phrase["end"],
+                    text=phrase["text"],
+                )
+            )
+
+        # Формируем DiarizationSegment (для БД)
+        diarization_segments = [
+            DiarizationSegment(speaker=seg.speaker, start=seg.start, end=seg.end)
+            for seg in transcript_segments
+        ]
+
+        logger.info(
+            "GPT-4o mono diarization: %d phrases, %d speakers",
+            len(phrases),
+            len({s.speaker for s in transcript_segments}),
+        )
+
+        return DiarizationResult(
+            segments=diarization_segments,
+            transcript_segments=transcript_segments,
+            method="llm_diarization",
+            confidence=85.0,
+            num_speakers=2,
+            warnings=["Разметка ролей выполнена GPT-4o (моно-запись)."],
         )
 
     def _load_pipeline(self) -> None:

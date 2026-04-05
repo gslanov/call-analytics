@@ -215,6 +215,38 @@ def get_result(
     )
 
 
+@router.post("/reprocess/{file_id}")
+def reprocess_file(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Перезапустить обработку файла: сбросить результаты и поставить в очередь."""
+    from app.models import Transcription, Diarization
+    from app.services.queue import QueueManager
+
+    db_file = db.get(File, file_id)
+    if db_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    # Удаляем предыдущие результаты
+    for model in [Analysis, Diarization, Transcription]:
+        existing = db.scalar(select(model).where(model.file_id == file_id))
+        if existing:
+            db.delete(existing)
+
+    db_file.status = "queued"
+    db_file.stage = 0
+    db_file.progress = 0
+    db_file.error_message = None
+    db.commit()
+
+    # Ставим в очередь (в том же процессе — queue worker подхватит)
+    q = QueueManager.get_instance()
+    q.enqueue_sync(file_id)
+
+    return {"file_id": str(file_id), "status": "queued"}
+
+
 # Bug #2: polling fallback endpoint for when WebSocket is unavailable
 @router.get("/status/{file_id}")
 def get_file_status(

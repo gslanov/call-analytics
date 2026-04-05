@@ -239,12 +239,14 @@ class DiarizationService:
         audio_input = {"waveform": waveform, "sample_rate": SAMPLE_RATE}
 
         try:
-            diarization = self._pipeline(audio_input)
+            result = self._pipeline(audio_input)
+            # pyannote 4.x returns DiarizeOutput, extract Annotation
+            diarization = getattr(result, "speaker_diarization", result)
         except Exception as exc:
             logger.warning("pyannote processing failed (%s) — falling back to GPT-4o", exc)
             return self._diarize_mono_llm(path, word_timestamps)
 
-        # Parse pyannote output
+        # Parse pyannote output (Annotation object)
         raw_segments: list[tuple[float, float, str]] = []  # (start, end, label)
         for turn, _, speaker in diarization.itertracks(yield_label=True):
             raw_segments.append((turn.start, turn.end, speaker))

@@ -12,7 +12,6 @@ function fmt(secs: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-/** Check if segment text contains (or is contained in) any quote text */
 function findQuoteMatch(text: string, quotes: Quote[]): Quote | undefined {
   const t = text.toLowerCase()
   return quotes.find(
@@ -35,15 +34,13 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
     )
   }
 
-  // Определяем количество уникальных спикеров
   const speakers = new Set(segments.map((s) => s.speaker))
   const isMono = speakers.size <= 1
 
   if (isMono) {
-    // Моно: компактный текст без разбивки по ролям
     return (
-      <div className="max-h-[500px] overflow-y-auto pr-1">
-        <div className="bg-gray-50 rounded-lg px-4 py-3">
+      <div className="max-h-[600px] overflow-y-auto pr-1">
+        <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm leading-relaxed text-gray-700">
           {segments.map((seg, i) => {
             const matchedQuote = findQuoteMatch(seg.text, quotes)
             return (
@@ -53,9 +50,7 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
                   matchedQuote ? 'bg-yellow-100 border-b-2 border-yellow-400' : ''
                 }`}
                 onClick={() => onTimestampClick?.(seg.start)}
-                title={`${fmt(seg.start)} — ${fmt(seg.end)}${
-                  matchedQuote ? ` | ${CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}` : ''
-                }`}
+                title={`${fmt(seg.start)}${matchedQuote ? ` · ${CRITERION_LABEL[matchedQuote.criterion] ?? ''}` : ''}`}
               >
                 {seg.text}{' '}
               </span>
@@ -66,9 +61,8 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
     )
   }
 
-  // Стерео/диаризация: компактный диалог
   return (
-    <div className="flex flex-col gap-1 max-h-[500px] overflow-y-auto pr-1">
+    <div className="flex flex-col gap-0.5 max-h-[600px] overflow-y-auto pr-1 text-sm">
       {segments.map((seg, i) => {
         const isOperator = seg.speaker === 'operator'
         const matchedQuote = findQuoteMatch(seg.text, quotes)
@@ -76,37 +70,29 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
         return (
           <div
             key={i}
-            className={`flex items-start gap-2 ${isOperator ? '' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-0 cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-gray-50 ${
+              matchedQuote ? 'bg-yellow-50' : ''
+            }`}
+            onClick={() => onTimestampClick?.(seg.start)}
           >
-            {/* Speaker + time */}
-            <div className={`flex-shrink-0 w-12 text-center ${isOperator ? '' : 'text-right'}`}>
-              <span className={`text-[10px] font-bold ${
-                isOperator ? 'text-blue-600' : 'text-gray-400'
-              }`}>
-                {isOperator ? 'Оп' : 'Кл'}
-              </span>
-              <div className="text-[10px] text-gray-300">{fmt(seg.start)}</div>
-            </div>
-
-            {/* Text */}
-            <div
-              className={`flex-1 rounded-lg px-2.5 py-1 cursor-pointer transition-colors text-sm leading-snug ${
-                matchedQuote
-                  ? 'bg-yellow-50 border-l-2 border-yellow-400'
-                  : isOperator
-                  ? 'bg-blue-50 hover:bg-blue-100'
-                  : 'bg-gray-50 hover:bg-gray-100'
-              } ${isOperator ? 'font-medium text-gray-800' : 'text-gray-600'}`}
-              onClick={() => onTimestampClick?.(seg.start)}
-              title={matchedQuote ? `★ ${CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}` : undefined}
-            >
+            <span className="text-[10px] text-gray-300 w-8 flex-shrink-0 pt-0.5 select-none">
+              {fmt(seg.start)}
+            </span>
+            <span className={`w-7 flex-shrink-0 font-bold text-xs pt-0.5 select-none ${
+              isOperator ? 'text-blue-600' : 'text-orange-500'
+            }`}>
+              {isOperator ? 'Оп:' : 'Кл:'}
+            </span>
+            <span className={`flex-1 leading-snug ${
+              isOperator ? 'text-gray-800' : 'text-gray-600'
+            }`}>
               {seg.text}
               {matchedQuote && (
                 <span className="ml-1 text-[10px] text-yellow-600 font-medium">
                   ★ {CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}
                 </span>
               )}
-            </div>
+            </span>
           </div>
         )
       })}

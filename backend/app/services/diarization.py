@@ -147,59 +147,64 @@ class DiarizationService:
         audio = raw.reshape(-1, 2).T   # shape (2, N)
         return audio, SAMPLE_RATE
 
+    # Пауза между словами, после которой начинается новая фраза
+    PHRASE_GAP_SEC = 0.8
+
     def _merge_stereo(
         self,
         path: Path,
         word_timestamps: list[dict[str, Any]],
         sr: int,
     ) -> list[TranscriptSegment]:
-        """Assign each word to operator or client by channel RMS energy.
+        """Группировка по фразам → определение спикера для всей фразы.
 
-        Sticky speaker: короткие слова (<0.3 сек) или слова с малой разницей
-        каналов наследуют спикера от предыдущего слова. Это предотвращает
-        прыжки при вздохах, кашле и фоновом шуме.
+        1. Слова группируются в фразы по паузам (>0.8 сек = новая фраза)
+        2. Для каждой фразы суммарная RMS-энергия по каналам определяет спикера
+        3. Результат — целые фразы с правильным спикером, без прыжков на вздохах
         """
         audio, _ = self._load_stereo(path)
         n_samples = audio.shape[1]
 
-        # Минимальная разница RMS для уверенной смены спикера (отношение)
-        MIN_RMS_RATIO = 1.4  # канал должен быть в 1.4 раза громче другого
-
-        transcript_segments: list[TranscriptSegment] = []
-        prev_speaker = "operator"  # начинаем с оператора (он обычно первый)
+        # Шаг 1: группируем слова в фразы по паузам
+        phrases: list[list[dict[str, Any]]] = []
+        current_phrase: list[dict[str, Any]] = []
 
         for w in word_timestamps:
-            start_s = float(w["start"])
-            end_s   = float(w["end"])
-            duration = end_s - start_s
-            s = max(0, int(start_s * sr))
-            e = min(n_samples, int(end_s * sr))
-            if s >= e:
-                continue
+            if current_phrase:
+                gap = float(w["start"]) - float(current_phrase[-1]["end"])
+                if gap > self.PHRASE_GAP_SEC:
+                    phrases.append(current_phrase)
+                    current_phrase = []
+            current_phrase.append(w)
+        if current_phrase:
+            phrases.append(current_phrase)
 
-            rms_l = float(np.sqrt(np.mean(audio[0, s:e] ** 2)))
-            rms_r = float(np.sqrt(np.mean(audio[1, s:e] ** 2)))
-            max_rms = max(rms_l, rms_r, 1e-10)
-            min_rms = min(rms_l, rms_r, 1e-10)
-            ratio = max_rms / min_rms
+        # Шаг 2: для каждой фразы определяем спикера по суммарной RMS
+        transcript_segments: list[TranscriptSegment] = []
+        for phrase_words in phrases:
+            # Суммируем энергию всех слов фразы по каждому каналу
+            total_energy_l = 0.0
+            total_energy_r = 0.0
+            for w in phrase_words:
+                s = max(0, int(float(w["start"]) * sr))
+                e = min(n_samples, int(float(w["end"]) * sr))
+                if s >= e:
+                    continue
+                total_energy_l += float(np.sum(audio[0, s:e] ** 2))
+                total_energy_r += float(np.sum(audio[1, s:e] ** 2))
 
-            if duration < 0.3 or ratio < MIN_RMS_RATIO:
-                # Короткое слово или неуверенная разница — оставляем предыдущего спикера
-                speaker = prev_speaker
-            else:
-                speaker = "operator" if rms_l >= rms_r else "client"
+            speaker = "operator" if total_energy_l >= total_energy_r else "client"
 
-            prev_speaker = speaker
+            # Собираем текст фразы
+            text = " ".join(w["word"] for w in phrase_words)
+            start = float(phrase_words[0]["start"])
+            end = float(phrase_words[-1]["end"])
+
             transcript_segments.append(
-                TranscriptSegment(
-                    speaker=speaker,
-                    start=start_s,
-                    end=end_s,
-                    text=w["word"],
-                )
+                TranscriptSegment(speaker=speaker, start=start, end=end, text=text)
             )
 
-        return self._merge_adjacent_segments(transcript_segments)
+        return transcript_segments
 
     # ------------------------------------------------------------------
     # Strategy 2: Mono — pyannote diarization

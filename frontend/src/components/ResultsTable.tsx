@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { AnalysisResult, ResultFilters } from '../types'
 import { Pagination } from './Pagination'
 import { SummaryCards } from './SummaryCards'
@@ -54,7 +54,8 @@ function formatDate(iso: string) {
   })
 }
 
-function formatDuration(secs: number) {
+function formatDuration(secs: number | null): string {
+  if (secs == null) return '—'
   const m = Math.floor(secs / 60)
   const s = Math.round(secs % 60)
   return `${m}:${String(s).padStart(2, '0')}`
@@ -239,9 +240,8 @@ export function ResultsTable({
               {results.map((r) => {
                 const isExpanded = expandedId === r.file_id
                 return (
-                  <>
+                  <Fragment key={r.file_id}>
                     <tr
-                      key={r.file_id}
                       onClick={() => toggleRow(r.file_id)}
                       className={`border-b border-gray-100 cursor-pointer transition-colors ${rowBg(r.analysis?.overall)}`}
                     >
@@ -266,7 +266,7 @@ export function ResultsTable({
                         onDetail={onRowDetail ? () => onRowDetail(r.file_id) : undefined}
                       />
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>

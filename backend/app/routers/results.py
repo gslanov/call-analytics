@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import asc, desc, func, nulls_last, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -19,6 +19,7 @@ from app.schemas import (
     PaginatedResults,
     ResultDetail,
     ResultListItem,
+    TranscriptionDetail,
 )
 
 router = APIRouter(tags=["results"])
@@ -29,6 +30,16 @@ STAGE_NAMES = {
     2: "Диаризация",
     3: "Анализ",
     4: "Готово",
+}
+
+# Whitelist допустимых полей для сортировки (защита от SQL injection)
+SORT_COLUMNS = {
+    "created_at": File.created_at,
+    "operator_name": Operator.name,
+    "overall": Analysis.overall,
+    "standard": Analysis.standard,
+    "loyalty": Analysis.loyalty,
+    "kindness": Analysis.kindness,
 }
 
 
@@ -62,6 +73,8 @@ def list_results(
     score_min: int | None = Query(None, ge=0, le=100, description="Минимальный overall score"),
     score_max: int | None = Query(None, ge=0, le=100, description="Максимальный overall score"),
     q: str | None = Query(None, description="Поиск по имени файла"),
+    sort: str | None = Query(None, description="Поле сортировки: created_at, operator_name, overall, standard, loyalty, kindness"),
+    order: str | None = Query("desc", description="Направление: asc или desc"),
     db: Session = Depends(get_db),
 ) -> PaginatedResults:
     """Список обработанных звонков с пагинацией и фильтрацией."""
@@ -100,9 +113,22 @@ def list_results(
     count_query = select(func.count()).select_from(query.subquery())
     total = db.scalar(count_query) or 0
 
-    # Bug #3: use `limit` instead of `page_size`
+    # Динамическая сортировка по запросу фронтенда
+    sort_col = SORT_COLUMNS.get(sort) if sort else None
+    if sort_col is not None:
+        # Если сортируем по полю Analysis — нужен outerjoin (если ещё не добавлен)
+        if sort in ("overall", "standard", "loyalty", "kindness") and score_min is None and score_max is None:
+            query = query.outerjoin(Analysis, Analysis.file_id == File.id)
+        # Если сортируем по operator_name — нужен join (если ещё не добавлен через фильтр)
+        if sort == "operator_name" and not operator:
+            query = query.outerjoin(Operator, Operator.id == File.operator_id)
+        direction = asc if order == "asc" else desc
+        query = query.order_by(nulls_last(direction(sort_col)))
+    else:
+        query = query.order_by(File.created_at.desc())
+
     offset = (page - 1) * limit
-    query = query.order_by(File.created_at.desc()).offset(offset).limit(limit)
+    query = query.offset(offset).limit(limit)
     files = db.scalars(query).unique().all()
 
     items = [_make_list_item(f) for f in files]
@@ -136,10 +162,16 @@ def get_result(
     if db_file is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
-    # Transcription
+    # Transcription (nested — фронт ожидает transcription.full_text)
     full_text = db_file.transcription.full_text if db_file.transcription else None
+    transcription_detail = None
+    if db_file.transcription:
+        transcription_detail = TranscriptionDetail(
+            full_text=db_file.transcription.full_text,
+            word_timestamps=db_file.transcription.word_timestamps,
+        )
 
-    # Bug #5: nest diarization in DiarizationDetail object
+    # Diarization (nested, с num_speakers)
     diarization_detail = None
     if db_file.diarization:
         segments = [
@@ -154,6 +186,7 @@ def get_result(
         diarization_detail = DiarizationDetail(
             method=db_file.diarization.method,
             confidence=db_file.diarization.confidence,
+            num_speakers=db_file.diarization.num_speakers,
             segments=segments,
         )
 
@@ -176,6 +209,7 @@ def get_result(
         created_at=db_file.created_at,
         updated_at=db_file.updated_at,
         full_text=full_text,
+        transcription=transcription_detail,
         diarization=diarization_detail,
         analysis=analysis,
     )
@@ -199,5 +233,5 @@ def get_file_status(
         "progress": db_file.progress or 0,
         "stage": stage,
         "stage_name": STAGE_NAMES.get(stage, ""),
-        "error": db_file.error_message if db_file.status == "failed" else None,
+        "error_message": db_file.error_message if db_file.status == "failed" else None,
     }

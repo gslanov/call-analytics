@@ -29,9 +29,11 @@ _MIME_MAP = {
 
 
 class SftpFileItem(BaseModel):
+    id: str  # = filename, уникальный идентификатор файла на диске
     filename: str
     size: int
     created_at: datetime
+    date: str  # ISO datetime string для фронтенда
     duration_sec: float | None
 
 
@@ -91,9 +93,11 @@ def list_sftp_files(
         created_at = datetime.fromtimestamp(stat.st_mtime)
         duration_sec, _, _ = _probe_audio(file_path)
         files.append(SftpFileItem(
+            id=file_path.name,
             filename=file_path.name,
             size=stat.st_size,
             created_at=created_at,
+            date=created_at.isoformat(),
             duration_sec=duration_sec,
         ))
 

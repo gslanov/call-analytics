@@ -15,7 +15,7 @@ ALLOWED_EXTENSIONS = {".mp3", ".wav", ".ogg", ".flac", ".m4a", ".webm"}
 
 # Magic bytes: (offset, bytes)
 MAGIC_SIGNATURES: dict[str, list[bytes]] = {
-    ".mp3":  [b"\xff\xfb", b"\xff\xf3", b"\xff\xf2", b"ID3"],
+    ".mp3":  [b"\xff\xfb", b"\xff\xf3", b"\xff\xf2", b"\xff\xe3", b"\xff\xe2", b"ID3"],
     ".wav":  [b"RIFF"],
     ".ogg":  [b"OggS"],
     ".flac": [b"fLaC"],

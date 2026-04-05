@@ -104,9 +104,15 @@ class PaginatedResults(BaseModel):
 
 # --- Result detail ---
 
+class TranscriptionDetail(BaseModel):
+    full_text: str
+    word_timestamps: list | None = None
+
+
 class DiarizationDetail(BaseModel):
     method: str | None
     confidence: float | None
+    num_speakers: int | None = None
     segments: list[DiarizationSegmentSchema]
 
 
@@ -123,12 +129,13 @@ class ResultDetail(BaseModel):
     error_message: str | None
     created_at: datetime
     updated_at: datetime
-    # Transcription
-    full_text: str | None
-    # Diarization (nested, Баг #5)
-    diarization: DiarizationDetail | None
+    # Transcription (nested — фронт ожидает transcription.full_text)
+    full_text: str | None = None
+    transcription: TranscriptionDetail | None = None
+    # Diarization (nested, с num_speakers)
+    diarization: DiarizationDetail | None = None
     # Analysis
-    analysis: AnalysisSchema | None
+    analysis: AnalysisSchema | None = None
 
 
 # --- Health ---

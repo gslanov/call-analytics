@@ -15,7 +15,7 @@ const STATUS_LABEL: Record<ProcessingStatus, string> = {
   failed: 'Ошибка',
 }
 
-const STAGES = ['Очередь', 'Валидация', 'Транскрипт', 'Диаризация', 'Анализ']
+const STAGES = ['Очередь', 'Валидация', 'Транскрибация', 'Диаризация', 'Анализ']
 
 function ProgressBar({ value, status }: { value: number; status: ProcessingStatus }) {
   const color =

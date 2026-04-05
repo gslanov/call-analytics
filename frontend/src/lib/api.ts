@@ -164,21 +164,6 @@ export async function fetchFtpFiles(
   return response.json() as Promise<FtpFilesPage>
 }
 
-export interface CallMetadata {
-  callerphone?: string
-  calledphone?: string
-  operatorphone?: string
-  calltouch_duration?: number
-  order_id?: string
-  lead_name?: string
-}
-
-export async function fetchCallMetadata(fileId: string): Promise<CallMetadata> {
-  const response = await fetch(`${API_BASE_URL}/sftp/files/${encodeURIComponent(fileId)}/metadata`)
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json() as Promise<CallMetadata>
-}
-
 export function ftpStreamUrl(filename: string): string {
   return `${API_BASE_URL}/sftp/files/${encodeURIComponent(filename)}/stream`
 }
@@ -190,14 +175,14 @@ export function ftpDownloadUrl(filename: string): string {
 export async function sendFtpToWhisper(
   filenames: string[],
   operatorName?: string
-): Promise<{ queued: string[] }> {
+): Promise<UploadResponse> {
   const response = await fetch(`${API_BASE_URL}/sftp/process`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ filenames, operator_name: operatorName }),
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json() as Promise<{ queued: string[] }>
+  return response.json() as Promise<UploadResponse>
 }
 
 // Calltouch JSON параметры

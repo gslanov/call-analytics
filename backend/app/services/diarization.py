@@ -283,8 +283,11 @@ class DiarizationService:
             word_timestamps, segments
         )
 
+        # Группируем мелкие сегменты в фразы по паузам (как в стерео)
+        transcript_segments = self._group_into_phrases(transcript_segments)
+
         logger.info(
-            "pyannote: %d speakers, confidence=%.1f%%, %d segments",
+            "pyannote: %d speakers, confidence=%.1f%%, %d phrases",
             num_speakers,
             confidence,
             len(transcript_segments),
@@ -555,6 +558,46 @@ class DiarizationService:
                 )
         merged.append(current)
         return merged
+
+    # ------------------------------------------------------------------
+    # Phrase grouping
+    # ------------------------------------------------------------------
+
+    def _group_into_phrases(
+        self, segments: list[TranscriptSegment]
+    ) -> list[TranscriptSegment]:
+        """Группирует мелкие сегменты в фразы по паузам.
+
+        Сегменты одного спикера с паузой <PHRASE_GAP_SEC склеиваются.
+        При смене спикера — всегда новая фраза.
+        """
+        if not segments:
+            return []
+
+        result: list[TranscriptSegment] = []
+        current = TranscriptSegment(
+            speaker=segments[0].speaker,
+            start=segments[0].start,
+            end=segments[0].end,
+            text=segments[0].text,
+        )
+
+        for seg in segments[1:]:
+            gap = seg.start - current.end
+            if seg.speaker == current.speaker and gap < self.PHRASE_GAP_SEC:
+                # Тот же спикер, маленькая пауза — склеиваем
+                current.end = seg.end
+                current.text = current.text + " " + seg.text
+            else:
+                result.append(current)
+                current = TranscriptSegment(
+                    speaker=seg.speaker,
+                    start=seg.start,
+                    end=seg.end,
+                    text=seg.text,
+                )
+        result.append(current)
+        return result
 
     # ------------------------------------------------------------------
     # Utilities

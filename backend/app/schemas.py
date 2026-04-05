@@ -92,6 +92,7 @@ class ResultListItem(BaseModel):
     progress: int
     created_at: datetime
     analysis: AnalysisSchema | None
+    diarization_method: str | None = None  # channel_split / llm_diarization / pyannote
 
 
 class PaginatedResults(BaseModel):

@@ -59,6 +59,7 @@ def _make_list_item(db_file: File) -> ResultListItem:
         progress=db_file.progress or 0,
         created_at=db_file.created_at,
         analysis=analysis,
+        diarization_method=db_file.diarization.method if db_file.diarization else None,
     )
 
 
@@ -83,6 +84,7 @@ def list_results(
         .options(
             selectinload(File.operator),
             selectinload(File.analysis),
+            selectinload(File.diarization),
         )
     )
 

@@ -26,6 +26,7 @@ export interface AnalysisResult {
     summary: string
   }
   created_at: string
+  diarization_method?: string | null  // channel_split / llm_diarization / pyannote
 }
 
 export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files'

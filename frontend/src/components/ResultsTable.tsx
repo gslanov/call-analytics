@@ -54,6 +54,19 @@ function formatDate(iso: string) {
   })
 }
 
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('ru-RU', {
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function audioType(method?: string | null): { label: string; color: string } {
+  if (method === 'channel_split') return { label: 'стерео', color: 'text-green-600' }
+  if (method === 'llm_diarization') return { label: 'моно', color: 'text-orange-500' }
+  if (method === 'pyannote') return { label: 'моно', color: 'text-orange-500' }
+  return { label: '', color: '' }
+}
+
 function formatDuration(secs: number | null): string {
   if (secs == null) return '—'
   const m = Math.floor(secs / 60)
@@ -245,8 +258,14 @@ export function ResultsTable({
                       onClick={() => toggleRow(r.file_id)}
                       className={`border-b border-gray-100 cursor-pointer transition-colors ${rowBg(r.analysis?.overall)}`}
                     >
-                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(r.created_at)}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{formatDate(r.created_at)}</div>
+                        <div className="text-[10px] text-gray-400">{formatTime(r.created_at)}</div>
+                        {r.diarization_method && (
+                          <span className={`text-[10px] font-medium ${audioType(r.diarization_method).color}`}>
+                            {audioType(r.diarization_method).label}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-800 whitespace-nowrap">
                         {r.operator_name}

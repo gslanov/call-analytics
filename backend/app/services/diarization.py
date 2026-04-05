@@ -232,18 +232,17 @@ class DiarizationService:
             logger.warning("pyannote unavailable (%s) — falling back to GPT-4o", exc)
             return self._diarize_mono_llm(path, word_timestamps)
 
-        self._load_pipeline()
-
-        # Write 16 kHz mono WAV for pyannote
+        # Загружаем аудио как tensor и передаём напрямую (обход torchcodec)
+        import torch
         audio_np = self._load_as_16k_mono(path)
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            sf.write(tmp.name, audio_np, SAMPLE_RATE)
-            mono_path = Path(tmp.name)
+        waveform = torch.from_numpy(audio_np).unsqueeze(0)  # shape (1, N)
+        audio_input = {"waveform": waveform, "sample_rate": SAMPLE_RATE}
 
         try:
-            diarization = self._pipeline(str(mono_path))
-        finally:
-            mono_path.unlink(missing_ok=True)
+            diarization = self._pipeline(audio_input)
+        except Exception as exc:
+            logger.warning("pyannote processing failed (%s) — falling back to GPT-4o", exc)
+            return self._diarize_mono_llm(path, word_timestamps)
 
         # Parse pyannote output
         raw_segments: list[tuple[float, float, str]] = []  # (start, end, label)

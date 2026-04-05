@@ -216,9 +216,10 @@ class PipelineOrchestrator:
             self.db.delete(existing)
             self.db.flush()
 
+        from app.utils import mask_phone_numbers
         tr = Transcription(
             file_id=db_file.id,
-            full_text=result.full_text,
+            full_text=mask_phone_numbers(result.full_text),
             word_timestamps=result.word_timestamps,
             language="ru",
         )
@@ -236,12 +237,13 @@ class PipelineOrchestrator:
             self.db.delete(existing)
             self.db.flush()
 
+        from app.utils import mask_phone_numbers
         segments_json = [
             {
                 "speaker": seg.speaker,
                 "start": seg.start,
                 "end": seg.end,
-                "text": seg.text,
+                "text": mask_phone_numbers(seg.text),
             }
             for seg in result.transcript_segments
         ]

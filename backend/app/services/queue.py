@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Statuses that mean "was being processed when server died"
-RESUMABLE_STATUSES = {"transcribing", "diarizing", "analyzing"}
+# Statuses that mean "was being processed when server died" or waiting in queue
+RESUMABLE_STATUSES = {"queued", "transcribing", "diarizing", "analyzing"}
 
 
 class QueueManager:

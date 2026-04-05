@@ -155,23 +155,41 @@ class DiarizationService:
     ) -> list[TranscriptSegment]:
         """Assign each word to operator or client by channel RMS energy.
 
-        For each word window, compare L-channel RMS vs R-channel RMS.
-        Higher energy → that channel's speaker.
+        Sticky speaker: короткие слова (<0.3 сек) или слова с малой разницей
+        каналов наследуют спикера от предыдущего слова. Это предотвращает
+        прыжки при вздохах, кашле и фоновом шуме.
         """
         audio, _ = self._load_stereo(path)
         n_samples = audio.shape[1]
 
+        # Минимальная разница RMS для уверенной смены спикера (отношение)
+        MIN_RMS_RATIO = 1.4  # канал должен быть в 1.4 раза громче другого
+
         transcript_segments: list[TranscriptSegment] = []
+        prev_speaker = "operator"  # начинаем с оператора (он обычно первый)
+
         for w in word_timestamps:
             start_s = float(w["start"])
             end_s   = float(w["end"])
+            duration = end_s - start_s
             s = max(0, int(start_s * sr))
             e = min(n_samples, int(end_s * sr))
             if s >= e:
                 continue
+
             rms_l = float(np.sqrt(np.mean(audio[0, s:e] ** 2)))
             rms_r = float(np.sqrt(np.mean(audio[1, s:e] ** 2)))
-            speaker = "operator" if rms_l >= rms_r else "client"
+            max_rms = max(rms_l, rms_r, 1e-10)
+            min_rms = min(rms_l, rms_r, 1e-10)
+            ratio = max_rms / min_rms
+
+            if duration < 0.3 or ratio < MIN_RMS_RATIO:
+                # Короткое слово или неуверенная разница — оставляем предыдущего спикера
+                speaker = prev_speaker
+            else:
+                speaker = "operator" if rms_l >= rms_r else "client"
+
+            prev_speaker = speaker
             transcript_segments.append(
                 TranscriptSegment(
                     speaker=speaker,

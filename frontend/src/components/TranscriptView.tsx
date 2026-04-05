@@ -35,8 +35,40 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
     )
   }
 
+  // Определяем количество уникальных спикеров
+  const speakers = new Set(segments.map((s) => s.speaker))
+  const isMono = speakers.size <= 1
+
+  if (isMono) {
+    // Моно: компактный текст без разбивки по ролям
+    return (
+      <div className="max-h-[500px] overflow-y-auto pr-1">
+        <div className="bg-gray-50 rounded-lg px-4 py-3">
+          {segments.map((seg, i) => {
+            const matchedQuote = findQuoteMatch(seg.text, quotes)
+            return (
+              <span
+                key={i}
+                className={`cursor-pointer hover:bg-blue-100 rounded transition-colors ${
+                  matchedQuote ? 'bg-yellow-100 border-b-2 border-yellow-400' : ''
+                }`}
+                onClick={() => onTimestampClick?.(seg.start)}
+                title={`${fmt(seg.start)} — ${fmt(seg.end)}${
+                  matchedQuote ? ` | ${CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}` : ''
+                }`}
+              >
+                {seg.text}{' '}
+              </span>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // Стерео/диаризация: компактный диалог
   return (
-    <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+    <div className="flex flex-col gap-1 max-h-[500px] overflow-y-auto pr-1">
       {segments.map((seg, i) => {
         const isOperator = seg.speaker === 'operator'
         const matchedQuote = findQuoteMatch(seg.text, quotes)
@@ -44,43 +76,36 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
         return (
           <div
             key={i}
-            className={`flex gap-3 ${isOperator ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 ${isOperator ? '' : 'flex-row-reverse'}`}
           >
-            {/* Speaker label */}
-            <div className="flex-shrink-0 pt-1">
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                isOperator
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-500'
+            {/* Speaker + time */}
+            <div className={`flex-shrink-0 w-12 text-center ${isOperator ? '' : 'text-right'}`}>
+              <span className={`text-[10px] font-bold ${
+                isOperator ? 'text-blue-600' : 'text-gray-400'
               }`}>
                 {isOperator ? 'Оп' : 'Кл'}
               </span>
+              <div className="text-[10px] text-gray-300">{fmt(seg.start)}</div>
             </div>
 
-            {/* Bubble */}
+            {/* Text */}
             <div
-              className={`max-w-[80%] rounded-xl px-3 py-2 cursor-pointer transition-all ${
+              className={`flex-1 rounded-lg px-2.5 py-1 cursor-pointer transition-colors text-sm leading-snug ${
                 matchedQuote
-                  ? 'ring-2 ring-yellow-400 bg-yellow-50'
+                  ? 'bg-yellow-50 border-l-2 border-yellow-400'
                   : isOperator
                   ? 'bg-blue-50 hover:bg-blue-100'
-                  : 'bg-gray-100 hover:bg-gray-200'
-              }`}
+                  : 'bg-gray-50 hover:bg-gray-100'
+              } ${isOperator ? 'font-medium text-gray-800' : 'text-gray-600'}`}
               onClick={() => onTimestampClick?.(seg.start)}
-              title={`${fmt(seg.start)} — ${fmt(seg.end)}`}
+              title={matchedQuote ? `★ ${CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}` : undefined}
             >
-              <p className={`text-sm ${isOperator ? 'font-medium text-gray-800' : 'text-gray-600'}`}>
-                {seg.text}
-              </p>
-
-              <div className={`flex items-center gap-2 mt-0.5 ${isOperator ? '' : 'justify-end'}`}>
-                <span className="text-xs text-gray-400">{fmt(seg.start)}</span>
-                {matchedQuote && (
-                  <span className="text-xs text-yellow-600 font-medium">
-                    ★ {CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}
-                  </span>
-                )}
-              </div>
+              {seg.text}
+              {matchedQuote && (
+                <span className="ml-1 text-[10px] text-yellow-600 font-medium">
+                  ★ {CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}
+                </span>
+              )}
             </div>
           </div>
         )

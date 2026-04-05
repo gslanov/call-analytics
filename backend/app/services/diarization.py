@@ -221,16 +221,22 @@ class DiarizationService:
         """
         warnings: list[str] = []
 
-        if not settings.hf_token:
-            logger.info("HF_TOKEN not set — using GPT-4o for mono diarization")
+        # GPT-4o диаризация — основной метод для моно (быстрее и точнее на CPU/8kHz)
+        if settings.openai_api_key:
+            logger.info("Using GPT-4o for mono diarization (primary method)")
             return self._diarize_mono_llm(path, word_timestamps)
 
-        # pyannote может не работать из-за конфликта версий torchaudio
+        # pyannote — fallback если нет OpenAI ключа
+        if not settings.hf_token:
+            return self._fallback_single_speaker(path, word_timestamps,
+                ["Диаризация недоступна: нет ни OPENAI_API_KEY, ни HF_TOKEN."])
+
         try:
             self._load_pipeline()
         except Exception as exc:
-            logger.warning("pyannote unavailable (%s) — falling back to GPT-4o", exc)
-            return self._diarize_mono_llm(path, word_timestamps)
+            logger.warning("pyannote unavailable (%s)", exc)
+            return self._fallback_single_speaker(path, word_timestamps,
+                [f"pyannote недоступен: {exc}"])
 
         # Загружаем аудио как tensor и передаём напрямую (обход torchcodec)
         import torch

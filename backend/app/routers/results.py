@@ -8,7 +8,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import asc, desc, func, nulls_last, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.models import Analysis, File, Operator
@@ -81,8 +81,8 @@ def list_results(
     query = (
         select(File)
         .options(
-            joinedload(File.operator),
-            joinedload(File.analysis),
+            selectinload(File.operator),
+            selectinload(File.analysis),
         )
     )
 

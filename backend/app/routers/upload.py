@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -14,6 +15,7 @@ from app.models import File as FileModel, Operator
 from app.schemas import UploadResponse, ValidationError
 from app.services.audio_validator import validate_audio_file
 from app.services.queue import QueueManager
+from app.utils import sanitize_filename
 
 router = APIRouter(tags=["upload"])
 
@@ -75,7 +77,7 @@ async def upload_files(
     operator = _get_or_create_operator(db, operator_name.strip())
 
     for upload in files:
-        filename = upload.filename or "unknown"
+        filename = sanitize_filename(upload.filename or "unknown")
 
         # Read with size guard
         content = await upload.read(MAX_READ_SIZE)
@@ -111,7 +113,7 @@ async def upload_files(
         file_id = uuid.uuid4()
         audio_path = _save_file_to_disk(file_id, ext, content)
 
-        # Create DB record
+        # Create DB record (SAVEPOINT защищает от race condition дедупликации)
         db_file = FileModel(
             id=file_id,
             operator_id=operator.id,
@@ -123,7 +125,22 @@ async def upload_files(
             status="queued",
             stage=0,
         )
-        db.add(db_file)
+        try:
+            with db.begin_nested():
+                db.add(db_file)
+                db.flush()
+        except IntegrityError:
+            # Race condition: другой запрос уже вставил этот хэш
+            audio_path.unlink(missing_ok=True)  # убираем дубль с диска
+            existing = db.scalar(
+                select(FileModel.id).where(
+                    FileModel.file_hash == result.file_hash,
+                    FileModel.status != "failed",
+                )
+            )
+            if existing:
+                accepted_file_ids.append(str(existing))
+            continue
         hash_to_file_id[result.file_hash] = file_id
         accepted_file_ids.append(str(file_id))
 

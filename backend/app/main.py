@@ -16,6 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 _worker_task: asyncio.Task | None = None
+_cleanup_task: asyncio.Task | None = None
 
 
 @asynccontextmanager
@@ -39,12 +40,22 @@ async def lifespan(app: FastAPI):
         db.close()
 
     _worker_task = asyncio.create_task(q.process_queue(), name="queue-worker")
-    logger.info("Call Analytics API started (queue worker running)")
+
+    from app.services.cleanup import run_cleanup_loop
+    _cleanup_task = asyncio.create_task(run_cleanup_loop(), name="cleanup-worker")
+
+    logger.info("Call Analytics API started (queue worker + cleanup running)")
 
     yield
 
     # Graceful shutdown
     logger.info("Call Analytics API shutting down…")
+    if _cleanup_task and not _cleanup_task.done():
+        _cleanup_task.cancel()
+        try:
+            await asyncio.wait_for(_cleanup_task, timeout=2.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
     if _worker_task and not _worker_task.done():
         q.stop()
         _worker_task.cancel()

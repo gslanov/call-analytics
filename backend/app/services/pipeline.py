@@ -52,9 +52,20 @@ class PipelineOrchestrator:
 
     async def process_file(self, file_id: uuid.UUID) -> None:
         """Run the full pipeline for a file, resuming from last checkpoint."""
-        db_file = self.db.get(File, file_id)
+        # SELECT FOR UPDATE SKIP LOCKED — если другой воркер уже обрабатывает,
+        # строка залочена и запрос вернёт None вместо блокировки
+        db_file = self.db.scalar(
+            sa_select(File)
+            .where(File.id == file_id)
+            .with_for_update(skip_locked=True)
+        )
         if db_file is None:
-            logger.error("Pipeline: file %s not found", file_id)
+            logger.warning("Pipeline: file %s not found or locked by another worker — skipping", file_id)
+            return
+
+        # Защита: если статус уже не подходит для обработки — пропускаем
+        if db_file.status not in ("queued", "transcribing", "diarizing", "analyzing"):
+            logger.info("Pipeline: file %s has status '%s' — skipping", file_id, db_file.status)
             return
 
         logger.info(

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -15,6 +16,7 @@ from app.database import get_db
 from app.models import File as FileModel, Operator
 from app.services.audio_validator import validate_audio_file, _probe_audio
 from app.services.queue import QueueManager
+from app.utils import sanitize_filename
 
 router = APIRouter(tags=["sftp"])
 
@@ -207,7 +209,7 @@ def process_sftp_files(
         db_file = FileModel(
             id=file_id,
             operator_id=op.id,
-            original_name=filename,
+            original_name=sanitize_filename(filename),
             file_hash=result.file_hash,
             file_size=len(content),
             duration_sec=result.duration_sec,
@@ -215,7 +217,21 @@ def process_sftp_files(
             status="queued",
             stage=0,
         )
-        db.add(db_file)
+        try:
+            with db.begin_nested():
+                db.add(db_file)
+                db.flush()
+        except IntegrityError:
+            dest.unlink(missing_ok=True)
+            existing = db.scalar(
+                select(FileModel.id).where(
+                    FileModel.file_hash == result.file_hash,
+                    FileModel.status != "failed",
+                )
+            )
+            if existing:
+                accepted_file_ids.append(str(existing))
+            continue
         hash_to_file_id[result.file_hash] = file_id
         accepted_file_ids.append(str(file_id))
 

@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -77,6 +78,17 @@ class File(Base):
         Index("idx_files_status", "status"),
         Index("idx_files_created", "created_at"),
         Index("idx_files_hash", "file_hash"),
+        Index(
+            "uq_files_hash_active",
+            "file_hash",
+            unique=True,
+            postgresql_where=text("status != 'failed'"),
+        ),
+        CheckConstraint(
+            "status IN ('queued', 'transcribing', 'diarizing', 'analyzing', 'done', 'failed')",
+            name="ck_files_status",
+        ),
+        CheckConstraint("progress BETWEEN 0 AND 100", name="ck_files_progress"),
     )
 
 

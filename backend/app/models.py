@@ -142,6 +142,7 @@ class Analysis(Base):
     overall: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     quotes: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    criteria_details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     llm_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

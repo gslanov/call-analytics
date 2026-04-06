@@ -276,6 +276,7 @@ class PipelineOrchestrator:
             overall=result.overall,
             summary=result.summary,
             quotes=result.quotes,
+            criteria_details=result.details,
             llm_model=result.llm_model,
         )
         self.db.add(analysis)

@@ -1,9 +1,54 @@
 import { useState, useEffect } from 'react'
-import type { AnalysisDetailResult, TranscriptSegment, Quote } from '../types'
+import type { AnalysisDetailResult, TranscriptSegment, Quote, CriteriaGroup } from '../types'
 import { fetchResultDetail, audioUrl } from '../lib/api'
 import { ScoreCard } from './ScoreCard'
 import { TranscriptView } from './TranscriptView'
 import { AudioPlayer } from './AudioPlayer'
+
+// ── Criteria labels ──────────────────────────────────────────────────────────
+const CRITERIA_LABELS: Record<string, Record<string, string>> = {
+  standard: {
+    introduced_self: 'Представился',
+    named_company: 'Назвал компанию',
+    clarified_delivery_date: 'Уточнил дату доставки',
+    stated_delivery_time: 'Проговорил время доставки',
+    stated_full_address: 'Проговорил адрес полностью',
+    named_metro: 'Назвал метро',
+    stated_order_contents: 'Проговорил состав заказа',
+    offered_upsell: 'Предложил апсейл',
+    explained_upsell_benefit: 'Рассказал про выгоду апсейла',
+    named_order_total: 'Назвал сумму заказа',
+    clarified_courier_comment: 'Уточнил комментарий для курьера',
+    clarified_portion_sufficiency: 'Уточнил кол-во человек / хватит ли пирогов',
+    clarified_cash_change: 'Уточнил сдачу при оплате наличными',
+  },
+  loyalty: {
+    addressed_by_name: 'Обращался по имени',
+    did_not_raise_voice: 'Не повышал тон',
+    friendly_calm_confident_tone: 'Дружелюбный, спокойный и уверенный тон',
+    did_not_interrupt: 'Не перебивал клиента',
+    calm_in_conflict: 'Спокойствие в конфликте',
+    answered_all_questions: 'Ответил на все вопросы',
+  },
+  kindness: {
+    no_profanity_filler_words: 'Нет мата/слов-паразитов',
+    polite_goodbye: 'Вежливо попрощался',
+    no_sarcasm_irony_aggression: 'Нет сарказма/иронии/агрессии',
+  },
+}
+
+const GROUP_LABELS: Record<string, string> = {
+  standard: 'Стандарты',
+  loyalty: 'Лояльность',
+  kindness: 'Доброжелательность',
+}
+
+function groupStats(items: CriteriaGroup) {
+  const entries = Object.values(items)
+  const applicable = entries.filter((v) => v !== null)
+  const passed = applicable.filter((v) => v === true).length
+  return { passed, total: applicable.length }
+}
 
 interface AnalysisDetailProps {
   fileId: string
@@ -141,6 +186,48 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
           <ScoreCard label="Доброжелательность" score={a?.kindness} />
         </div>
       </div>
+
+      {/* Criteria checklist */}
+      {a?.criteria_details && (
+        <div className="bg-white rounded-2xl border border-gray-200 px-6 py-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Чек-лист критериев</h3>
+          <div className="flex flex-col gap-5">
+            {(['standard', 'loyalty', 'kindness'] as const).map((group) => {
+              const items = a.criteria_details![group]
+              if (!items) return null
+              const labels = CRITERIA_LABELS[group] ?? {}
+              const { passed, total } = groupStats(items)
+              return (
+                <div key={group}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold text-gray-700">{GROUP_LABELS[group]}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      total === 0 ? 'bg-gray-100 text-gray-500'
+                        : passed === total ? 'bg-green-100 text-green-700'
+                        : passed / total >= 0.7 ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {total === 0 ? 'Н/П' : `${passed}/${total}`}
+                    </span>
+                  </div>
+                  <div className="grid gap-1">
+                    {Object.entries(items).map(([key, val]) => (
+                      <div key={key} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50">
+                        {val === true && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs font-bold">✓</span>}
+                        {val === false && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-xs font-bold">✗</span>}
+                        {val === null && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 text-xs">—</span>}
+                        <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
+                          {labels[key] ?? key}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       {a?.summary && (

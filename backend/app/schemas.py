@@ -63,6 +63,7 @@ class AnalysisSchema(BaseModel):
     overall: int
     summary: str
     quotes: list | None
+    criteria_details: dict | None = None
     llm_model: str | None
     created_at: datetime
 

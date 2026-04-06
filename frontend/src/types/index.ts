@@ -88,6 +88,16 @@ export interface Quote {
   timestamp?: number
 }
 
+export interface CriteriaGroup {
+  [key: string]: boolean | null
+}
+
+export interface CriteriaDetails {
+  standard: CriteriaGroup
+  loyalty: CriteriaGroup
+  kindness: CriteriaGroup
+}
+
 export interface AnalysisDetailResult extends AnalysisResult {
   audio_url?: string
   transcription?: {
@@ -107,6 +117,7 @@ export interface AnalysisDetailResult extends AnalysisResult {
     overall: number
     summary: string
     quotes?: Quote[]
+    criteria_details?: CriteriaDetails
     llm_model?: string
   }
 }

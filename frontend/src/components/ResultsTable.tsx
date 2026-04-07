@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import type { AnalysisResult, ResultFilters } from '../types'
 import { Pagination } from './Pagination'
 import { SummaryCards } from './SummaryCards'
@@ -68,36 +68,6 @@ function formatDuration(secs: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function ExpandedRow({ result, onDetail }: { result: AnalysisResult; onDetail?: () => void }) {
-  const a = result.analysis
-  return (
-    <tr>
-      <td colSpan={7} className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-        <div className="flex flex-col gap-3">
-          {/* Summary first — immediately visible */}
-          {a?.summary && (
-            <p className="text-sm text-gray-700 leading-relaxed">{a.summary}</p>
-          )}
-
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex gap-4 text-xs text-gray-400">
-              <span>Файл: <span className="text-gray-600">{result.original_name}</span></span>
-              <span>Длительность: <span className="text-gray-600">{formatDuration(result.duration_sec)}</span></span>
-            </div>
-            {onDetail && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDetail() }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg"
-              >
-                Подробный анализ →
-              </button>
-            )}
-          </div>
-        </div>
-      </td>
-    </tr>
-  )
-}
 
 function ActiveFilterBadges({
   filters,
@@ -155,8 +125,6 @@ export function ResultsTable({
   onLimitChange,
   onRowDetail,
 }: ResultsTableProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-
   const toggleSort = (col: SortableCol) => {
     const isActive = filters.sort === col
     onFiltersChange({
@@ -165,9 +133,6 @@ export function ResultsTable({
       order: isActive && filters.order === 'desc' ? 'asc' : 'desc',
     })
   }
-
-  const toggleRow = (id: string) =>
-    setExpandedId((prev) => (prev === id ? null : id))
 
   const colClass = 'px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-gray-700 select-none whitespace-nowrap'
 
@@ -227,13 +192,10 @@ export function ResultsTable({
               </tr>
             </thead>
             <tbody>
-              {results.map((r) => {
-                const isExpanded = expandedId === r.file_id
-                return (
+              {results.map((r) => (
                   <Fragment key={r.file_id}>
                     <tr
-                      onClick={() => toggleRow(r.file_id)}
-                      className={`border-b border-gray-100 cursor-pointer transition-colors ${rowBg(r.analysis?.overall)}`}
+                      className={`border-b border-gray-100 transition-colors ${rowBg(r.analysis?.overall)}`}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-700 font-medium">
@@ -256,20 +218,26 @@ export function ResultsTable({
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.loyalty} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.kindness} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.overall} /></td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {isExpanded ? '▲' : '▼'}
+                      <td className="px-4 py-3">
+                        {onRowDetail && (
+                          <button
+                            onClick={() => onRowDetail(r.file_id)}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                          >
+                            Подробнее →
+                          </button>
+                        )}
                       </td>
                     </tr>
-                    {isExpanded && (
-                      <ExpandedRow
-                        key={`${r.file_id}-exp`}
-                        result={r}
-                        onDetail={onRowDetail ? () => onRowDetail(r.file_id) : undefined}
-                      />
+                    {r.analysis?.summary && (
+                      <tr className={`border-b border-gray-200 ${rowBg(r.analysis?.overall)}`}>
+                        <td colSpan={7} className="px-4 pb-3 pt-0">
+                          <p className="text-xs text-gray-500 leading-relaxed">{r.analysis.summary}</p>
+                        </td>
+                      </tr>
                     )}
                   </Fragment>
-                )
-              })}
+              ))}
             </tbody>
           </table>
         )}

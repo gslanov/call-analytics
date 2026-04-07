@@ -6,6 +6,7 @@ import { ResultsTable } from './components/ResultsTable'
 import { FilterBar } from './components/FilterBar'
 import { AnalysisDetail } from './components/AnalysisDetail'
 import { FtpFilesPage } from './components/FtpFilesPage'
+import { SettingsPage } from './components/SettingsPage'
 import { useUpload } from './hooks/useUpload'
 import { useResults } from './hooks/useResults'
 import type { AppState, ProcessingFile } from './types'
@@ -102,6 +103,16 @@ function App() {
             >
               + Загрузить
             </button>
+            <button
+              onClick={() => setAppState('settings')}
+              className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                appState === 'settings'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Настройки
+            </button>
           </nav>
         </div>
       </header>
@@ -184,6 +195,9 @@ function App() {
 
           {/* FTP Files state */}
           {appState === 'ftp_files' && <FtpFilesPage />}
+
+          {/* Settings */}
+          {appState === 'settings' && <SettingsPage />}
 
         </div>
       </main>

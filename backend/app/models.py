@@ -160,6 +160,17 @@ class Analysis(Base):
     )
 
 
+class AppSetting(Base):
+    """Key-value settings stored in DB (FTP credentials, etc.)."""
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+
+
 class CallRecord(Base):
     __tablename__ = "call_records"
 

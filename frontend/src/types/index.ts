@@ -32,7 +32,7 @@ export interface AnalysisResult {
   caller_phone?: string | null // "**3351"
 }
 
-export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files'
+export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files' | 'settings'
 
 export type ProcessingStatus =
   | 'queued'

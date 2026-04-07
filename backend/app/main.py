@@ -93,7 +93,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-from app.routers import audio, calltouch, health, operators, results, sftp, upload, ws
+from app.routers import audio, calltouch, health, operators, results, settings, sftp, upload, ws
 
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(ws.router, prefix="/api/v1")
@@ -103,3 +103,4 @@ app.include_router(audio.router, prefix="/api/v1")
 app.include_router(sftp.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(calltouch.router, prefix="/api/v1")
+app.include_router(settings.router)

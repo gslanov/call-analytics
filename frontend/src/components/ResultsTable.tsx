@@ -61,12 +61,6 @@ function audioType(method?: string | null): { label: string; color: string } {
   return { label: '', color: '' }
 }
 
-function formatDuration(secs: number | null): string {
-  if (secs == null) return '—'
-  const m = Math.floor(secs / 60)
-  const s = Math.round(secs % 60)
-  return `${m}:${String(s).padStart(2, '0')}`
-}
 
 
 function ActiveFilterBadges({

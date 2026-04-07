@@ -132,30 +132,32 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 3. no_sarcasm_irony_aggression — Оператор избегал сарказма, иронии и агрессивных формулировок
 
 ## ФОРМАТ ОТВЕТА
-Каждый критерий — объект: {"value": true/false/null, "reason": "пояснение"}.
+Каждый критерий — объект: {"value": true/false/null, "reason": "пояснение", "timestamp": "M:SS"}.
 - value: true (выполнено), false (не выполнено), null (неприменимо)
 - reason: ОБЯЗАТЕЛЬНО для false — точная цитата оператора или описание проблемы. Для true/null — краткое пояснение.
+- timestamp: время в формате "M:SS" — момент в записи, где это видно. ОБЯЗАТЕЛЬНО для false (когда это должно было быть). Для true — момент, где оператор это сделал. Для null — не указывать.
+  Бери таймстемпы из меток [M:SS] в тексте реплик.
 
 Верни ТОЛЬКО JSON без пояснений:
 {
   "details": {
     "standard": {
-      "introduced_self": {"value": true, "reason": "«Меня зовут Анастасия»"},
-      "named_company": {"value": true, "reason": "«Компания Пироги номер один»"},
-      "clarified_delivery_date": {"value": false, "reason": "Дата доставки не была озвучена"},
-      "stated_delivery_time": {"value": true, "reason": "«с 20:45 до 21:45»"},
-      "stated_full_address": {"value": true, "reason": "«улица Виненосская, дом 13»"},
+      "introduced_self": {"value": true, "reason": "«Меня зовут Анастасия»", "timestamp": "0:02"},
+      "named_company": {"value": true, "reason": "«Компания Пироги номер один»", "timestamp": "0:01"},
+      "clarified_delivery_date": {"value": false, "reason": "Дата доставки не была озвучена", "timestamp": "0:30"},
+      "stated_delivery_time": {"value": true, "reason": "«с 20:45 до 21:45»", "timestamp": "1:15"},
+      "stated_full_address": {"value": true, "reason": "«улица Виненосская, дом 13»", "timestamp": "0:45"},
       "named_metro": {"value": null, "reason": "Метро не упоминалось, адрес в области"},
-      "stated_order_contents": {"value": true, "reason": "«хачаны с картофельным сыром и мясом»"},
-      "offered_upsell": {"value": false, "reason": "Доп. продукт не предложен"},
+      "stated_order_contents": {"value": true, "reason": "«хачаны с картофельным сыром и мясом»", "timestamp": "0:35"},
+      "offered_upsell": {"value": false, "reason": "Доп. продукт не предложен", "timestamp": "2:10"},
       "explained_upsell_benefit": {"value": null, "reason": "Апсейл не предлагался"},
-      "named_order_total": {"value": true, "reason": "«4300 общая сумма заказа»"},
-      "clarified_courier_comment": {"value": false, "reason": "Комментарий для курьера не обсуждался"},
+      "named_order_total": {"value": true, "reason": "«4300 общая сумма заказа»", "timestamp": "1:50"},
+      "clarified_courier_comment": {"value": false, "reason": "Комментарий для курьера не обсуждался", "timestamp": "2:30"},
       "clarified_portion_sufficiency": {"value": null, "reason": "Клиент сам указал количество"},
       "clarified_cash_change": {"value": null, "reason": "Оплата картой"}
     },
     "loyalty": {
-      "addressed_by_name": {"value": true, "reason": "«Андрей, правильно?»"},
+      "addressed_by_name": {"value": true, "reason": "«Андрей, правильно?»", "timestamp": "0:10"},
       "did_not_raise_voice": {"value": true, "reason": "Ровный спокойный тон"},
       "friendly_calm_confident_tone": {"value": true, "reason": "Дружелюбное общение"},
       "did_not_interrupt": {"value": true, "reason": "Не перебивал"},
@@ -163,8 +165,8 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
       "answered_all_questions": {"value": true, "reason": "На все вопросы ответил"}
     },
     "kindness": {
-      "no_profanity_filler_words": {"value": false, "reason": "Слова-паразиты: «ну», «как бы», «типа»"},
-      "polite_goodbye": {"value": true, "reason": "«Спасибо большое, хорошего дня!»"},
+      "no_profanity_filler_words": {"value": false, "reason": "Слова-паразиты: «ну», «как бы», «типа»", "timestamp": "1:30"},
+      "polite_goodbye": {"value": true, "reason": "«Спасибо большое, хорошего дня!»", "timestamp": "3:15"},
       "no_sarcasm_irony_aggression": {"value": true, "reason": "Без сарказма и агрессии"}
     }
   },
@@ -197,6 +199,15 @@ class AnalysisResult:
     quotes: list[dict[str, str]] = field(default_factory=list)
     llm_model: str = "gpt-4o"
     partial: bool = False   # True if some fields were missing/clamped
+
+
+def _parse_timestamp(ts: str) -> float:
+    """Parse 'M:SS' or 'MM:SS' to seconds."""
+    import re
+    m = re.match(r"(\d+):(\d{2})", ts.strip())
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2))
+    return 0.0
 
 
 def _compute_group_score(items: dict[str, bool | None]) -> int:
@@ -390,15 +401,19 @@ class LLMService:
 
             validated_group: dict[str, bool | None] = {}
             group_reasons: dict[str, str] = {}
+            group_timestamps: dict[str, float] = {}
             for key in expected_keys:
                 raw_val = group_data.get(key)
 
-                # New format: {"value": ..., "reason": ...}
+                # New format: {"value": ..., "reason": ..., "timestamp": ...}
                 if isinstance(raw_val, dict):
                     val = raw_val.get("value")
                     reason = str(raw_val.get("reason", ""))
                     if reason:
                         group_reasons[key] = reason
+                    ts = raw_val.get("timestamp")
+                    if ts:
+                        group_timestamps[key] = _parse_timestamp(str(ts))
                 else:
                     val = raw_val
 
@@ -424,6 +439,8 @@ class LLMService:
 
             validated_details[group] = validated_group
             reasons[group] = group_reasons
+            if group_timestamps:
+                reasons[f"{group}_timestamps"] = group_timestamps
 
         # Apply business logic dependencies
         _apply_dependencies(validated_details)

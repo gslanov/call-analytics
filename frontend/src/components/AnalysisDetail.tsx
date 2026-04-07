@@ -213,6 +213,8 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
                   <div className="grid gap-1">
                     {Object.entries(items).map(([key, val]) => {
                       const reason = (a.criteria_details as any)?.reasons?.[group]?.[key] as string | undefined
+                      const ts = (a.criteria_details as any)?.reasons?.[`${group}_timestamps`]?.[key] as number | undefined
+                      const fmtTs = ts != null ? `${Math.floor(ts / 60)}:${String(Math.floor(ts % 60)).padStart(2, '0')}` : null
                       return (
                         <div key={key} className="flex items-start gap-2 py-1.5 px-2 rounded hover:bg-gray-50">
                           <div className="mt-0.5">
@@ -220,10 +222,22 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
                             {val === false && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-xs font-bold">✗</span>}
                             {val === null && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 text-xs">—</span>}
                           </div>
-                          <div>
-                            <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
-                              {labels[key] ?? key}
-                            </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
+                                {labels[key] ?? key}
+                              </span>
+                              {fmtTs && (
+                                <button
+                                  onClick={() => setSeekTime(ts!)}
+                                  className={`text-xs px-1.5 py-0.5 rounded font-mono hover:underline ${
+                                    val === false ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-blue-500 bg-blue-50 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  {fmtTs}
+                                </button>
+                              )}
+                            </div>
                             {reason && (
                               <p className={`text-xs mt-0.5 ${val === false ? 'text-red-500' : 'text-gray-400'}`}>
                                 {reason}
@@ -307,6 +321,22 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
             segments={segments}
             quotes={quotes}
             onTimestampClick={setSeekTime}
+            criteriaIssues={(() => {
+              const cd = a?.criteria_details as any
+              if (!cd?.reasons) return []
+              const issues: Array<{timestamp: number; reason: string}> = []
+              for (const group of ['standard', 'loyalty', 'kindness']) {
+                const items = cd[group] ?? {}
+                const groupReasons = cd.reasons[group] ?? {}
+                const groupTs = cd.reasons[`${group}_timestamps`] ?? {}
+                for (const [key, val] of Object.entries(items)) {
+                  if (val === false && groupTs[key] != null) {
+                    issues.push({ timestamp: groupTs[key] as number, reason: groupReasons[key] ?? '' })
+                  }
+                }
+              }
+              return issues
+            })()}
           />
         </div>
       )}

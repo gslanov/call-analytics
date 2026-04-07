@@ -1,9 +1,15 @@
 import type { TranscriptSegment, Quote } from '../types'
 
+export interface CriteriaIssue {
+  timestamp: number
+  reason: string
+}
+
 interface TranscriptViewProps {
   segments: TranscriptSegment[]
   quotes?: Quote[]
   onTimestampClick?: (time: number) => void
+  criteriaIssues?: CriteriaIssue[]
 }
 
 function fmt(secs: number): string {
@@ -25,7 +31,15 @@ const CRITERION_LABEL: Record<string, string> = {
   kindness: 'Доброжел.',
 }
 
-export function TranscriptView({ segments, quotes = [], onTimestampClick }: TranscriptViewProps) {
+function findIssueForSegment(seg: TranscriptSegment, issues: CriteriaIssue[]): CriteriaIssue | undefined {
+  if (!issues.length) return undefined
+  // Find issue whose timestamp falls within this segment's time range (+-3 sec tolerance)
+  return issues.find(
+    (iss) => iss.timestamp >= seg.start - 3 && iss.timestamp <= seg.end + 3
+  )
+}
+
+export function TranscriptView({ segments, quotes = [], onTimestampClick, criteriaIssues = [] }: TranscriptViewProps) {
   if (segments.length === 0) {
     return (
       <div className="text-gray-400 text-sm text-center py-6">
@@ -62,14 +76,17 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
         const isOperator = seg.speaker === 'operator'
         // Плашки оценки — ТОЛЬКО у оператора
         const matchedQuote = isOperator ? findQuoteMatch(seg.text, quotes) : undefined
+        const issue = isOperator ? findIssueForSegment(seg, criteriaIssues) : undefined
 
         return (
           <div
             key={i}
             className={`flex items-start gap-0 cursor-pointer rounded px-1 py-0.5 transition-colors ${
-              isOperator
-                ? 'bg-blue-50 hover:bg-blue-100'
-                : 'hover:bg-gray-50'
+              issue
+                ? 'bg-red-50 hover:bg-red-100 border-l-2 border-red-400'
+                : isOperator
+                  ? 'bg-blue-50 hover:bg-blue-100'
+                  : 'hover:bg-gray-50'
             }`}
             onClick={() => onTimestampClick?.(seg.start)}
           >
@@ -88,6 +105,11 @@ export function TranscriptView({ segments, quotes = [], onTimestampClick }: Tran
               {matchedQuote && (
                 <span className="ml-1.5 inline-flex items-center text-[10px] text-yellow-700 bg-yellow-100 rounded px-1 py-0 font-medium">
                   ★ {CRITERION_LABEL[matchedQuote.criterion] ?? matchedQuote.criterion}
+                </span>
+              )}
+              {issue && (
+                <span className="ml-1.5 inline-flex items-center text-[10px] text-red-700 bg-red-100 rounded px-1 py-0 font-medium">
+                  ✗ {issue.reason.length > 50 ? issue.reason.slice(0, 50) + '…' : issue.reason}
                 </span>
               )}
             </span>

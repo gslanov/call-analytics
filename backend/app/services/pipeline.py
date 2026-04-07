@@ -177,12 +177,19 @@ class PipelineOrchestrator:
         operator_text = ""
         client_text = ""
         if diarization_result is not None:
-            operator_text = " ".join(
-                seg.text for seg in diarization_result.transcript_segments
+            # Include timestamps so GPT can reference specific moments
+            def _fmt(sec: float) -> str:
+                m, s = divmod(int(sec), 60)
+                return f"{m}:{s:02d}"
+
+            operator_text = "\n".join(
+                f"[{_fmt(seg.start)}] {seg.text}"
+                for seg in diarization_result.transcript_segments
                 if seg.speaker == "operator"
             )
-            client_text = " ".join(
-                seg.text for seg in diarization_result.transcript_segments
+            client_text = "\n".join(
+                f"[{_fmt(seg.start)}] {seg.text}"
+                for seg in diarization_result.transcript_segments
                 if seg.speaker == "client"
             )
         else:

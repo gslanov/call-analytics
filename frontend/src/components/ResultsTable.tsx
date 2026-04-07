@@ -74,37 +74,20 @@ function ExpandedRow({ result, onDetail }: { result: AnalysisResult; onDetail?: 
     <tr>
       <td colSpan={7} className="px-6 py-4 bg-gray-50 border-b border-gray-200">
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {(['standard', 'loyalty', 'kindness', 'overall'] as const).map((key) => (
-              <div key={key} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
-                <p className="text-xs text-gray-400 capitalize mb-1">
-                  {{ standard: 'Стандарты', loyalty: 'Лояльность', kindness: 'Доброжел.', overall: 'Итого' }[key]}
-                </p>
-                <p className={`text-2xl font-bold ${scoreColor(a?.[key])}`}>
-                  {a?.[key] ?? '—'}
-                  {a?.[key] != null && <span className="text-sm">%</span>}
-                </p>
-              </div>
-            ))}
-          </div>
-
+          {/* Summary first — immediately visible */}
           {a?.summary && (
-            <div className="bg-white rounded-lg p-3 border border-gray-100">
-              <p className="text-xs text-gray-400 mb-1">Резюме</p>
-              <p className="text-sm text-gray-700">{a.summary}</p>
-            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">{a.summary}</p>
           )}
 
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex gap-4 text-xs text-gray-400">
               <span>Файл: <span className="text-gray-600">{result.original_name}</span></span>
               <span>Длительность: <span className="text-gray-600">{formatDuration(result.duration_sec)}</span></span>
-              <span>ID: <span className="text-gray-600 font-mono">{result.file_id}</span></span>
             </div>
             {onDetail && (
               <button
                 onClick={(e) => { e.stopPropagation(); onDetail() }}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg"
               >
                 Подробный анализ →
               </button>

@@ -100,22 +100,72 @@ class DiarizationService:
     # Strategy 1: Stereo channel split
     # ------------------------------------------------------------------
 
+    # IVR detection patterns
+    _IVR_PHRASES = [
+        "ожидайте ответа",
+        "вы позвонили",
+        "контроля качества",
+        "записываться",
+        "нажмите",
+        "пожалуйста ответа оператора",
+        "для оформления",
+    ]
+
+    def _is_ivr_channel(self, phrases: list[TranscriptSegment]) -> bool:
+        """Detect if channel contains only IVR/robot speech."""
+        if not phrases:
+            return True
+        text = " ".join(p.text.lower() for p in phrases)
+        ivr_hits = sum(1 for pat in self._IVR_PHRASES if pat in text)
+        # IVR if: few phrases AND contains IVR patterns
+        return len(phrases) <= 4 and ivr_hits >= 1
+
     def _diarize_stereo(
         self,
         path: Path,
         word_timestamps: list[dict[str, Any]],
     ) -> DiarizationResult:
-        """L channel = Operator, R channel = Client. Confidence: 100%."""
+        """Stereo diarization with IVR detection.
+
+        1. Split words by channel energy (L=operator, R=client)
+        2. If one channel looks like IVR (robot), use GPT-4o to diarize
+           the live channel into operator/client
+        """
+        transcript_segments = self._merge_stereo(path, word_timestamps, SAMPLE_RATE)
+
+        # Split into L-channel (operator) and R-channel (client) segments
+        l_segs = [s for s in transcript_segments if s.speaker == "operator"]
+        r_segs = [s for s in transcript_segments if s.speaker == "client"]
+
+        l_is_ivr = self._is_ivr_channel(l_segs)
+        r_is_ivr = self._is_ivr_channel(r_segs)
+
+        if l_is_ivr and not r_is_ivr:
+            # L = IVR robot, R = live conversation (both speakers)
+            logger.info("Stereo: L-channel is IVR, using GPT-4o for R-channel diarization")
+            _, r_words = self._classify_words_by_channel(word_timestamps, path)
+            if r_words and settings.openai_api_key:
+                result = self._diarize_mono_llm(path, r_words)
+                result.method = "channel_split+llm"
+                result.warnings = ["L-канал = IVR (робот). Живой разговор из R-канала размечен GPT-4o."]
+                return result
+
+        if r_is_ivr and not l_is_ivr:
+            logger.info("Stereo: R-channel is IVR, using GPT-4o for L-channel diarization")
+            l_words, _ = self._classify_words_by_channel(word_timestamps, path)
+            if l_words and settings.openai_api_key:
+                result = self._diarize_mono_llm(path, l_words)
+                result.method = "channel_split+llm"
+                result.warnings = ["R-канал = IVR (робот). Живой разговор из L-канала размечен GPT-4o."]
+                return result
+
+        # Normal stereo — both channels are live
         audio, sr = self._load_stereo(path)
         duration = audio.shape[1] / sr
-
         segments = [
             DiarizationSegment(speaker="operator", start=0.0, end=duration),
             DiarizationSegment(speaker="client",   start=0.0, end=duration),
         ]
-
-        # For stereo: each word needs to be assigned by its channel energy
-        transcript_segments = self._merge_stereo(path, word_timestamps, sr)
 
         logger.info(
             "Stereo split: %.1f sec, %d transcript segments",
@@ -126,9 +176,31 @@ class DiarizationService:
             segments=segments,
             transcript_segments=transcript_segments,
             method="channel_split",
-            confidence=None,   # None = exact (100%)
+            confidence=None,
             num_speakers=2,
         )
+
+    def _classify_words_by_channel(
+        self, word_timestamps: list[dict[str, Any]], path: Path
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Split words into L-channel and R-channel lists by energy."""
+        audio, sr = self._load_stereo(path)
+        n_samples = audio.shape[1]
+        l_words: list[dict[str, Any]] = []
+        r_words: list[dict[str, Any]] = []
+        for w in word_timestamps:
+            s = max(0, int(float(w["start"]) * sr))
+            e = min(n_samples, int(float(w["end"]) * sr))
+            if s >= e:
+                l_words.append(w)
+                continue
+            energy_l = float(np.sum(audio[0, s:e] ** 2))
+            energy_r = float(np.sum(audio[1, s:e] ** 2))
+            if energy_l >= energy_r:
+                l_words.append(w)
+            else:
+                r_words.append(w)
+        return l_words, r_words
 
     def _load_stereo(self, path: Path) -> tuple[np.ndarray, int]:
         """Load stereo audio via ffmpeg → numpy shape (2, N)."""

@@ -15,7 +15,7 @@ from app.models import File as FileModel, Operator
 from app.schemas import UploadResponse, ValidationError
 from app.services.audio_validator import validate_audio_file
 from app.services.queue import QueueManager
-from app.utils import sanitize_filename, fix_encoding
+from app.utils import sanitize_filename, fix_encoding, parse_call_filename
 
 router = APIRouter(tags=["upload"])
 
@@ -42,7 +42,7 @@ def _save_file_to_disk(file_id: uuid.UUID, ext: str, content: bytes) -> Path:
 @router.post("/upload", response_model=UploadResponse)
 async def upload_files(
     files: list[UploadFile] = File(..., description="Аудиофайлы для анализа"),
-    operator_name: str = Form(..., description="Имя оператора"),
+    operator_name: str = Form("", description="Имя оператора (если пусто — берётся из имени файла)"),
     db: Session = Depends(get_db),
 ) -> UploadResponse:
     """Загрузить аудиофайлы для анализа качества звонка.
@@ -51,13 +51,9 @@ async def upload_files(
     - Дедуплицирует по SHA-256 (возвращает существующий file_id)
     - Сохраняет файлы в data/uploads/
     - Создаёт записи в БД со статусом 'queued'
+    - Имя оператора: из поля operator_name, или из имени файла
     """
-    operator_name = fix_encoding(operator_name)
-    if not operator_name.strip():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Поле operator_name не может быть пустым",
-        )
+    operator_name = fix_encoding(operator_name).strip()
     if len(files) > settings.max_batch_size:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -75,10 +71,17 @@ async def upload_files(
     validation_errors: list[ValidationError] = []
     accepted_file_ids: list[str] = []
 
-    operator = _get_or_create_operator(db, operator_name.strip())
-
     for upload in files:
         filename = sanitize_filename(upload.filename or "unknown")
+
+        # Determine operator: from form field, or from filename
+        file_operator_name = operator_name
+        if not file_operator_name:
+            parsed = parse_call_filename(filename)
+            file_operator_name = parsed.get("operator_name") or ""
+        if not file_operator_name:
+            file_operator_name = "Неизвестный оператор"
+        operator = _get_or_create_operator(db, file_operator_name)
 
         # Read with size guard
         content = await upload.read(MAX_READ_SIZE)

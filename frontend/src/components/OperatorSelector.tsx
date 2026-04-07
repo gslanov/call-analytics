@@ -106,7 +106,7 @@ export function OperatorSelector({ value, onChange, disabled }: OperatorSelector
   return (
     <div ref={containerRef} className="flex flex-col gap-1 relative">
       <label className="text-sm font-medium text-gray-700">
-        Оператор <span className="text-red-500">*</span>
+        Оператор <span className="text-gray-400 text-xs font-normal">(необязательно — берётся из имени файла)</span>
       </label>
 
       <div className="relative">

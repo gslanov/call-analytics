@@ -39,11 +39,14 @@ def parse_call_filename(name: str) -> dict[str, str | None]:
       2026-04-04__19-51-19__79252463351__Менеджер Галина.mp3
       2026-04-04__09-49-23__Менеджер Анастасия__79160870602.mp3
 
-    Returns: {call_date: "04.04", call_time: "19:51", caller_phone: "**3351"}
+    Returns: {call_date, call_time, caller_phone, operator_name}
     """
     stem = os.path.splitext(name)[0]
     parts = stem.split("__")
-    result: dict[str, str | None] = {"call_date": None, "call_time": None, "caller_phone": None}
+    result: dict[str, str | None] = {
+        "call_date": None, "call_time": None,
+        "caller_phone": None, "operator_name": None,
+    }
 
     if len(parts) < 3:
         return result
@@ -58,15 +61,19 @@ def parse_call_filename(name: str) -> dict[str, str | None]:
     if time_match:
         result["call_time"] = f"{time_match.group(1)}:{time_match.group(2)}"
 
-    # Части 3+4: телефон — тот, что начинается с цифры
+    # Части 3+4: телефон и оператор
     for part in parts[2:]:
         cleaned = part.strip()
-        if cleaned and cleaned[0].isdigit():
-            # Убираем нецифровые символы, берём последние 4 цифры
+        if not cleaned:
+            continue
+        if cleaned[0].isdigit():
+            # Телефон
             digits = re.sub(r"\D", "", cleaned)
             if len(digits) >= 4:
                 result["caller_phone"] = f"**{digits[-4:]}"
-            break
+        elif not cleaned.startswith("sip_"):
+            # Имя оператора (не sip-адрес, не телефон)
+            result["operator_name"] = cleaned
 
     return result
 

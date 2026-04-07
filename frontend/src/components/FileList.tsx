@@ -41,7 +41,7 @@ export function FileList({
   error,
 }: FileListProps) {
   const totalSize = files.reduce((sum, f) => sum + f.file.size, 0)
-  const canAnalyze = files.length > 0 && !isUploading && operatorName.trim().length > 0
+  const canAnalyze = files.length > 0 && !isUploading
 
   return (
     <div className="flex flex-col gap-4">

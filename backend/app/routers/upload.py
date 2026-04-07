@@ -15,7 +15,7 @@ from app.models import File as FileModel, Operator
 from app.schemas import UploadResponse, ValidationError
 from app.services.audio_validator import validate_audio_file
 from app.services.queue import QueueManager
-from app.utils import sanitize_filename
+from app.utils import sanitize_filename, fix_encoding
 
 router = APIRouter(tags=["upload"])
 
@@ -52,6 +52,7 @@ async def upload_files(
     - Сохраняет файлы в data/uploads/
     - Создаёт записи в БД со статусом 'queued'
     """
+    operator_name = fix_encoding(operator_name)
     if not operator_name.strip():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

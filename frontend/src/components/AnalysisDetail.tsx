@@ -298,6 +298,14 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
           />
         </div>
       )}
+
+      {/* Floating back button */}
+      <button
+        onClick={onBack}
+        className="fixed bottom-6 right-6 bg-white border border-gray-300 shadow-lg rounded-full px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow-xl transition-all z-50"
+      >
+        ← Назад
+      </button>
     </div>
   )
 }

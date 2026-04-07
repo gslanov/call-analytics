@@ -71,11 +71,21 @@ def parse_call_filename(name: str) -> dict[str, str | None]:
     return result
 
 
+def fix_encoding(text: str) -> str:
+    """Исправить двойную кодировку latin-1 → UTF-8 (curl/multipart на Windows)."""
+    try:
+        return text.encode('latin-1').decode('utf-8')
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return text
+
+
 def sanitize_filename(raw: str) -> str:
     """Очистить имя файла: убрать путь, null-байты, скрытые точки.
 
     Защита от path traversal: из ``../../etc/passwd.mp3`` получится ``passwd.mp3``.
+    Исправляет кодировку: latin-1 → UTF-8 (curl/multipart на Windows).
     """
+    raw = fix_encoding(raw)
     # Берём только последний компонент пути (обрабатываем оба разделителя)
     name = os.path.basename(raw)
     # Убираем null-байты

@@ -75,7 +75,8 @@ export async function fetchFileStatus(fileId: string): Promise<FileStatusRespons
   return response.json() as Promise<FileStatusResponse>
 }
 
-export const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8001/api/v1/ws'
+export const WS_URL = import.meta.env.VITE_WS_URL ??
+  `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/ws`
 
 import type { ResultFilters, ResultsPage, AnalysisDetailResult } from '../types'
 

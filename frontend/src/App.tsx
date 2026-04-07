@@ -70,7 +70,7 @@ function App() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📞</span>
-            <h1 className="text-xl font-bold text-gray-800">Call Analytics</h1>
+            <h1 className="text-xl font-bold text-gray-800">Анализ звонков</h1>
           </div>
           <nav className="flex items-center gap-3">
             <button

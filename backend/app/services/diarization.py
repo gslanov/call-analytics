@@ -159,8 +159,9 @@ class DiarizationService:
         """Группировка по фразам → определение спикера для всей фразы.
 
         1. Слова группируются в фразы по паузам (>0.8 сек = новая фраза)
-        2. Для каждой фразы суммарная RMS-энергия по каналам определяет спикера
-        3. Результат — целые фразы с правильным спикером, без прыжков на вздохах
+        2. Для каждой фразы вычисляем долю энергии L-канала: ratio = L / (L + R)
+        3. Глобальный медианный ratio разделяет спикеров (адаптивный порог)
+        4. Результат — целые фразы с правильным спикером
         """
         audio, _ = self._load_stereo(path)
         n_samples = audio.shape[1]
@@ -179,10 +180,12 @@ class DiarizationService:
         if current_phrase:
             phrases.append(current_phrase)
 
-        # Шаг 2: для каждой фразы определяем спикера по суммарной RMS
-        transcript_segments: list[TranscriptSegment] = []
+        # Шаг 2: для каждой фразы считаем долю L-канала
+        phrase_ratios: list[float] = []
+        phrase_texts: list[str] = []
+        phrase_times: list[tuple[float, float]] = []
+
         for phrase_words in phrases:
-            # Суммируем энергию всех слов фразы по каждому каналу
             total_energy_l = 0.0
             total_energy_r = 0.0
             for w in phrase_words:
@@ -193,13 +196,38 @@ class DiarizationService:
                 total_energy_l += float(np.sum(audio[0, s:e] ** 2))
                 total_energy_r += float(np.sum(audio[1, s:e] ** 2))
 
-            speaker = "operator" if total_energy_l >= total_energy_r else "client"
+            total = total_energy_l + total_energy_r
+            ratio = total_energy_l / total if total > 0 else 0.5
+            phrase_ratios.append(ratio)
+            phrase_texts.append(" ".join(w["word"] for w in phrase_words))
+            phrase_times.append((
+                float(phrase_words[0]["start"]),
+                float(phrase_words[-1]["end"]),
+            ))
 
-            # Собираем текст фразы
-            text = " ".join(w["word"] for w in phrase_words)
-            start = float(phrase_words[0]["start"])
-            end = float(phrase_words[-1]["end"])
+        # Шаг 3: адаптивный порог — медиана ratio
+        # Фразы выше медианы = L-канал (оператор), ниже = R-канал (клиент)
+        if phrase_ratios:
+            sorted_ratios = sorted(phrase_ratios)
+            threshold = sorted_ratios[len(sorted_ratios) // 2]
+            # Если медиана слишком близка к 0.5 — каналы почти одинаковы,
+            # используем 0.5 как порог
+            if abs(threshold - 0.5) < 0.02:
+                threshold = 0.5
+        else:
+            threshold = 0.5
 
+        logger.info(
+            "Stereo adaptive threshold: %.3f (phrases: %d)",
+            threshold, len(phrases),
+        )
+
+        # Шаг 4: назначаем спикеров
+        transcript_segments: list[TranscriptSegment] = []
+        for i, (ratio, text, (start, end)) in enumerate(
+            zip(phrase_ratios, phrase_texts, phrase_times)
+        ):
+            speaker = "operator" if ratio >= threshold else "client"
             transcript_segments.append(
                 TranscriptSegment(speaker=speaker, start=start, end=end, text=text)
             )

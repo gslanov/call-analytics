@@ -132,36 +132,40 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 3. no_sarcasm_irony_aggression — Оператор избегал сарказма, иронии и агрессивных формулировок
 
 ## ФОРМАТ ОТВЕТА
+Каждый критерий — объект: {"value": true/false/null, "reason": "пояснение"}.
+- value: true (выполнено), false (не выполнено), null (неприменимо)
+- reason: ОБЯЗАТЕЛЬНО для false — точная цитата оператора или описание проблемы. Для true/null — краткое пояснение.
+
 Верни ТОЛЬКО JSON без пояснений:
 {
   "details": {
     "standard": {
-      "introduced_self": true,
-      "named_company": true,
-      "clarified_delivery_date": true,
-      "stated_delivery_time": false,
-      "stated_full_address": true,
-      "named_metro": true,
-      "stated_order_contents": true,
-      "offered_upsell": false,
-      "explained_upsell_benefit": null,
-      "named_order_total": true,
-      "clarified_courier_comment": false,
-      "clarified_portion_sufficiency": null,
-      "clarified_cash_change": null
+      "introduced_self": {"value": true, "reason": "«Меня зовут Анастасия»"},
+      "named_company": {"value": true, "reason": "«Компания Пироги номер один»"},
+      "clarified_delivery_date": {"value": false, "reason": "Дата доставки не была озвучена"},
+      "stated_delivery_time": {"value": true, "reason": "«с 20:45 до 21:45»"},
+      "stated_full_address": {"value": true, "reason": "«улица Виненосская, дом 13»"},
+      "named_metro": {"value": null, "reason": "Метро не упоминалось, адрес в области"},
+      "stated_order_contents": {"value": true, "reason": "«хачаны с картофельным сыром и мясом»"},
+      "offered_upsell": {"value": false, "reason": "Доп. продукт не предложен"},
+      "explained_upsell_benefit": {"value": null, "reason": "Апсейл не предлагался"},
+      "named_order_total": {"value": true, "reason": "«4300 общая сумма заказа»"},
+      "clarified_courier_comment": {"value": false, "reason": "Комментарий для курьера не обсуждался"},
+      "clarified_portion_sufficiency": {"value": null, "reason": "Клиент сам указал количество"},
+      "clarified_cash_change": {"value": null, "reason": "Оплата картой"}
     },
     "loyalty": {
-      "addressed_by_name": true,
-      "did_not_raise_voice": true,
-      "friendly_calm_confident_tone": true,
-      "did_not_interrupt": true,
-      "calm_in_conflict": null,
-      "answered_all_questions": true
+      "addressed_by_name": {"value": true, "reason": "«Андрей, правильно?»"},
+      "did_not_raise_voice": {"value": true, "reason": "Ровный спокойный тон"},
+      "friendly_calm_confident_tone": {"value": true, "reason": "Дружелюбное общение"},
+      "did_not_interrupt": {"value": true, "reason": "Не перебивал"},
+      "calm_in_conflict": {"value": null, "reason": "Конфликта не было"},
+      "answered_all_questions": {"value": true, "reason": "На все вопросы ответил"}
     },
     "kindness": {
-      "no_profanity_filler_words": true,
-      "polite_goodbye": true,
-      "no_sarcasm_irony_aggression": true
+      "no_profanity_filler_words": {"value": false, "reason": "Слова-паразиты: «ну», «как бы», «типа»"},
+      "polite_goodbye": {"value": true, "reason": "«Спасибо большое, хорошего дня!»"},
+      "no_sarcasm_irony_aggression": {"value": true, "reason": "Без сарказма и агрессии"}
     }
   },
   "summary": "<2-3 предложения на русском: что хорошо, что улучшить>",
@@ -171,6 +175,7 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 }
 
 ВАЖНО:
+- reason для false-пунктов: ТОЧНАЯ цитата оператора или конкретное описание. НЕ «не выполнено».
 - Цитаты (quotes) — ТОЛЬКО из реплик ОПЕРАТОРА. Мы оцениваем работу оператора, НЕ клиента.
 - Цитат: 3-6 штук (и положительные, и отрицательные).
 - Никакого текста вне JSON. Никакого Markdown. Только фигурные скобки."""
@@ -373,7 +378,10 @@ class LLMService:
         partial = False
 
         # Validate each group
+        # New format: each criterion is {value: bool|null, reason: str}
+        # Also support old format (plain bool/null) for backward compat
         validated_details: dict[str, dict[str, bool | None]] = {}
+        reasons: dict[str, dict[str, str]] = {}
         for group, expected_keys in CRITERIA_SCHEMA.items():
             group_data = details.get(group)
             if not isinstance(group_data, dict):
@@ -381,14 +389,24 @@ class LLMService:
                 return None
 
             validated_group: dict[str, bool | None] = {}
+            group_reasons: dict[str, str] = {}
             for key in expected_keys:
-                val = group_data.get(key)
+                raw_val = group_data.get(key)
+
+                # New format: {"value": ..., "reason": ...}
+                if isinstance(raw_val, dict):
+                    val = raw_val.get("value")
+                    reason = str(raw_val.get("reason", ""))
+                    if reason:
+                        group_reasons[key] = reason
+                else:
+                    val = raw_val
+
                 if val is None:
                     validated_group[key] = None
                 elif isinstance(val, bool):
                     validated_group[key] = val
                 else:
-                    # Try to coerce: "true"/"false" strings
                     if isinstance(val, str):
                         if val.lower() == "true":
                             validated_group[key] = True
@@ -401,10 +419,11 @@ class LLMService:
                         validated_group[key] = None
                         partial = True
                         logger.warning(
-                            "LLM details[%s][%s] unexpected type: %r", group, key, val
+                            "LLM details[%s][%s] unexpected type: %r", group, key, raw_val
                         )
 
             validated_details[group] = validated_group
+            reasons[group] = group_reasons
 
         # Apply business logic dependencies
         _apply_dependencies(validated_details)
@@ -438,13 +457,19 @@ class LLMService:
                     "sentiment": str(q.get("sentiment", "neutral")),
                 })
 
+        # Merge reasons into details for frontend
+        full_details: dict[str, Any] = {
+            **validated_details,
+            "reasons": reasons,
+        }
+
         return AnalysisResult(
             standard=standard_score,
             loyalty=loyalty_score,
             kindness=kindness_score,
             overall=overall_score,
             summary=summary,
-            details=validated_details,
+            details=full_details,
             criteria_version=CRITERIA_VERSION,
             quotes=valid_quotes,
             llm_model="gpt-4o",

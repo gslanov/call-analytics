@@ -211,16 +211,28 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
                     </span>
                   </div>
                   <div className="grid gap-1">
-                    {Object.entries(items).map(([key, val]) => (
-                      <div key={key} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50">
-                        {val === true && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs font-bold">✓</span>}
-                        {val === false && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-xs font-bold">✗</span>}
-                        {val === null && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 text-xs">—</span>}
-                        <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
-                          {labels[key] ?? key}
-                        </span>
-                      </div>
-                    ))}
+                    {Object.entries(items).map(([key, val]) => {
+                      const reason = (a.criteria_details as any)?.reasons?.[group]?.[key] as string | undefined
+                      return (
+                        <div key={key} className="flex items-start gap-2 py-1.5 px-2 rounded hover:bg-gray-50">
+                          <div className="mt-0.5">
+                            {val === true && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs font-bold">✓</span>}
+                            {val === false && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-xs font-bold">✗</span>}
+                            {val === null && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 text-xs">—</span>}
+                          </div>
+                          <div>
+                            <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
+                              {labels[key] ?? key}
+                            </span>
+                            {reason && (
+                              <p className={`text-xs mt-0.5 ${val === false ? 'text-red-500' : 'text-gray-400'}`}>
+                                {reason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )

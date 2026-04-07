@@ -104,18 +104,20 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
   const [detail, setDetail] = useState<AnalysisDetailResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMock, setIsMock] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [seekTime, setSeekTime] = useState<number | undefined>()
   const [quotesOpen, setQuotesOpen] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setIsLoading(true)
+    setError(null)
     fetchResultDetail(fileId)
       .then((data) => {
         if (!cancelled) { setDetail(data); setIsMock(false) }
       })
       .catch(() => {
-        if (!cancelled) { setDetail(buildMockDetail(fileId)); setIsMock(true) }
+        if (!cancelled) { setDetail(null); setError('Не удалось загрузить данные анализа') }
       })
       .finally(() => { if (!cancelled) setIsLoading(false) })
     return () => { cancelled = true }
@@ -125,6 +127,23 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
     return (
       <div className="flex justify-center py-20">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error && !detail) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16">
+        <p className="text-red-500 text-sm">{error}</p>
+        <div className="flex gap-3">
+          <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">← Назад</button>
+          <button
+            onClick={() => { setDetail(buildMockDetail(fileId)); setIsMock(true); setError(null) }}
+            className="text-sm text-blue-500 hover:text-blue-700"
+          >
+            Показать демо-данные
+          </button>
+        </div>
       </div>
     )
   }
@@ -212,8 +231,8 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
                   </div>
                   <div className="grid gap-1">
                     {Object.entries(items).map(([key, val]) => {
-                      const reason = (a.criteria_details as any)?.reasons?.[group]?.[key] as string | undefined
-                      const ts = (a.criteria_details as any)?.reasons?.[`${group}_timestamps`]?.[key] as number | undefined
+                      const reason = a.criteria_details?.reasons?.[group]?.[key] as string | undefined
+                      const ts = a.criteria_details?.reasons?.[`${group}_timestamps`]?.[key] as number | undefined
                       const fmtTs = ts != null ? `${Math.floor(ts / 60)}:${String(Math.floor(ts % 60)).padStart(2, '0')}` : null
                       return (
                         <div key={key} className="flex items-start gap-2 py-1.5 px-2 rounded hover:bg-gray-50">
@@ -322,16 +341,18 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
             quotes={quotes}
             onTimestampClick={setSeekTime}
             criteriaIssues={(() => {
-              const cd = a?.criteria_details as any
+              const cd = a?.criteria_details
               if (!cd?.reasons) return []
+              const reasons = cd.reasons
               const issues: Array<{timestamp: number; reason: string}> = []
-              for (const group of ['standard', 'loyalty', 'kindness']) {
+              for (const group of ['standard', 'loyalty', 'kindness'] as const) {
                 const items = cd[group] ?? {}
-                const groupReasons = cd.reasons[group] ?? {}
-                const groupTs = cd.reasons[`${group}_timestamps`] ?? {}
+                const groupReasons = reasons[group] ?? {}
+                const tsKey = `${group}_timestamps` as keyof typeof reasons
+                const groupTs = (reasons[tsKey] ?? {}) as Record<string, number>
                 for (const [key, val] of Object.entries(items)) {
                   if (val === false && groupTs[key] != null) {
-                    issues.push({ timestamp: groupTs[key] as number, reason: groupReasons[key] ?? '' })
+                    issues.push({ timestamp: groupTs[key], reason: groupReasons[key] ?? '' })
                   }
                 }
               }

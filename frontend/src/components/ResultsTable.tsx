@@ -56,8 +56,10 @@ function formatDate(iso: string) {
 
 function audioType(method?: string | null): { label: string; color: string } {
   if (method === 'channel_split') return { label: 'стерео', color: 'text-green-600' }
+  if (method === 'channel_split+llm') return { label: 'стерео+LLM', color: 'text-green-600' }
   if (method === 'llm_diarization') return { label: 'моно', color: 'text-orange-500' }
   if (method === 'pyannote') return { label: 'моно', color: 'text-orange-500' }
+  if (method === 'fallback') return { label: 'без диаризации', color: 'text-gray-400' }
   return { label: '', color: '' }
 }
 

@@ -214,7 +214,11 @@ class DiarizationService:
         ]
         import subprocess
         result = subprocess.run(cmd, capture_output=True, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg stereo decode failed: {result.stderr.decode(errors='replace')[:200]}")
         raw = np.frombuffer(result.stdout, dtype=np.float32)
+        if raw.size == 0:
+            raise RuntimeError(f"ffmpeg produced no audio data for {path.name}")
         # interleaved stereo: [L0, R0, L1, R1, ...]
         audio = raw.reshape(-1, 2).T   # shape (2, N)
         return audio, SAMPLE_RATE
@@ -736,6 +740,8 @@ class DiarizationService:
             "-f", "f32le", "-loglevel", "quiet", "pipe:1",
         ]
         result = subprocess.run(cmd, capture_output=True, timeout=600)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg mono decode failed: {result.stderr.decode(errors='replace')[:200]}")
         return np.frombuffer(result.stdout, dtype=np.float32)
 
     @staticmethod
@@ -769,7 +775,7 @@ class DiarizationService:
         return DiarizationResult(
             segments=segments,
             transcript_segments=merged,
-            method="pyannote",
+            method="fallback",
             confidence=None,
             num_speakers=1,
             warnings=warnings,

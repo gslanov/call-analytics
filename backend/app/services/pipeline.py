@@ -88,6 +88,10 @@ class PipelineOrchestrator:
         else:
             # Load from DB checkpoint
             transcription_result = self._load_transcription(db_file)
+            if transcription_result is None:
+                self._fail(db_file, "Checkpoint потерян: транскрипция отсутствует в БД. Перезапустите обработку.")
+                logger.error("Stage 1 checkpoint missing for %s", file_id)
+                return
             logger.info("Stage 1 skipped (checkpoint): %s", file_id)
 
         # --- Stage 2: Diarization ---
@@ -105,6 +109,10 @@ class PipelineOrchestrator:
                 return
         else:
             diarization_result = self._load_diarization(db_file)
+            if diarization_result is None:
+                self._fail(db_file, "Checkpoint потерян: диаризация отсутствует в БД. Перезапустите обработку.")
+                logger.error("Stage 2 checkpoint missing for %s", file_id)
+                return
             logger.info("Stage 2 skipped (checkpoint): %s", file_id)
 
         # --- Stage 3: LLM Analysis (non-fatal) ---

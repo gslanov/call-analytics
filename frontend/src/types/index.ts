@@ -92,10 +92,20 @@ export interface CriteriaGroup {
   [key: string]: boolean | null
 }
 
+export interface CriteriaReasons {
+  standard?: Record<string, string>
+  loyalty?: Record<string, string>
+  kindness?: Record<string, string>
+  standard_timestamps?: Record<string, number>
+  loyalty_timestamps?: Record<string, number>
+  kindness_timestamps?: Record<string, number>
+}
+
 export interface CriteriaDetails {
   standard: CriteriaGroup
   loyalty: CriteriaGroup
   kindness: CriteriaGroup
+  reasons?: CriteriaReasons
 }
 
 export interface AnalysisDetailResult extends AnalysisResult {

@@ -24,6 +24,7 @@ export interface AnalysisResult {
     kindness: number
     overall: number
     summary: string
+    llm_model?: string
   }
   created_at: string
   diarization_method?: string | null

@@ -54,6 +54,15 @@ function formatDate(iso: string) {
   })
 }
 
+function formatDateMsk(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Moscow',
+  })
+}
+
 function audioType(method?: string | null): { label: string; color: string } {
   if (method === 'channel_split') return { label: 'стерео', color: 'text-green-600' }
   if (method === 'channel_split+llm') return { label: 'стерео+LLM', color: 'text-green-600' }
@@ -166,6 +175,9 @@ export function ResultsTable({
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide w-8">
+                  №
+                </th>
                 <th className={colClass} onClick={() => toggleSort('created_at')}>
                   Звонок <SortIcon col="created_at" sort={filters.sort} order={filters.order} />
                 </th>
@@ -188,19 +200,23 @@ export function ResultsTable({
               </tr>
             </thead>
             <tbody>
-              {results.map((r) => (
+              {results.map((r, idx) => (
                   <Fragment key={r.file_id}>
                     <tr
                       className={`border-b border-gray-100 transition-colors ${rowBg(r.analysis?.overall)}`}
                     >
+                      <td className="px-3 py-3 text-xs text-gray-400 font-mono">
+                        {total - ((page - 1) * limit + idx)}
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-700 font-medium">
                           {r.call_date ?? formatDate(r.created_at)}{' '}
                           <span className="text-gray-400 font-normal">{r.call_time ?? ''}</span>
                         </div>
-                        {r.caller_phone && (
-                          <div className="text-[11px] text-gray-400">{r.caller_phone}</div>
-                        )}
+                        <div className="text-[10px] text-gray-400">
+                          загружен {formatDateMsk(r.created_at)}
+                          {r.caller_phone && <span> · {r.caller_phone}</span>}
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-800">{r.operator_name}</div>
@@ -234,7 +250,7 @@ export function ResultsTable({
                     </tr>
                     {r.analysis?.summary && (
                       <tr className={`border-b border-gray-200 ${rowBg(r.analysis?.overall)}`}>
-                        <td colSpan={7} className="px-4 pb-3 pt-0">
+                        <td colSpan={8} className="px-4 pb-3 pt-0">
                           <p className="text-xs text-gray-500 leading-relaxed">{r.analysis.summary}</p>
                         </td>
                       </tr>

@@ -233,129 +233,100 @@ class DiarizationService:
         word_timestamps: list[dict[str, Any]],
         sr: int,
     ) -> list[TranscriptSegment]:
-        """Группировка по фразам → определение спикера для всей фразы.
+        """Жёсткое разделение по каналам с голосованием внутри фразы.
 
-        1. Слова группируются в фразы по паузам (>0.8 сек = новая фраза)
-        2. Для каждой фразы вычисляем долю энергии L-канала: ratio = L / (L + R)
-        3. Глобальный медианный ratio разделяет спикеров (адаптивный порог)
-        4. Результат — целые фразы с правильным спикером
+        1. Каждое слово → L или R по энергии
+        2. Слова группируются во фразы по паузам
+        3. Канал фразы = большинство слов (>50%) — голосование
+        4. Определяем какой канал = оператор по intro-фразе
+        5. Соседние фразы одного канала склеиваются
         """
         audio, _ = self._load_stereo(path)
         n_samples = audio.shape[1]
 
-        # Шаг 1: группируем слова в фразы по паузам
-        phrases: list[list[dict[str, Any]]] = []
-        current_phrase: list[dict[str, Any]] = []
-
+        # Шаг 1: каждое слово — в какой канал
+        word_channels: list[str] = []  # "L" or "R"
         for w in word_timestamps:
-            if current_phrase:
-                gap = float(w["start"]) - float(current_phrase[-1]["end"])
+            s = max(0, int(float(w["start"]) * sr))
+            e = min(n_samples, int(float(w["end"]) * sr))
+            if s >= e:
+                word_channels.append("L")
+                continue
+            energy_l = float(np.sum(audio[0, s:e] ** 2))
+            energy_r = float(np.sum(audio[1, s:e] ** 2))
+            word_channels.append("L" if energy_l >= energy_r else "R")
+
+        # Шаг 2: группируем слова во фразы по паузам
+        phrases: list[list[tuple[dict[str, Any], str]]] = []  # [(word, channel), ...]
+        current: list[tuple[dict[str, Any], str]] = []
+
+        for w, ch in zip(word_timestamps, word_channels):
+            if current:
+                gap = float(w["start"]) - float(current[-1][0]["end"])
                 if gap > self.PHRASE_GAP_SEC:
-                    phrases.append(current_phrase)
-                    current_phrase = []
-            current_phrase.append(w)
-        if current_phrase:
-            phrases.append(current_phrase)
+                    phrases.append(current)
+                    current = []
+            current.append((w, ch))
+        if current:
+            phrases.append(current)
 
-        # Шаг 2: для каждой фразы считаем долю L-канала
-        phrase_ratios: list[float] = []
-        phrase_texts: list[str] = []
-        phrase_times: list[tuple[float, float]] = []
-
+        # Шаг 3: канал фразы = голосование большинства слов
+        phrase_data: list[dict[str, Any]] = []
         for phrase_words in phrases:
-            total_energy_l = 0.0
-            total_energy_r = 0.0
-            for w in phrase_words:
-                s = max(0, int(float(w["start"]) * sr))
-                e = min(n_samples, int(float(w["end"]) * sr))
-                if s >= e:
-                    continue
-                total_energy_l += float(np.sum(audio[0, s:e] ** 2))
-                total_energy_r += float(np.sum(audio[1, s:e] ** 2))
+            l_count = sum(1 for _, ch in phrase_words if ch == "L")
+            r_count = len(phrase_words) - l_count
+            channel = "L" if l_count >= r_count else "R"
+            text = " ".join(w["word"] for w, _ in phrase_words)
+            start = float(phrase_words[0][0]["start"])
+            end = float(phrase_words[-1][0]["end"])
+            phrase_data.append({
+                "channel": channel,
+                "start": start,
+                "end": end,
+                "text": text,
+                "l_ratio": l_count / len(phrase_words),
+            })
 
-            total = total_energy_l + total_energy_r
-            ratio = total_energy_l / total if total > 0 else 0.5
-            phrase_ratios.append(ratio)
-            phrase_texts.append(" ".join(w["word"] for w in phrase_words))
-            phrase_times.append((
-                float(phrase_words[0]["start"]),
-                float(phrase_words[-1]["end"]),
-            ))
-
-        # Шаг 3: определяем какой канал — оператор
-        # Ищем intro-фразу (первая длинная реплика с характерными словами)
+        # Шаг 4: определяем какой канал = оператор по intro
         _OPERATOR_INTRO = re.compile(
             r"(компани|пирог|меня зовут|здравствуйте.*компани|добрый день.*компани)",
             re.IGNORECASE,
         )
-        operator_is_left = True  # default: L = operator
-        for ratio, text in zip(phrase_ratios, phrase_texts):
-            if _OPERATOR_INTRO.search(text):
-                operator_is_left = ratio > 0.5
+        operator_channel = "L"  # default
+        for pd in phrase_data:
+            if _OPERATOR_INTRO.search(pd["text"]):
+                operator_channel = pd["channel"]
                 logger.info(
-                    "Operator channel detected from intro: %s (ratio=%.3f, text=%s)",
-                    "LEFT" if operator_is_left else "RIGHT", ratio, text[:60],
+                    "Operator channel: %s (from intro: %s)",
+                    operator_channel, pd["text"][:60],
                 )
                 break
 
-        # Адаптивный порог — медиана ratio
-        if phrase_ratios:
-            sorted_ratios = sorted(phrase_ratios)
-            threshold = sorted_ratios[len(sorted_ratios) // 2]
-            if abs(threshold - 0.5) < 0.02:
-                threshold = 0.5
-        else:
-            threshold = 0.5
-
-        # Если оператор в правом канале — инвертируем логику
-        if not operator_is_left:
-            threshold = 1.0 - threshold
+        # Шаг 5: склеиваем соседние фразы одного канала
+        merged: list[dict[str, Any]] = []
+        for pd in phrase_data:
+            if merged and merged[-1]["channel"] == pd["channel"]:
+                merged[-1]["end"] = pd["end"]
+                merged[-1]["text"] += " " + pd["text"]
+            else:
+                merged.append(dict(pd))
 
         logger.info(
-            "Stereo adaptive threshold: %.3f (phrases: %d, op_left: %s)",
-            threshold, len(phrases), operator_is_left,
+            "Stereo hard split: %d phrases -> %d segments, operator=%s-channel",
+            len(phrase_data), len(merged), operator_channel,
         )
 
-        # Шаг 4: назначаем спикеров
-        # Контекстные маркеры оператора — фразы, которые говорит только оператор
-        _OPERATOR_MARKERS = [
-            re.compile(r"спасибо за заказ", re.IGNORECASE),
-            re.compile(r"хорошего.*дня", re.IGNORECASE),
-            re.compile(r"до свидания", re.IGNORECASE),
-            re.compile(r"всего доброго", re.IGNORECASE),
-            re.compile(r"итого.*\d", re.IGNORECASE),
-            re.compile(r"сумма заказа", re.IGNORECASE),
-            re.compile(r"будьте.*на связи", re.IGNORECASE),
-            re.compile(r"курьер.*позвонит", re.IGNORECASE),
-            re.compile(r"могу предложить", re.IGNORECASE),
-            re.compile(r"подскажите", re.IGNORECASE),
-            re.compile(r"компани.*пирог", re.IGNORECASE),
-            re.compile(r"меня зовут", re.IGNORECASE),
-        ]
-
+        # Шаг 6: маппим каналы на роли
         transcript_segments: list[TranscriptSegment] = []
-        for i, (ratio, text, (start, end)) in enumerate(
-            zip(phrase_ratios, phrase_texts, phrase_times)
-        ):
-            if operator_is_left:
-                is_operator = ratio >= threshold
-            else:
-                is_operator = ratio <= threshold
-
-            # Контекстная коррекция: если фраза содержит 2+ оператор-маркера
-            # и помечена как client — переопределяем на operator
-            if not is_operator:
-                hits = sum(1 for m in _OPERATOR_MARKERS if m.search(text))
-                if hits >= 2:
-                    logger.info(
-                        "Context override: phrase '%s' (ratio=%.3f) -> operator (%d markers)",
-                        text[:50], ratio, hits,
-                    )
-                    is_operator = True
-
-            speaker = "operator" if is_operator else "client"
+        for seg in merged:
+            speaker = "operator" if seg["channel"] == operator_channel else "client"
             transcript_segments.append(
-                TranscriptSegment(speaker=speaker, start=start, end=end, text=text)
+                TranscriptSegment(
+                    speaker=speaker,
+                    start=seg["start"],
+                    end=seg["end"],
+                    text=seg["text"],
+                )
             )
 
         return transcript_segments

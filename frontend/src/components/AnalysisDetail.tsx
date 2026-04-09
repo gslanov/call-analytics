@@ -157,20 +157,14 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Back + meta */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          ← Назад к результатам
-        </button>
-        {isMock && (
+      {/* Meta */}
+      {isMock && (
+        <div className="flex items-center justify-end">
           <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-lg">
             demo-данные
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-200 px-6 py-5 shadow-sm">

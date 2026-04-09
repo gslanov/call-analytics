@@ -106,13 +106,13 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 ## 1. СТАНДАРТЫ (standard)
 1. introduced_self — Оператор представился (назвал своё имя)
 2. named_company — Оператор произнёс название компании
-3. clarified_delivery_date — Оператор уточнил дату доставки
+3. clarified_delivery_date — Оператор уточнил дату доставки. ВАЖНО: «сегодня», «завтра», «послезавтра» — тоже считается датой, засчитывай как true
 4. stated_delivery_time — Оператор проговорил время доставки
 5. stated_full_address — Оператор полностью проговорил адрес доставки
 6. named_metro — Оператор назвал станцию метро (null если метро неприменимо — например, доставка за МКАД или в области)
 7. stated_order_contents — Оператор проговорил состав заказа (перечислил что заказано)
 8. offered_upsell — Оператор предложил дополнительный продукт (апсейл)
-9. explained_upsell_benefit — Оператор рассказал про выгоду апсейла (null если апсейл не предлагался, т.е. offered_upsell=false)
+9. explained_upsell_benefit — Оператор рассказал про выгоду апсейла (null если апсейл не предлагался, т.е. offered_upsell=false). Засчитывай true если оператор: назвал что входит в продукт, упомянул что популярно/часто берут, сказал к чему подходит («на большие мероприятия берут», «у нас есть сырная, мясная, овощная»)
 10. named_order_total — Оператор назвал итоговую сумму заказа
 11. clarified_courier_comment — Оператор уточнил, нужно ли оставить комментарий для курьера
 12. clarified_portion_sufficiency — Оператор уточнил количество человек и хватит ли пирогов на компанию (null если клиент сам чётко указал на сколько человек)
@@ -127,7 +127,7 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 6. answered_all_questions — Оператор ответил на все вопросы клиента
 
 ## 3. ДОБРОЖЕЛАТЕЛЬНОСТЬ (kindness)
-1. no_profanity_filler_words — Оператор не использовал ненормативную лексику и слова-паразиты (ну, типа, как бы, э-э)
+1. no_profanity_filler_words — Оператор не использовал ненормативную лексику и слова-паразиты. Слово-паразит — только если употребляется МНОГОКРАТНО и навязчиво (3+ раз подряд или явно засоряет речь). Редкое «ну» или «значит» в разговорной речи НЕ считается паразитом. Засчитывай false только если паразиты реально портят впечатление от речи.
 2. polite_goodbye — Оператор вежливо попрощался с клиентом
 3. no_sarcasm_irony_aggression — Оператор избегал сарказма, иронии и агрессивных формулировок
 
@@ -197,7 +197,7 @@ class AnalysisResult:
     details: dict[str, dict[str, bool | None]] | None = None
     criteria_version: str = CRITERIA_VERSION
     quotes: list[dict[str, str]] = field(default_factory=list)
-    llm_model: str = "gpt-4o"
+    llm_model: str = "gpt-5.4"
     partial: bool = False   # True if some fields were missing/clamped
 
 
@@ -347,7 +347,7 @@ class LLMService:
     def _call_api(self, client: Any, system_prompt: str, user_message: str) -> str:
         """Single GPT-4 API call. Returns raw response text."""
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=settings.llm_model,
             temperature=0,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -489,6 +489,6 @@ class LLMService:
             details=full_details,
             criteria_version=CRITERIA_VERSION,
             quotes=valid_quotes,
-            llm_model="gpt-4o",
+            llm_model=settings.llm_model,
             partial=partial,
         )

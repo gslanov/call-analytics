@@ -183,6 +183,11 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
               {new Date(detail.created_at).toLocaleDateString('ru-RU', {
                 day: '2-digit', month: 'long', year: 'numeric',
               })}
+              {detail.analysis?.llm_model && (
+                <span className="ml-2 text-purple-500 text-xs">
+                  {detail.analysis.llm_model}
+                </span>
+              )}
             </p>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${

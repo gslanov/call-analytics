@@ -204,11 +204,18 @@ export function ResultsTable({
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-800">{r.operator_name}</div>
-                        {r.diarization_method && (
-                          <span className={`text-[10px] ${audioType(r.diarization_method).color}`}>
-                            {audioType(r.diarization_method).label}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {r.diarization_method && (
+                            <span className={`text-[10px] ${audioType(r.diarization_method).color}`}>
+                              {audioType(r.diarization_method).label}
+                            </span>
+                          )}
+                          {r.analysis?.llm_model && (
+                            <span className="text-[10px] text-purple-500">
+                              {r.analysis.llm_model}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.standard} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.loyalty} /></td>

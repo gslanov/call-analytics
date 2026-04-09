@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str = ""
+    llm_model: str = "gpt-5.4"
 
     # Whisper
     whisper_model: str = "large-v3"

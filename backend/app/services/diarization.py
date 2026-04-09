@@ -233,18 +233,20 @@ class DiarizationService:
         word_timestamps: list[dict[str, Any]],
         sr: int,
     ) -> list[TranscriptSegment]:
-        """Жёсткое разделение по каналам с голосованием внутри фразы.
+        """Жёсткое разделение по каналам: слово → канал → сглаживание → сегменты.
 
         1. Каждое слово → L или R по энергии
-        2. Слова группируются во фразы по паузам
-        3. Канал фразы = большинство слов (>50%) — голосование
-        4. Определяем какой канал = оператор по intro-фразе
-        5. Соседние фразы одного канала склеиваются
+        2. Сглаживание: одиночные выбросы (L R L → L L L) убираются
+        3. Группируем по смене канала (НЕ по паузам) + склеиваем
+        4. Определяем какой канал = оператор по intro
         """
         audio, _ = self._load_stereo(path)
         n_samples = audio.shape[1]
 
-        # Шаг 1: каждое слово — в какой канал
+        if not word_timestamps:
+            return []
+
+        # Шаг 1: каждое слово — в какой канал по энергии
         word_channels: list[str] = []  # "L" or "R"
         for w in word_timestamps:
             s = max(0, int(float(w["start"]) * sr))
@@ -256,36 +258,46 @@ class DiarizationService:
             energy_r = float(np.sum(audio[1, s:e] ** 2))
             word_channels.append("L" if energy_l >= energy_r else "R")
 
-        # Шаг 2: группируем слова во фразы по паузам
-        phrases: list[list[tuple[dict[str, Any], str]]] = []  # [(word, channel), ...]
-        current: list[tuple[dict[str, Any], str]] = []
+        # Шаг 2: сглаживание — убираем одиночные выбросы
+        # Если слово отличается от обоих соседей — приводим к соседям
+        smoothed = list(word_channels)
+        for i in range(1, len(smoothed) - 1):
+            if smoothed[i] != smoothed[i - 1] and smoothed[i] != smoothed[i + 1]:
+                smoothed[i] = smoothed[i - 1]
+        # Второй проход: убираем пары-выбросы (L R R L → L L L L)
+        for i in range(1, len(smoothed) - 2):
+            if (smoothed[i] == smoothed[i + 1] and
+                    smoothed[i] != smoothed[i - 1] and
+                    smoothed[i] != smoothed[i + 2] and
+                    smoothed[i - 1] == smoothed[i + 2]):
+                smoothed[i] = smoothed[i - 1]
+                smoothed[i + 1] = smoothed[i - 1]
 
-        for w, ch in zip(word_timestamps, word_channels):
-            if current:
-                gap = float(w["start"]) - float(current[-1][0]["end"])
-                if gap > self.PHRASE_GAP_SEC:
-                    phrases.append(current)
-                    current = []
-            current.append((w, ch))
-        if current:
-            phrases.append(current)
+        # Шаг 3: группируем по смене канала — каждая смена = новый сегмент
+        segments: list[dict[str, Any]] = []
+        seg_words: list[dict[str, Any]] = [word_timestamps[0]]
+        seg_channel = smoothed[0]
 
-        # Шаг 3: канал фразы = голосование большинства слов
-        phrase_data: list[dict[str, Any]] = []
-        for phrase_words in phrases:
-            l_count = sum(1 for _, ch in phrase_words if ch == "L")
-            r_count = len(phrase_words) - l_count
-            channel = "L" if l_count >= r_count else "R"
-            text = " ".join(w["word"] for w, _ in phrase_words)
-            start = float(phrase_words[0][0]["start"])
-            end = float(phrase_words[-1][0]["end"])
-            phrase_data.append({
-                "channel": channel,
-                "start": start,
-                "end": end,
-                "text": text,
-                "l_ratio": l_count / len(phrase_words),
-            })
+        for i in range(1, len(word_timestamps)):
+            if smoothed[i] != seg_channel:
+                # Канал сменился — сохраняем сегмент
+                segments.append({
+                    "channel": seg_channel,
+                    "start": float(seg_words[0]["start"]),
+                    "end": float(seg_words[-1]["end"]),
+                    "text": " ".join(w["word"] for w in seg_words),
+                })
+                seg_words = [word_timestamps[i]]
+                seg_channel = smoothed[i]
+            else:
+                seg_words.append(word_timestamps[i])
+        # Последний сегмент
+        segments.append({
+            "channel": seg_channel,
+            "start": float(seg_words[0]["start"]),
+            "end": float(seg_words[-1]["end"]),
+            "text": " ".join(w["word"] for w in seg_words),
+        })
 
         # Шаг 4: определяем какой канал = оператор по intro
         _OPERATOR_INTRO = re.compile(
@@ -293,32 +305,23 @@ class DiarizationService:
             re.IGNORECASE,
         )
         operator_channel = "L"  # default
-        for pd in phrase_data:
-            if _OPERATOR_INTRO.search(pd["text"]):
-                operator_channel = pd["channel"]
+        for seg in segments:
+            if _OPERATOR_INTRO.search(seg["text"]):
+                operator_channel = seg["channel"]
                 logger.info(
                     "Operator channel: %s (from intro: %s)",
-                    operator_channel, pd["text"][:60],
+                    operator_channel, seg["text"][:60],
                 )
                 break
 
-        # Шаг 5: склеиваем соседние фразы одного канала
-        merged: list[dict[str, Any]] = []
-        for pd in phrase_data:
-            if merged and merged[-1]["channel"] == pd["channel"]:
-                merged[-1]["end"] = pd["end"]
-                merged[-1]["text"] += " " + pd["text"]
-            else:
-                merged.append(dict(pd))
-
         logger.info(
-            "Stereo hard split: %d phrases -> %d segments, operator=%s-channel",
-            len(phrase_data), len(merged), operator_channel,
+            "Stereo channel split: %d words -> %d segments, operator=%s-channel",
+            len(word_timestamps), len(segments), operator_channel,
         )
 
-        # Шаг 6: маппим каналы на роли
+        # Шаг 5: маппим каналы на роли
         transcript_segments: list[TranscriptSegment] = []
-        for seg in merged:
+        for seg in segments:
             speaker = "operator" if seg["channel"] == operator_channel else "client"
             transcript_segments.append(
                 TranscriptSegment(

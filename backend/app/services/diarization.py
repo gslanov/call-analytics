@@ -12,6 +12,7 @@ Merge: combines Whisper word_timestamps with diarization segments to produce
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -281,29 +282,78 @@ class DiarizationService:
                 float(phrase_words[-1]["end"]),
             ))
 
-        # Шаг 3: адаптивный порог — медиана ratio
-        # Фразы выше медианы = L-канал (оператор), ниже = R-канал (клиент)
+        # Шаг 3: определяем какой канал — оператор
+        # Ищем intro-фразу (первая длинная реплика с характерными словами)
+        _OPERATOR_INTRO = re.compile(
+            r"(компани|пирог|меня зовут|здравствуйте.*компани|добрый день.*компани)",
+            re.IGNORECASE,
+        )
+        operator_is_left = True  # default: L = operator
+        for ratio, text in zip(phrase_ratios, phrase_texts):
+            if _OPERATOR_INTRO.search(text):
+                operator_is_left = ratio > 0.5
+                logger.info(
+                    "Operator channel detected from intro: %s (ratio=%.3f, text=%s)",
+                    "LEFT" if operator_is_left else "RIGHT", ratio, text[:60],
+                )
+                break
+
+        # Адаптивный порог — медиана ratio
         if phrase_ratios:
             sorted_ratios = sorted(phrase_ratios)
             threshold = sorted_ratios[len(sorted_ratios) // 2]
-            # Если медиана слишком близка к 0.5 — каналы почти одинаковы,
-            # используем 0.5 как порог
             if abs(threshold - 0.5) < 0.02:
                 threshold = 0.5
         else:
             threshold = 0.5
 
+        # Если оператор в правом канале — инвертируем логику
+        if not operator_is_left:
+            threshold = 1.0 - threshold
+
         logger.info(
-            "Stereo adaptive threshold: %.3f (phrases: %d)",
-            threshold, len(phrases),
+            "Stereo adaptive threshold: %.3f (phrases: %d, op_left: %s)",
+            threshold, len(phrases), operator_is_left,
         )
 
         # Шаг 4: назначаем спикеров
+        # Контекстные маркеры оператора — фразы, которые говорит только оператор
+        _OPERATOR_MARKERS = [
+            re.compile(r"спасибо за заказ", re.IGNORECASE),
+            re.compile(r"хорошего.*дня", re.IGNORECASE),
+            re.compile(r"до свидания", re.IGNORECASE),
+            re.compile(r"всего доброго", re.IGNORECASE),
+            re.compile(r"итого.*\d", re.IGNORECASE),
+            re.compile(r"сумма заказа", re.IGNORECASE),
+            re.compile(r"будьте.*на связи", re.IGNORECASE),
+            re.compile(r"курьер.*позвонит", re.IGNORECASE),
+            re.compile(r"могу предложить", re.IGNORECASE),
+            re.compile(r"подскажите", re.IGNORECASE),
+            re.compile(r"компани.*пирог", re.IGNORECASE),
+            re.compile(r"меня зовут", re.IGNORECASE),
+        ]
+
         transcript_segments: list[TranscriptSegment] = []
         for i, (ratio, text, (start, end)) in enumerate(
             zip(phrase_ratios, phrase_texts, phrase_times)
         ):
-            speaker = "operator" if ratio >= threshold else "client"
+            if operator_is_left:
+                is_operator = ratio >= threshold
+            else:
+                is_operator = ratio <= threshold
+
+            # Контекстная коррекция: если фраза содержит 2+ оператор-маркера
+            # и помечена как client — переопределяем на operator
+            if not is_operator:
+                hits = sum(1 for m in _OPERATOR_MARKERS if m.search(text))
+                if hits >= 2:
+                    logger.info(
+                        "Context override: phrase '%s' (ratio=%.3f) -> operator (%d markers)",
+                        text[:50], ratio, hits,
+                    )
+                    is_operator = True
+
+            speaker = "operator" if is_operator else "client"
             transcript_segments.append(
                 TranscriptSegment(speaker=speaker, start=start, end=end, text=text)
             )

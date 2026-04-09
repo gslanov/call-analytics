@@ -190,14 +190,58 @@ class PipelineOrchestrator:
                 m, s = divmod(int(sec), 60)
                 return f"{m}:{s:02d}"
 
+            # Filter out IVR text from segments
+            # IVR phrases appear at the start: "нажмите цифру", "дождитесь ответа" etc.
+            # They can be in a separate segment or mixed with live operator intro.
+            # Strategy: find the last IVR marker, cut everything before it.
+            import re
+            _IVR_MARKERS = [
+                "нажмите цифру",
+                "дождитесь ответа оператора",
+                "контроля качества",
+                "все разговоры записываются",
+                "для оформления нового заказа",
+                "для вопросов связанных",
+                "пожалуйста ответа оператора",
+            ]
+
+            live_segments = []
+            for seg in diarization_result.transcript_segments:
+                text = seg.text
+                if seg.speaker == "operator":
+                    # Check if segment contains IVR text
+                    text_lower = text.lower()
+                    last_ivr_end = -1
+                    for marker in _IVR_MARKERS:
+                        pos = text_lower.rfind(marker)
+                        if pos >= 0:
+                            # Find end of sentence containing this marker
+                            end_pos = pos + len(marker)
+                            last_ivr_end = max(last_ivr_end, end_pos)
+
+                    if last_ivr_end > 0:
+                        # Cut out IVR prefix, keep the rest
+                        remaining = text[last_ivr_end:].strip()
+                        logger.info(
+                            "IVR stripped from segment [%s]: removed %d chars, kept %d",
+                            _fmt(seg.start), last_ivr_end, len(remaining),
+                        )
+                        if not remaining:
+                            continue  # entire segment was IVR
+                        # Replace segment text with cleaned version
+                        from dataclasses import replace
+                        seg = replace(seg, text=remaining)
+
+                live_segments.append(seg)
+
             operator_text = "\n".join(
                 f"[{_fmt(seg.start)}] {seg.text}"
-                for seg in diarization_result.transcript_segments
+                for seg in live_segments
                 if seg.speaker == "operator"
             )
             client_text = "\n".join(
                 f"[{_fmt(seg.start)}] {seg.text}"
-                for seg in diarization_result.transcript_segments
+                for seg in live_segments
                 if seg.speaker == "client"
             )
         else:

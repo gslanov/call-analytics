@@ -1,8 +1,13 @@
-"""GET /api/v1/reports — aggregated reports per operator and overall."""
+"""GET /api/v1/reports — aggregated reports per operator and overall.
+GET /api/v1/reports/download — CSV export.
+"""
 
+import csv
+import io
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select, case, and_
 from sqlalchemy.orm import Session
 
@@ -108,3 +113,45 @@ def get_reports(
             "date_to": date_to.isoformat() if date_to else None,
         },
     }
+
+
+@router.get("/reports/download")
+def download_report(
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Скачать отчёт в CSV (открывается в Excel)."""
+    data = get_reports(date_from=date_from, date_to=date_to, db=db)
+
+    output = io.StringIO()
+    # BOM for Excel to detect UTF-8
+    output.write("\ufeff")
+    writer = csv.writer(output, delimiter=";")
+
+    writer.writerow(["Оператор", "Звонков", "Стандарты", "Лояльность", "Доброжелательность", "Средний", "Мин", "Макс"])
+    for op in data["operators"]:
+        writer.writerow([
+            op["name"], op["call_count"],
+            f'{op["avg_standard"]}%', f'{op["avg_loyalty"]}%',
+            f'{op["avg_kindness"]}%', f'{op["avg_overall"]}%',
+            f'{op["min_overall"]}%', f'{op["max_overall"]}%',
+        ])
+    writer.writerow([])
+    o = data["overall"]
+    writer.writerow([
+        "ИТОГО", o["call_count"],
+        f'{o["avg_standard"]}%', f'{o["avg_loyalty"]}%',
+        f'{o["avg_kindness"]}%', f'{o["avg_overall"]}%',
+        f'{o["min_overall"]}%', f'{o["max_overall"]}%',
+    ])
+    writer.writerow([])
+    writer.writerow([f"Отклонённых оценок: {data['rejected_count']}"])
+
+    output.seek(0)
+    filename = f"report_{datetime.utcnow().strftime('%Y-%m-%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

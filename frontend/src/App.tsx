@@ -233,7 +233,14 @@ function App() {
           )}
 
           {/* Reports */}
-          {appState === 'reports' && <ReportsPage />}
+          {appState === 'reports' && (
+            <ReportsPage
+              onOperatorClick={(name) => {
+                applyFilters({ operator: name })
+                setAppState('results')
+              }}
+            />
+          )}
 
           {/* FTP Files state */}
           {appState === 'ftp_files' && <FtpFilesPage />}

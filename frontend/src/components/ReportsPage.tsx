@@ -40,12 +40,18 @@ function scoreBg(score: number): string {
   return 'bg-red-50'
 }
 
-export function ReportsPage() {
+interface ReportsPageProps {
+  onOperatorClick?: (operatorName: string) => void
+}
+
+export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [sortCol, setSortCol] = useState<string>('avg_overall')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const fetchReport = async () => {
     setLoading(true)
@@ -92,6 +98,17 @@ export function ReportsPage() {
               className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Обновить
+            </button>
+            <button
+              onClick={() => {
+                const params = new URLSearchParams()
+                if (dateFrom) params.set('date_from', new Date(dateFrom).toISOString())
+                if (dateTo) params.set('date_to', new Date(dateTo + 'T23:59:59').toISOString())
+                window.open(`${API}/reports/download${params.toString() ? '?' + params : ''}`, '_blank')
+              }}
+              className="text-sm border border-gray-300 text-gray-600 px-4 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Скачать CSV
             </button>
           </div>
         </div>
@@ -143,19 +160,48 @@ export function ReportsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Оператор</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Звонков</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Стандарты</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Лояльность</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Доброжел.</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Средний</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Мин — Макс</th>
+                    {[
+                      { key: 'name', label: 'Оператор', align: 'left' },
+                      { key: 'call_count', label: 'Звонков', align: 'center' },
+                      { key: 'avg_standard', label: 'Стандарты', align: 'center' },
+                      { key: 'avg_loyalty', label: 'Лояльность', align: 'center' },
+                      { key: 'avg_kindness', label: 'Доброжел.', align: 'center' },
+                      { key: 'avg_overall', label: 'Средний', align: 'center' },
+                      { key: 'min_overall', label: 'Мин — Макс', align: 'center' },
+                    ].map(({ key, label, align }) => (
+                      <th
+                        key={key}
+                        onClick={() => {
+                          if (sortCol === key) setSortDir(sortDir === 'desc' ? 'asc' : 'desc')
+                          else { setSortCol(key); setSortDir('desc') }
+                        }}
+                        className={`px-4 py-3 text-${align} text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:text-gray-700 select-none ${key === 'name' ? 'px-6' : ''}`}
+                      >
+                        {label} {sortCol === key ? (sortDir === 'asc' ? '↑' : '↓') : <span className="text-gray-300">↕</span>}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {data.operators.map((op) => (
+                  {[...data.operators]
+                    .sort((a, b) => {
+                      const av = (a as any)[sortCol]
+                      const bv = (b as any)[sortCol]
+                      if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+                      return sortDir === 'asc' ? av - bv : bv - av
+                    })
+                    .map((op) => (
                     <tr key={op.name} className={`border-b border-gray-100 ${scoreBg(op.avg_overall)}`}>
-                      <td className="px-6 py-3 font-medium text-gray-800">{op.name}</td>
+                      <td className="px-6 py-3 font-medium text-gray-800">
+                        {onOperatorClick ? (
+                          <button
+                            onClick={() => onOperatorClick(op.name)}
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {op.name}
+                          </button>
+                        ) : op.name}
+                      </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-600">{op.call_count}</td>
                       <td className={`px-4 py-3 text-center text-sm font-semibold ${scoreColor(op.avg_standard)}`}>{op.avg_standard}%</td>
                       <td className={`px-4 py-3 text-center text-sm font-semibold ${scoreColor(op.avg_loyalty)}`}>{op.avg_loyalty}%</td>

@@ -222,6 +222,77 @@ def get_result(
     )
 
 
+@router.delete("/results/{file_id}")
+def delete_file(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Удалить звонок: файл с диска, транскрипция, диаризация, анализ."""
+    from pathlib import Path
+    from app.models import Transcription, Diarization
+
+    db_file = db.get(File, file_id)
+    if db_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    # Remove related records
+    for model in [Analysis, Diarization, Transcription]:
+        existing = db.scalar(select(model).where(model.file_id == file_id))
+        if existing:
+            db.delete(existing)
+
+    # Remove audio file from disk
+    if db_file.audio_path:
+        audio = Path(db_file.audio_path)
+        if audio.exists():
+            audio.unlink()
+
+    # Remove DB record
+    db.delete(db_file)
+    db.commit()
+
+    return {"file_id": str(file_id), "deleted": True}
+
+
+@router.post("/results/{file_id}/reject")
+def reject_analysis(
+    file_id: uuid.UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+) -> dict:
+    """РОП не согласен с оценкой — отклонить анализ. Сохраняется для калибровки."""
+    from datetime import datetime as dt
+
+    db_file = db.get(File, file_id)
+    if db_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    analysis = db.scalar(select(Analysis).where(Analysis.file_id == file_id))
+    if analysis is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+
+    reason = body.get("reason", "").strip()
+    if not reason:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Укажите причину отклонения")
+
+    analysis.rejected = True
+    analysis.rejection_reason = reason
+    analysis.rejected_at = dt.utcnow()
+    db.commit()
+
+    return {
+        "file_id": str(file_id),
+        "rejected": True,
+        "reason": reason,
+        "old_scores": {
+            "standard": analysis.standard,
+            "loyalty": analysis.loyalty,
+            "kindness": analysis.kindness,
+            "overall": analysis.overall,
+        },
+    }
+
+
 @router.post("/reprocess/{file_id}")
 def reprocess_file(
     file_id: uuid.UUID,

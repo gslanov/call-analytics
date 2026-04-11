@@ -65,6 +65,9 @@ class AnalysisSchema(BaseModel):
     quotes: list | None
     criteria_details: dict | None = None
     llm_model: str | None
+    rejected: bool = False
+    rejection_reason: str | None = None
+    rejected_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

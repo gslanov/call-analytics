@@ -6,9 +6,11 @@ import { ResultsTable } from './components/ResultsTable'
 import { FilterBar } from './components/FilterBar'
 import { AnalysisDetail } from './components/AnalysisDetail'
 import { FtpFilesPage } from './components/FtpFilesPage'
+import { ReportsPage } from './components/ReportsPage'
 import { SettingsPage } from './components/SettingsPage'
 import { useUpload } from './hooks/useUpload'
 import { useResults } from './hooks/useResults'
+import { deleteResult, rejectAnalysis } from './lib/api'
 import type { AppState, ProcessingFile } from './types'
 
 function App() {
@@ -53,7 +55,7 @@ function App() {
   const {
     results, total, page, limit, filters,
     isLoading: resultsLoading, error: resultsError, useMock,
-    applyFilters, resetFilters, goToPage, setPageLimit,
+    applyFilters, resetFilters, goToPage, setPageLimit, refresh,
   } = useResults()
 
   const handleReset = () => {
@@ -93,6 +95,16 @@ function App() {
               }`}
             >
               Результаты
+            </button>
+            <button
+              onClick={() => setAppState('reports')}
+              className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                appState === 'reports'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              Отчёты
             </button>
             <button
               onClick={() => setAppState('ftp_files')}
@@ -192,6 +204,22 @@ function App() {
               onPageChange={goToPage}
               onLimitChange={setPageLimit}
               onRowDetail={(id) => setSelectedResultId(id)}
+              onDelete={async (id) => {
+                try {
+                  await deleteResult(id)
+                  refresh()
+                } catch (e) {
+                  alert('Ошибка удаления: ' + (e as Error).message)
+                }
+              }}
+              onReject={async (id, reason) => {
+                try {
+                  await rejectAnalysis(id, reason)
+                  refresh()
+                } catch (e) {
+                  alert('Ошибка: ' + (e as Error).message)
+                }
+              }}
             />
             </div>
           )}
@@ -203,6 +231,9 @@ function App() {
               onBack={() => setSelectedResultId(null)}
             />
           )}
+
+          {/* Reports */}
+          {appState === 'reports' && <ReportsPage />}
 
           {/* FTP Files state */}
           {appState === 'ftp_files' && <FtpFilesPage />}

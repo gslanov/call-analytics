@@ -121,10 +121,14 @@ export function useResults() {
     load({}, 1, limit)
   }, [limit, load])
 
+  const refresh = useCallback(() => {
+    load(filters, page, limit)
+  }, [filters, page, limit, load])
+
   return {
     results, total, page, limit, filters,
     isLoading, error, useMock,
-    applyFilters, resetFilters, goToPage, setPageLimit,
+    applyFilters, resetFilters, goToPage, setPageLimit, refresh,
   }
 }
 

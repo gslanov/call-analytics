@@ -144,6 +144,9 @@ class Analysis(Base):
     quotes: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     criteria_details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     llm_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    rejected: Mapped[bool] = mapped_column(server_default="false")
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     file: Mapped["File"] = relationship("File", back_populates="analysis")

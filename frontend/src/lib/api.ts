@@ -107,6 +107,20 @@ export async function fetchResultDetail(fileId: string): Promise<AnalysisDetailR
   return response.json() as Promise<AnalysisDetailResult>
 }
 
+export async function deleteResult(fileId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/results/${fileId}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(`Delete failed: ${response.statusText}`)
+}
+
+export async function rejectAnalysis(fileId: string, reason: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/results/${fileId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  if (!response.ok) throw new Error(`Reject failed: ${response.statusText}`)
+}
+
 export function audioUrl(fileId: string): string {
   return `${API_BASE_URL}/audio/${fileId}`
 }

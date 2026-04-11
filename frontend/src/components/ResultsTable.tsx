@@ -16,6 +16,8 @@ interface ResultsTableProps {
   onPageChange: (p: number) => void
   onLimitChange: (l: number) => void
   onRowDetail?: (fileId: string) => void
+  onDelete?: (fileId: string) => void
+  onReject?: (fileId: string, reason: string) => void
 }
 
 type SortableCol = 'created_at' | 'operator_name' | 'overall' | 'standard' | 'loyalty' | 'kindness'
@@ -129,6 +131,8 @@ export function ResultsTable({
   onPageChange,
   onLimitChange,
   onRowDetail,
+  onDelete,
+  onReject,
 }: ResultsTableProps) {
   const toggleSort = (col: SortableCol) => {
     const isActive = filters.sort === col
@@ -238,14 +242,48 @@ export function ResultsTable({
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.kindness} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.overall} /></td>
                       <td className="px-4 py-3">
-                        {onRowDetail && (
-                          <button
-                            onClick={() => onRowDetail(r.file_id)}
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
-                          >
-                            Подробнее →
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {onRowDetail && (
+                            <button
+                              onClick={() => onRowDetail(r.file_id)}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                            >
+                              Подробнее →
+                            </button>
+                          )}
+                          {onReject && r.analysis && !r.analysis.rejected && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const reason = prompt('Причина отклонения оценки:')
+                                if (reason) onReject(r.file_id, reason)
+                              }}
+                              className="text-xs text-gray-400 hover:text-orange-600 transition-colors"
+                              title="Не согласен с оценкой"
+                            >
+                              Не согласен
+                            </button>
+                          )}
+                          {r.analysis?.rejected && (
+                            <span className="text-xs text-orange-500" title={r.analysis.rejection_reason || ''}>
+                              отклонено
+                            </span>
+                          )}
+                          {onDelete && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (confirm('Удалить этот звонок? Это действие необратимо.')) {
+                                  onDelete(r.file_id)
+                                }
+                              }}
+                              className="text-xs text-gray-400 hover:text-red-600 transition-colors"
+                              title="Удалить звонок"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     {r.analysis?.summary && (

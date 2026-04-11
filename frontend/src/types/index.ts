@@ -25,6 +25,8 @@ export interface AnalysisResult {
     overall: number
     summary: string
     llm_model?: string
+    rejected?: boolean
+    rejection_reason?: string | null
   }
   created_at: string
   diarization_method?: string | null
@@ -33,7 +35,7 @@ export interface AnalysisResult {
   caller_phone?: string | null // "**3351"
 }
 
-export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'ftp_files' | 'settings'
+export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'reports' | 'ftp_files' | 'settings'
 
 export type ProcessingStatus =
   | 'queued'
@@ -130,5 +132,7 @@ export interface AnalysisDetailResult extends AnalysisResult {
     quotes?: Quote[]
     criteria_details?: CriteriaDetails
     llm_model?: string
+    rejected?: boolean
+    rejection_reason?: string | null
   }
 }

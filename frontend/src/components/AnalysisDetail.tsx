@@ -53,6 +53,7 @@ function groupStats(items: CriteriaGroup) {
 interface AnalysisDetailProps {
   fileId: string
   onBack: () => void
+  onReject?: (fileId: string, reason: string) => void
 }
 
 // ── Mock detail data ──────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ function buildMockDetail(fileId: string): AnalysisDetailResult {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
+export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps) {
   const [detail, setDetail] = useState<AnalysisDetailResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMock, setIsMock] = useState(false)
@@ -184,13 +185,34 @@ export function AnalysisDetail({ fileId, onBack }: AnalysisDetailProps) {
               )}
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            detail.status === 'done'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-500'
-          }`}>
-            {detail.status === 'done' ? 'Готово' : detail.status}
-          </span>
+          <div className="flex items-center gap-3">
+            {onReject && detail.analysis && !detail.analysis.rejected && (
+              <button
+                onClick={() => {
+                  const reason = prompt('Причина отклонения оценки:')
+                  if (reason) {
+                    onReject(fileId, reason)
+                    onBack()
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors"
+              >
+                Не согласен с оценкой
+              </button>
+            )}
+            {detail.analysis?.rejected && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700" title={detail.analysis.rejection_reason || ''}>
+                Оценка отклонена
+              </span>
+            )}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+              detail.status === 'done'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-500'
+            }`}>
+              {detail.status === 'done' ? 'Готово' : detail.status}
+            </span>
+          </div>
         </div>
       </div>
 

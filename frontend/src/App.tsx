@@ -212,14 +212,6 @@ function App() {
                   alert('Ошибка удаления: ' + (e as Error).message)
                 }
               }}
-              onReject={async (id, reason) => {
-                try {
-                  await rejectAnalysis(id, reason)
-                  refresh()
-                } catch (e) {
-                  alert('Ошибка: ' + (e as Error).message)
-                }
-              }}
             />
             </div>
           )}
@@ -229,6 +221,14 @@ function App() {
             <AnalysisDetail
               fileId={selectedResultId}
               onBack={() => setSelectedResultId(null)}
+              onReject={async (id, reason) => {
+                try {
+                  await rejectAnalysis(id, reason)
+                  refresh()
+                } catch (e) {
+                  alert('Ошибка: ' + (e as Error).message)
+                }
+              }}
             />
           )}
 

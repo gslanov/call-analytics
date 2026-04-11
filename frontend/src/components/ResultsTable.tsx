@@ -17,7 +17,6 @@ interface ResultsTableProps {
   onLimitChange: (l: number) => void
   onRowDetail?: (fileId: string) => void
   onDelete?: (fileId: string) => void
-  onReject?: (fileId: string, reason: string) => void
 }
 
 type SortableCol = 'created_at' | 'operator_name' | 'overall' | 'standard' | 'loyalty' | 'kindness'
@@ -132,7 +131,6 @@ export function ResultsTable({
   onLimitChange,
   onRowDetail,
   onDelete,
-  onReject,
 }: ResultsTableProps) {
   const toggleSort = (col: SortableCol) => {
     const isActive = filters.sort === col
@@ -242,7 +240,7 @@ export function ResultsTable({
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.kindness} /></td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.overall} /></td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           {onRowDetail && (
                             <button
                               onClick={() => onRowDetail(r.file_id)}
@@ -251,21 +249,8 @@ export function ResultsTable({
                               Подробнее →
                             </button>
                           )}
-                          {onReject && r.analysis && !r.analysis.rejected && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const reason = prompt('Причина отклонения оценки:')
-                                if (reason) onReject(r.file_id, reason)
-                              }}
-                              className="text-xs text-gray-400 hover:text-orange-600 transition-colors"
-                              title="Не согласен с оценкой"
-                            >
-                              Не согласен
-                            </button>
-                          )}
                           {r.analysis?.rejected && (
-                            <span className="text-xs text-orange-500" title={r.analysis.rejection_reason || ''}>
+                            <span className="text-[10px] text-orange-500" title={r.analysis.rejection_reason || ''}>
                               отклонено
                             </span>
                           )}
@@ -277,10 +262,15 @@ export function ResultsTable({
                                   onDelete(r.file_id)
                                 }
                               }}
-                              className="text-xs text-gray-400 hover:text-red-600 transition-colors"
+                              className="text-gray-300 hover:text-red-500 transition-colors"
                               title="Удалить звонок"
                             >
-                              ✕
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <line x1="10" y1="11" x2="10" y2="17" />
+                                <line x1="14" y1="11" x2="14" y2="17" />
+                              </svg>
                             </button>
                           )}
                         </div>

@@ -100,7 +100,8 @@ class PipelineOrchestrator:
             self._set_status(db_file, "diarizing", stage=2, progress=STAGE_PROGRESS[1] + 5)
             try:
                 word_timestamps = transcription_result.word_timestamps if transcription_result else []
-                diarization_result = await self._run_diarization(db_file, word_timestamps)
+                full_text = transcription_result.full_text if transcription_result else ""
+                diarization_result = await self._run_diarization(db_file, word_timestamps, full_text)
                 self._save_diarization(db_file, diarization_result)
                 self._set_status(db_file, "diarizing", stage=2, progress=STAGE_PROGRESS[2])
             except Exception as exc:
@@ -162,7 +163,7 @@ class PipelineOrchestrator:
         )
         return result
 
-    async def _run_diarization(self, db_file: File, word_timestamps: list[dict]) -> Any:
+    async def _run_diarization(self, db_file: File, word_timestamps: list[dict], full_text: str = "") -> Any:
         import asyncio
         from app.services.diarization import DiarizationService
 
@@ -172,7 +173,7 @@ class PipelineOrchestrator:
         diarizer = DiarizationService.get_instance()
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
-            None, diarizer.diarize, db_file.audio_path, word_timestamps
+            None, diarizer.diarize, db_file.audio_path, word_timestamps, full_text
         )
         return result
 
@@ -184,7 +185,30 @@ class PipelineOrchestrator:
 
         operator_text = ""
         client_text = ""
-        if diarization_result is not None:
+
+        # Triple merge for stereo files with channel_transcription method:
+        # 1. gpt-4o-transcribe (DB) = accurate text, no speakers/timestamps
+        # 2. whisper-1 (fresh) = timestamps + channel energy speakers, less accurate text
+        # 3. GPT-5.4 merges both into best version
+        use_triple_merge = (
+            diarization_result is not None
+            and getattr(diarization_result, "method", "") == "channel_transcription"
+        )
+        if use_triple_merge:
+            merged = await self._run_triple_merge(db_file)
+            if merged:
+                operator_text = merged
+                client_text = ""
+                logger.info("Triple merge complete for %s", db_file.id)
+            else:
+                # Fallback: use mixed text without speakers
+                tr = self.db.scalar(
+                    sa_select(Transcription).where(Transcription.file_id == db_file.id)
+                )
+                if tr and tr.full_text:
+                    operator_text = tr.full_text
+                logger.warning("Triple merge failed, using mixed text fallback")
+        elif diarization_result is not None:
             # Include timestamps so GPT can reference specific moments
             def _fmt(sec: float) -> str:
                 m, s = divmod(int(sec), 60)
@@ -259,6 +283,156 @@ class PipelineOrchestrator:
             None, llm.analyze, operator_text, client_text
         )
         return result
+
+    # ------------------------------------------------------------------
+    # Triple merge: whisper-1 + gpt-4o-transcribe → GPT-5.4 merge
+    # ------------------------------------------------------------------
+
+    _MERGE_PROMPT = """Ты получаешь ДВЕ транскрибации одного и того же телефонного разговора, сделанные разными моделями.
+
+ТРАНСКРИБАЦИЯ A (whisper-1):
+- Есть таймстемпы [M:SS]
+- Есть разметка спикеров (ОПЕРАТОР / КЛИЕНТ) по каналам аудио
+- Текст МЕНЕЕ точный: могут быть ошибки в словах
+
+ТРАНСКРИБАЦИЯ B (gpt-4o-transcribe):
+- НЕТ таймстемпов
+- НЕТ разметки спикеров
+- Текст БОЛЕЕ точный в большинстве случаев, но тоже бывают ошибки
+
+ТВОЯ ЗАДАЧА: Собрать ЛУЧШУЮ ИТОГОВУЮ версию диалога.
+
+Правила:
+1. Для каждой реплики бери ТАЙМСТЕМП и СПИКЕРА из транскрибации A
+2. Для ТЕКСТА — сравнивай обе версии и выбирай ту, что точнее по смыслу контекста. Иногда A точнее, иногда B — выбирай лучшее в каждом конкретном месте
+3. Если оба варианта выглядят ошибочными — догадайся по смыслу (например, "хатикурри" + "хатифури" = "хачапури", "Пироги на маразин" + "Пряги номер один" = "Пироги номер один")
+4. НЕ добавляй и НЕ удаляй реплики — только исправляй текст
+5. Контекст: колл-центр доставки осетинских пирогов "Пироги №1". Операторы: Галина, Александра, Анна, Анастасия
+
+Верни ТОЛЬКО строки в формате:
+[M:SS] ОПЕРАТОР: текст
+[M:SS] КЛИЕНТ: текст
+
+Без JSON, без пояснений — только диалог."""
+
+    async def _run_triple_merge(self, db_file: File) -> str | None:
+        """Run triple merge: whisper-1 timestamps+speakers + gpt-4o text → GPT merge."""
+        import asyncio
+        import numpy as np
+        import soundfile as sf
+
+        # 1. Get gpt-4o-transcribe text from DB
+        tr = self.db.scalar(
+            sa_select(Transcription).where(Transcription.file_id == db_file.id)
+        )
+        if not tr or not tr.full_text:
+            return None
+        gpt4o_text = tr.full_text
+
+        # 2. Run whisper-1 for timestamps + segments
+        from app.services.whisper_service import WhisperService, DOMAIN_PROMPT
+        whisper = WhisperService.get_instance()
+        client = whisper._get_client()
+        if client is None:
+            return None
+
+        audio_path = db_file.audio_path
+        logger.info("Triple merge: running whisper-1 on %s", audio_path)
+
+        def _run_whisper_1():
+            with open(audio_path, "rb") as f:
+                return client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f,
+                    language="ru",
+                    prompt=DOMAIN_PROMPT,
+                    response_format="verbose_json",
+                    timestamp_granularities=["word", "segment"],
+                )
+
+        loop = asyncio.get_running_loop()
+        whisper_response = await loop.run_in_executor(None, _run_whisper_1)
+        whisper_segments = whisper_response.segments if hasattr(whisper_response, 'segments') else []
+
+        if not whisper_segments:
+            logger.warning("Triple merge: whisper-1 returned no segments")
+            return None
+
+        # 3. Assign speakers by channel energy
+        try:
+            audio_data, sr = sf.read(audio_path)
+        except Exception as exc:
+            logger.error("Triple merge: cannot read audio: %s", exc)
+            return None
+
+        if audio_data.ndim != 2 or audio_data.shape[1] != 2:
+            logger.info("Triple merge: not stereo, skipping speaker assignment")
+            return None
+
+        left = audio_data[:, 0]
+        right = audio_data[:, 1]
+
+        labeled_lines = []
+        for seg in whisper_segments:
+            start = seg.start if hasattr(seg, 'start') else seg.get("start", 0)
+            end = seg.end if hasattr(seg, 'end') else seg.get("end", 0)
+            text = (seg.text if hasattr(seg, 'text') else seg.get("text", "")).strip()
+
+            s_start = int(start * sr)
+            s_end = int(end * sr)
+            if s_end > s_start:
+                l_energy = np.sqrt(np.mean(left[s_start:s_end] ** 2))
+                r_energy = np.sqrt(np.mean(right[s_start:s_end] ** 2))
+            else:
+                l_energy = r_energy = 0
+
+            if l_energy > r_energy * 1.3:
+                speaker = "ОПЕРАТОР"
+            elif r_energy > l_energy * 1.3:
+                speaker = "КЛИЕНТ"
+            else:
+                speaker = "НЕЯСНО"
+
+            m, s = divmod(int(start), 60)
+            labeled_lines.append(f"[{m}:{s:02d}] {speaker}: {text}")
+
+        whisper_labeled = "\n".join(labeled_lines)
+        logger.info("Triple merge: %d whisper segments with speakers", len(labeled_lines))
+
+        # 4. GPT-5.4 merge
+        user_msg = (
+            f"=== ТРАНСКРИБАЦИЯ A (whisper-1, с таймстемпами и спикерами) ===\n{whisper_labeled}\n\n"
+            f"=== ТРАНСКРИБАЦИЯ B (gpt-4o-transcribe, точный текст без разметки) ===\n{gpt4o_text}"
+        )
+
+        from app.services.llm_service import LLMService
+        llm_client = LLMService.get_instance()._get_client()
+        if llm_client is None:
+            return None
+
+        def _run_merge():
+            from app.config import settings as _settings
+            response = llm_client.chat.completions.create(
+                model=_settings.llm_model,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": self._MERGE_PROMPT},
+                    {"role": "user", "content": user_msg},
+                ],
+                timeout=120,
+            )
+            return response.choices[0].message.content or ""
+
+        merged_text = await loop.run_in_executor(None, _run_merge)
+        merged_text = merged_text.strip()
+
+        # Clean markdown if any
+        if merged_text.startswith("```"):
+            lines = merged_text.splitlines()
+            merged_text = "\n".join(l for l in lines if not l.strip().startswith("```")).strip()
+
+        logger.info("Triple merge result: %d chars, %d lines", len(merged_text), merged_text.count("\n") + 1)
+        return merged_text
 
     # ------------------------------------------------------------------
     # DB persistence helpers

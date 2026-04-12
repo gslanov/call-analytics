@@ -1,13 +1,13 @@
-"""WhisperService — audio transcription using OpenAI Whisper API (cloud).
+"""WhisperService — audio transcription using OpenAI API (cloud).
 
 Features:
-- OpenAI Whisper API (cloud, no GPU required)
-- Word-level timestamps via verbose_json response
+- gpt-4o-transcribe model with domain prompt hints
 - Retry logic: 3x with exponential backoff
 - Graceful degradation: returns error if API key not set
 
-Previous implementation used faster-whisper locally on GPU.
-Switched to cloud API on 2026-04-04 to remove GPU dependency.
+History:
+- 2026-04-04: switched from local faster-whisper to OpenAI cloud (whisper-1)
+- 2026-04-10: upgraded whisper-1 → gpt-4o-transcribe (better Russian, domain prompt)
 """
 
 from __future__ import annotations
@@ -25,8 +25,22 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0  # seconds
 
-# OpenAI Whisper API supports files up to 25 MB
+# OpenAI API supports files up to 25 MB
 MAX_API_FILE_SIZE = 25 * 1024 * 1024
+
+# Transcription model: gpt-4o-transcribe is significantly better than whisper-1
+# for Russian speech, names, and domain-specific terms
+TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
+
+# Domain prompt helps the model recognize specific terms correctly.
+# Keep it moderate — too long causes hallucination (model echoes prompt into text).
+# Tested: long prompt (30+ terms) → hallucination in 2/8 calls.
+# Short prompt (5 terms) → missed "Пироги №1" in greeting.
+# This length (15 terms) is the sweet spot from A/B testing.
+DOMAIN_PROMPT = (
+    "Компания Пироги №1. Осетинские пироги, облепиха, сулугуни, хачапури, "
+    "Галина, Александра, Анна, Анастасия, доставка, курьер, самовывоз"
+)
 
 
 class TranscriptionResult:
@@ -122,34 +136,28 @@ class WhisperService:
         ) from last_exc
 
     def _call_api(self, path: Path, offset_sec: float = 0.0) -> TranscriptionResult:
-        """Single OpenAI Whisper API call. Returns TranscriptionResult."""
+        """Single OpenAI transcription API call. Returns TranscriptionResult."""
         client = self._get_client()
 
         with open(path, "rb") as audio_file:
             response = client.audio.transcriptions.create(
-                model="whisper-1",
+                model=TRANSCRIPTION_MODEL,
                 file=audio_file,
                 language="ru",
-                response_format="verbose_json",
-                timestamp_granularities=["word"],
+                response_format="text",
+                prompt=DOMAIN_PROMPT,
             )
 
-        # Extract full text
-        full_text = response.text or ""
+        # gpt-4o-transcribe returns plain text (no word timestamps)
+        full_text = str(response).strip() if response else ""
 
-        # Extract word-level timestamps
+        # Word timestamps not available with gpt-4o-transcribe.
+        # Diarization uses channel-split method which doesn't need them.
         word_timestamps: list[dict[str, Any]] = []
-        if hasattr(response, "words") and response.words:
-            for w in response.words:
-                word_timestamps.append({
-                    "word": w.word.strip() if hasattr(w, "word") else str(w.get("word", "")).strip(),
-                    "start": round((w.start if hasattr(w, "start") else w.get("start", 0)) + offset_sec, 3),
-                    "end": round((w.end if hasattr(w, "end") else w.get("end", 0)) + offset_sec, 3),
-                })
 
         logger.info(
-            "Whisper API: '%s...' (%d chars, %d words with timestamps)",
-            full_text[:80], len(full_text), len(word_timestamps),
+            "%s: '%s...' (%d chars)",
+            TRANSCRIPTION_MODEL, full_text[:80], len(full_text),
         )
 
         return TranscriptionResult(

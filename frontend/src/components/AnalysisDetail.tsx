@@ -197,7 +197,7 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
                 }}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium border border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors"
               >
-                Не согласен с оценкой
+                Оспорить оценку
               </button>
             )}
             {detail.analysis?.rejected && (

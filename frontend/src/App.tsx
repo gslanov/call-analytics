@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UploadZone } from './components/UploadZone'
 import { FileList } from './components/FileList'
 import { ProgressView } from './components/ProgressView'
@@ -13,10 +13,34 @@ import { useResults } from './hooks/useResults'
 import { deleteResult, rejectAnalysis } from './lib/api'
 import type { AppState, ProcessingFile } from './types'
 
+function parseHash(): { page: AppState; detailId: string | null } {
+  const hash = window.location.hash.replace('#', '')
+  if (hash.startsWith('detail/')) return { page: 'results', detailId: hash.replace('detail/', '') }
+  const valid: AppState[] = ['results', 'reports', 'ftp_files', 'settings', 'empty']
+  if (valid.includes(hash as AppState)) return { page: hash as AppState, detailId: null }
+  return { page: 'results', detailId: null }
+}
+
 function App() {
-  const [appState, setAppState] = useState<AppState>('empty')
+  const initial = parseHash()
+  const [appState, setAppState] = useState<AppState>(initial.page)
+  const [prevState, setPrevState] = useState<AppState | null>(null)
   const [processingFiles, setProcessingFiles] = useState<ProcessingFile[]>([])
-  const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(initial.detailId)
+
+  const navigate = (to: AppState) => {
+    setPrevState(appState)
+    setAppState(to)
+  }
+
+  const goBack = () => {
+    if (selectedResultId) {
+      setSelectedResultId(null)
+    } else if (prevState) {
+      setAppState(prevState)
+      setPrevState(null)
+    }
+  }
 
   const {
     files,
@@ -30,6 +54,15 @@ function App() {
     startUpload,
     reset,
   } = useUpload()
+
+  // Sync state → URL hash
+  useEffect(() => {
+    if (selectedResultId) {
+      window.location.hash = `detail/${selectedResultId}`
+    } else {
+      window.location.hash = appState
+    }
+  }, [appState, selectedResultId])
 
   const handleFilesSelected = (newFiles: File[]) => {
     addFiles(newFiles)
@@ -78,16 +111,16 @@ function App() {
             <h1 className="text-xl font-bold text-gray-800">Анализ звонков</h1>
           </button>
           <nav className="flex items-center gap-3">
-            {selectedResultId && (
+            {(selectedResultId || prevState) && (
               <button
-                onClick={() => setSelectedResultId(null)}
+                onClick={goBack}
                 className="text-sm px-3 py-1.5 rounded-lg transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium"
               >
                 ← Назад
               </button>
             )}
             <button
-              onClick={() => setAppState('results')}
+              onClick={() => navigate('results')}
               className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
                 appState === 'results'
                   ? 'bg-blue-100 text-blue-700 font-medium'
@@ -97,7 +130,7 @@ function App() {
               Результаты
             </button>
             <button
-              onClick={() => setAppState('reports')}
+              onClick={() => navigate('reports')}
               className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
                 appState === 'reports'
                   ? 'bg-blue-100 text-blue-700 font-medium'
@@ -107,7 +140,7 @@ function App() {
               Отчёты
             </button>
             <button
-              onClick={() => setAppState('ftp_files')}
+              onClick={() => navigate('ftp_files')}
               className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
                 appState === 'ftp_files'
                   ? 'bg-blue-100 text-blue-700 font-medium'
@@ -127,7 +160,7 @@ function App() {
               + Загрузить
             </button>
             <button
-              onClick={() => setAppState('settings')}
+              onClick={() => navigate('settings')}
               className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
                 appState === 'settings'
                   ? 'bg-blue-100 text-blue-700 font-medium'
@@ -237,7 +270,7 @@ function App() {
             <ReportsPage
               onOperatorClick={(name) => {
                 applyFilters({ operator: name })
-                setAppState('results')
+                navigate('results')
               }}
             />
           )}
@@ -250,6 +283,16 @@ function App() {
 
         </div>
       </main>
+
+      {/* Floating back button — always visible when there's somewhere to go back */}
+      {(selectedResultId || prevState) && (
+        <button
+          onClick={goBack}
+          className="fixed bottom-6 right-6 bg-white border border-gray-300 shadow-lg rounded-full px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow-xl transition-all z-50"
+        >
+          ← Назад
+        </button>
+      )}
     </div>
   )
 }

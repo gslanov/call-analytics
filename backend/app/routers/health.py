@@ -26,11 +26,13 @@ def _check_database() -> ServiceHealth:
 
 def _check_whisper() -> ServiceHealth:
     try:
-        from app.services.whisper_service import WhisperService
+        from app.services.whisper_service import WhisperService, TRANSCRIPTION_MODEL
         svc = WhisperService.get_instance()
-        if svc._model is not None:
-            return ServiceHealth(ok=True, detail=f"model={settings.whisper_model} loaded")
-        return ServiceHealth(ok=True, detail=f"model={settings.whisper_model} not yet loaded (lazy)")
+        if svc._client is not None:
+            return ServiceHealth(ok=True, detail=f"model={TRANSCRIPTION_MODEL} (client ready)")
+        if settings.openai_api_key:
+            return ServiceHealth(ok=True, detail=f"model={TRANSCRIPTION_MODEL} (lazy init)")
+        return ServiceHealth(ok=False, detail="OPENAI_API_KEY not set")
     except Exception as exc:
         return ServiceHealth(ok=False, detail=str(exc))
 

@@ -78,24 +78,26 @@ class DiarizationService:
         self,
         audio_path: str,
         word_timestamps: list[dict[str, Any]],
+        full_text: str = "",
     ) -> DiarizationResult:
         """Main entry: choose strategy by channel count, then merge with transcript.
 
         Args:
             audio_path: Path to audio file.
             word_timestamps: List of {word, start, end} from WhisperService.
+            full_text: Full transcription text (used when word_timestamps empty).
 
         Returns:
             DiarizationResult with segments, transcript_segments, confidence, warnings.
         """
         path = Path(audio_path)
         num_channels = self._get_channel_count(path)
-        logger.info("Diarizing %s (%d channel(s))", path.name, num_channels)
+        logger.info("Diarizing %s (%d channel(s), %d word_ts)", path.name, num_channels, len(word_timestamps))
 
         if num_channels == 2:
             return self._diarize_stereo(path, word_timestamps)
         else:
-            return self._diarize_mono(path, word_timestamps)
+            return self._diarize_mono(path, word_timestamps, full_text)
 
     # ------------------------------------------------------------------
     # Strategy 1: Stereo channel split
@@ -131,7 +133,13 @@ class DiarizationService:
         1. Split words by channel energy (L=operator, R=client)
         2. If one channel looks like IVR (robot), use GPT-4o to diarize
            the live channel into operator/client
+
+        If word_timestamps is empty (gpt-4o-transcribe doesn't provide them),
+        falls back to separate channel transcription.
         """
+        if not word_timestamps:
+            return self._diarize_stereo_by_channel_transcription(path)
+
         transcript_segments = self._merge_stereo(path, word_timestamps, SAMPLE_RATE)
 
         # Split into L-channel (operator) and R-channel (client) segments
@@ -178,6 +186,105 @@ class DiarizationService:
             transcript_segments=transcript_segments,
             method="channel_split",
             confidence=None,
+            num_speakers=2,
+        )
+
+    def _diarize_stereo_by_channel_transcription(
+        self, path: Path,
+    ) -> DiarizationResult:
+        """Stereo diarization without word_timestamps.
+
+        Splits stereo into L/R mono files, transcribes each channel separately
+        via gpt-4o-transcribe, then assigns operator/client by intro detection.
+        Used when main transcription model doesn't provide word timestamps.
+        """
+        import subprocess
+        import tempfile
+        import re
+
+        logger.info("Stereo channel transcription (no word_timestamps): %s", path.name)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            left_path = Path(tmp_dir) / "left.mp3"
+            right_path = Path(tmp_dir) / "right.mp3"
+
+            # Split stereo into L/R mono via ffmpeg
+            for ch_idx, out_path in [(0, left_path), (1, right_path)]:
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", str(path),
+                    "-af", f"pan=mono|c0=c{ch_idx}", "-ar", "16000",
+                    "-loglevel", "quiet",
+                    str(out_path),
+                ], capture_output=True, timeout=60)
+
+            # Transcribe each channel
+            from app.services.whisper_service import WhisperService, TRANSCRIPTION_MODEL, DOMAIN_PROMPT
+            whisper = WhisperService.get_instance()
+            client = whisper._get_client()
+            if client is None:
+                raise RuntimeError("OpenAI client unavailable for channel transcription")
+
+            l_text = ""
+            r_text = ""
+            for label, ch_path in [("L", left_path), ("R", right_path)]:
+                if not ch_path.exists():
+                    continue
+                with open(ch_path, "rb") as f:
+                    resp = client.audio.transcriptions.create(
+                        model=TRANSCRIPTION_MODEL,
+                        file=f,
+                        language="ru",
+                        response_format="text",
+                        prompt=DOMAIN_PROMPT,
+                    )
+                text = str(resp).strip() if resp else ""
+                if label == "L":
+                    l_text = text
+                else:
+                    r_text = text
+                logger.info("Channel %s: %d chars", label, len(text))
+
+        # Detect operator channel by intro phrases
+        op_pattern = re.compile(
+            r"(компани|пирог|меня зовут|здравствуйте.*компани)", re.IGNORECASE
+        )
+        if op_pattern.search(l_text[:200]):
+            op_text, cl_text = l_text, r_text
+            op_channel = "L"
+        elif op_pattern.search(r_text[:200]):
+            op_text, cl_text = r_text, l_text
+            op_channel = "R"
+        else:
+            # Default: L = operator
+            op_text, cl_text = l_text, r_text
+            op_channel = "L"
+
+        logger.info("Operator channel: %s", op_channel)
+
+        # Build segments — one per channel (full text)
+        audio, sr = self._load_stereo(path)
+        duration = audio.shape[1] / sr
+
+        transcript_segments = []
+        if op_text:
+            transcript_segments.append(TranscriptSegment(
+                speaker="operator", start=0.0, end=duration, text=op_text,
+            ))
+        if cl_text:
+            transcript_segments.append(TranscriptSegment(
+                speaker="client", start=0.0, end=duration, text=cl_text,
+            ))
+
+        segments = [
+            DiarizationSegment(speaker="operator", start=0.0, end=duration),
+            DiarizationSegment(speaker="client", start=0.0, end=duration),
+        ]
+
+        return DiarizationResult(
+            segments=segments,
+            transcript_segments=transcript_segments,
+            method="channel_transcription",
+            confidence=95.0,
             num_speakers=2,
         )
 
@@ -342,6 +449,7 @@ class DiarizationService:
         self,
         path: Path,
         word_timestamps: list[dict[str, Any]],
+        full_text: str = "",
     ) -> DiarizationResult:
         """pyannote/speaker-diarization-3.1 on mono audio.
 
@@ -352,7 +460,7 @@ class DiarizationService:
         # GPT-4o диаризация — основной метод для моно (быстрее и точнее на CPU/8kHz)
         if settings.openai_api_key:
             logger.info("Using GPT-4o for mono diarization (primary method)")
-            return self._diarize_mono_llm(path, word_timestamps)
+            return self._diarize_mono_llm(path, word_timestamps, full_text)
 
         # pyannote — fallback если нет OpenAI ключа
         if not settings.hf_token:
@@ -439,35 +547,59 @@ class DiarizationService:
         self,
         path: Path,
         word_timestamps: list[dict[str, Any]],
+        full_text: str = "",
     ) -> DiarizationResult:
         """Разметка ролей моно-записи через GPT-4o.
 
         Группируем слова в фразы по паузам, отправляем текст в GPT-4o
         с просьбой разметить operator/client для каждой фразы.
+
+        If word_timestamps is empty but full_text is provided (gpt-4o-transcribe),
+        splits text by sentences instead.
         """
         import json
 
-        # Шаг 1: группируем слова в фразы по паузам
         phrases: list[dict[str, Any]] = []
-        current_words: list[dict[str, Any]] = []
 
-        for w in word_timestamps:
+        if word_timestamps:
+            # Шаг 1a: группируем слова в фразы по паузам
+            current_words: list[dict[str, Any]] = []
+
+            for w in word_timestamps:
+                if current_words:
+                    gap = float(w["start"]) - float(current_words[-1]["end"])
+                    if gap > self.PHRASE_GAP_SEC:
+                        phrases.append({
+                            "text": " ".join(ww["word"] for ww in current_words),
+                            "start": float(current_words[0]["start"]),
+                            "end": float(current_words[-1]["end"]),
+                        })
+                        current_words = []
+                current_words.append(w)
             if current_words:
-                gap = float(w["start"]) - float(current_words[-1]["end"])
-                if gap > self.PHRASE_GAP_SEC:
+                phrases.append({
+                    "text": " ".join(ww["word"] for ww in current_words),
+                    "start": float(current_words[0]["start"]),
+                    "end": float(current_words[-1]["end"]),
+                })
+        elif full_text:
+            # Шаг 1b: нет word_timestamps — разбиваем текст по предложениям
+            import re as _re
+            sentences = _re.split(r'(?<=[.!?])\s+', full_text.strip())
+            # Merge very short sentences with previous
+            merged: list[str] = []
+            for s in sentences:
+                if merged and len(merged[-1]) < 30:
+                    merged[-1] = merged[-1] + " " + s
+                else:
+                    merged.append(s)
+            for i, s in enumerate(merged):
+                if s.strip():
                     phrases.append({
-                        "text": " ".join(ww["word"] for ww in current_words),
-                        "start": float(current_words[0]["start"]),
-                        "end": float(current_words[-1]["end"]),
+                        "text": s.strip(),
+                        "start": 0.0,
+                        "end": 0.0,
                     })
-                    current_words = []
-            current_words.append(w)
-        if current_words:
-            phrases.append({
-                "text": " ".join(ww["word"] for ww in current_words),
-                "start": float(current_words[0]["start"]),
-                "end": float(current_words[-1]["end"]),
-            })
 
         if not phrases:
             return self._fallback_single_speaker(path, word_timestamps, [])

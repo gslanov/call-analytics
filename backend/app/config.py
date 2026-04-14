@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     max_batch_size: int = 20
     min_duration_sec: int = 3
     max_duration_sec: int = 14400
-    audio_retention_days: int = 7
+    audio_retention_days: int = 0  # 0 = never delete audio (accumulating for STT/TTS training)
 
     # Server
     host: str = "0.0.0.0"

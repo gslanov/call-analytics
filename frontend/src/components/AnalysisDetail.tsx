@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { AnalysisDetailResult, TranscriptSegment, Quote, CriteriaGroup } from '../types'
-import { fetchResultDetail, audioUrl } from '../lib/api'
+import { fetchResultDetail, audioUrl, updateCriterion } from '../lib/api'
 import { ScoreCard } from './ScoreCard'
 import { TranscriptView } from './TranscriptView'
 import { AudioPlayer } from './AudioPlayer'
@@ -54,6 +54,7 @@ interface AnalysisDetailProps {
   fileId: string
   onBack: () => void
   onReject?: (fileId: string, reason: string) => void
+  onDelete?: (fileId: string) => void
 }
 
 // ── Mock detail data ──────────────────────────────────────────────────────────
@@ -101,13 +102,14 @@ function buildMockDetail(fileId: string): AnalysisDetailResult {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps) {
+export function AnalysisDetail({ fileId, onBack, onReject, onDelete }: AnalysisDetailProps) {
   const [detail, setDetail] = useState<AnalysisDetailResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMock, setIsMock] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [seekTime, setSeekTime] = useState<number | undefined>()
   const [quotesOpen, setQuotesOpen] = useState(true)
+  const [savingCriterion, setSavingCriterion] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -155,6 +157,7 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
   const segments = detail.diarization?.segments ?? []
   const quotes = a?.quotes ?? []
   const src = detail.audio_url ?? (detail.status === 'done' ? audioUrl(fileId) : undefined)
+  const fullText = detail.transcription?.full_text ?? (detail as unknown as Record<string, unknown>).full_text as string | undefined
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,6 +189,19 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {onDelete && (
+              <button
+                onClick={() => {
+                  if (confirm('Удалить этот звонок? Это действие необратимо.')) {
+                    onDelete(fileId)
+                    onBack()
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+              >
+                Удалить
+              </button>
+            )}
             {onReject && detail.analysis && !detail.analysis.rejected && (
               <button
                 onClick={() => {
@@ -227,10 +243,13 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
         </div>
       </div>
 
-      {/* Criteria checklist */}
+      {/* Criteria checklist — clickable to toggle */}
       {a?.criteria_details && (
         <div className="bg-white rounded-2xl border border-gray-200 px-6 py-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Чек-лист критериев</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Чек-лист критериев</h3>
+            <span className="text-xs text-gray-400">нажмите на галочку, чтобы изменить</span>
+          </div>
           <div className="flex flex-col gap-5">
             {(['standard', 'loyalty', 'kindness'] as const).map((group) => {
               const items = a.criteria_details![group]
@@ -255,13 +274,45 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
                       const reason = a.criteria_details?.reasons?.[group]?.[key] as string | undefined
                       const ts = a.criteria_details?.reasons?.[`${group}_timestamps`]?.[key] as number | undefined
                       const fmtTs = ts != null ? `${Math.floor(ts / 60)}:${String(Math.floor(ts % 60)).padStart(2, '0')}` : null
+                      const isSaving = savingCriterion === `${group}.${key}`
+                      const handleToggle = async () => {
+                        if (isMock || isSaving) return
+                        const newVal = val === true ? false : true
+                        setSavingCriterion(`${group}.${key}`)
+                        try {
+                          const resp = await updateCriterion(fileId, group, key, newVal)
+                          setDetail((prev) => {
+                            if (!prev) return prev
+                            return {
+                              ...prev,
+                              analysis: prev.analysis ? {
+                                ...prev.analysis,
+                                standard: resp.standard,
+                                loyalty: resp.loyalty,
+                                kindness: resp.kindness,
+                                overall: resp.overall,
+                                criteria_details: resp.criteria_details as unknown as import('../types').CriteriaDetails,
+                              } : prev.analysis,
+                            }
+                          })
+                        } catch (e) {
+                          alert('Ошибка сохранения: ' + (e as Error).message)
+                        } finally {
+                          setSavingCriterion(null)
+                        }
+                      }
                       return (
                         <div key={key} className="flex items-start gap-2 py-1.5 px-2 rounded hover:bg-gray-50">
-                          <div className="mt-0.5">
+                          <button
+                            onClick={handleToggle}
+                            disabled={isSaving}
+                            className={`mt-0.5 flex-shrink-0 cursor-pointer transition-transform hover:scale-110 ${isSaving ? 'opacity-50 animate-pulse' : ''}`}
+                            title={val === true ? 'Отметить как невыполненное' : val === false ? 'Отметить как выполненное' : 'Отметить как выполненное'}
+                          >
                             {val === true && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs font-bold">✓</span>}
                             {val === false && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-xs font-bold">✗</span>}
                             {val === null && <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 text-xs">—</span>}
-                          </div>
+                          </button>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className={`text-sm ${val === false ? 'text-red-700 font-medium' : val === null ? 'text-gray-400' : 'text-gray-700'}`}>
@@ -345,8 +396,8 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
         />
       </div>
 
-      {/* Transcript */}
-      {segments.length > 0 && (
+      {/* Transcript — diarized segments or full_text fallback */}
+      {segments.length > 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 px-6 py-5 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
             Транскрипт
@@ -381,7 +432,16 @@ export function AnalysisDetail({ fileId, onBack, onReject }: AnalysisDetailProps
             })()}
           />
         </div>
-      )}
+      ) : fullText ? (
+        <div className="bg-white rounded-2xl border border-gray-200 px-6 py-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            Транскрипт
+          </h3>
+          <div className="max-h-[600px] overflow-y-auto text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+            {fullText}
+          </div>
+        </div>
+      ) : null}
 
       {/* Floating back button */}
       <button

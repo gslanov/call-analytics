@@ -293,6 +293,80 @@ def reject_analysis(
     }
 
 
+@router.patch("/results/{file_id}/criteria")
+def update_criteria(
+    file_id: uuid.UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+) -> dict:
+    """РОП корректирует отдельные критерии — пересчёт оценок.
+
+    Body: {"group": "standard", "key": "introduced_self", "value": true}
+    Returns: updated scores + full criteria_details.
+    """
+    analysis = db.scalar(select(Analysis).where(Analysis.file_id == file_id))
+    if analysis is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+
+    group = body.get("group")  # standard / loyalty / kindness
+    key = body.get("key")      # criterion key
+    value = body.get("value")  # true / false / null
+
+    if group not in ("standard", "loyalty", "kindness"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid group")
+    if not key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing key")
+    if value is not None and not isinstance(value, bool):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Value must be true, false, or null")
+
+    cd = dict(analysis.criteria_details or {})
+    group_data = dict(cd.get(group, {}))
+    if key not in group_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown criterion: {group}.{key}")
+
+    # Update the criterion value
+    group_data[key] = value
+    cd[group] = group_data
+
+    # Mark as manually edited in reasons
+    reasons = dict(cd.get("reasons", {}))
+    group_reasons = dict(reasons.get(group, {}))
+    if value is True and key in group_reasons:
+        group_reasons[key] = f"[Ручная правка РОП] {group_reasons.get(key, '')}"
+    elif value is False and key not in group_reasons:
+        group_reasons[key] = "[Ручная правка РОП]"
+    reasons[group] = group_reasons
+    cd["reasons"] = reasons
+
+    analysis.criteria_details = cd
+
+    # Recalculate scores per group
+    def calc_group_score(items: dict) -> int:
+        applicable = [v for v in items.values() if v is not None and isinstance(v, bool)]
+        if not applicable:
+            return 100
+        passed = sum(1 for v in applicable if v is True)
+        return round(passed / len(applicable) * 100)
+
+    analysis.standard = calc_group_score(cd.get("standard", {}))
+    analysis.loyalty = calc_group_score(cd.get("loyalty", {}))
+    analysis.kindness = calc_group_score(cd.get("kindness", {}))
+    analysis.overall = round(
+        analysis.standard * 0.4 + analysis.loyalty * 0.3 + analysis.kindness * 0.3
+    )
+
+    db.commit()
+
+    return {
+        "file_id": str(file_id),
+        "standard": analysis.standard,
+        "loyalty": analysis.loyalty,
+        "kindness": analysis.kindness,
+        "overall": analysis.overall,
+        "criteria_details": analysis.criteria_details,
+    }
+
+
 @router.post("/reprocess/{file_id}")
 def reprocess_file(
     file_id: uuid.UUID,

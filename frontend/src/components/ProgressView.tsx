@@ -4,6 +4,7 @@ import type { ProcessingFile, FileProgress, ProcessingStatus } from '../types'
 interface ProgressViewProps {
   files: ProcessingFile[]
   onAddMore: () => void
+  onGoToResults?: () => void
 }
 
 const STATUS_LABEL: Record<ProcessingStatus, string> = {
@@ -111,7 +112,7 @@ function FileRow({ fp }: { fp: FileProgress }) {
   )
 }
 
-export function ProgressView({ files, onAddMore }: ProgressViewProps) {
+export function ProgressView({ files, onAddMore, onGoToResults }: ProgressViewProps) {
   const { progress, wsConnected, usingPolling } = useWebSocket(files)
 
   const rows = Object.values(progress)
@@ -165,13 +166,24 @@ export function ProgressView({ files, onAddMore }: ProgressViewProps) {
       {allDone && (
         <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
           <p className="text-sm text-gray-500">Обработка завершена</p>
-          <button
-            onClick={onAddMore}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg
-                       hover:bg-blue-700 transition-colors font-medium"
-          >
-            + Загрузить новые файлы
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onAddMore}
+              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg
+                         hover:bg-gray-100 transition-colors font-medium"
+            >
+              + Загрузить ещё
+            </button>
+            {onGoToResults && (
+              <button
+                onClick={onGoToResults}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg
+                           hover:bg-blue-700 transition-colors font-medium"
+              >
+                Перейти к результатам →
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -181,7 +193,7 @@ export function ProgressView({ files, onAddMore }: ProgressViewProps) {
             onClick={onAddMore}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
-            + Загрузить новые файлы
+            + Загрузить ещё
           </button>
         </div>
       )}

@@ -121,6 +121,30 @@ export async function rejectAnalysis(fileId: string, reason: string): Promise<vo
   if (!response.ok) throw new Error(`Reject failed: ${response.statusText}`)
 }
 
+export interface UpdateCriterionResponse {
+  file_id: string
+  standard: number
+  loyalty: number
+  kindness: number
+  overall: number
+  criteria_details: Record<string, unknown>
+}
+
+export async function updateCriterion(
+  fileId: string,
+  group: string,
+  key: string,
+  value: boolean | null
+): Promise<UpdateCriterionResponse> {
+  const response = await fetch(`${API_BASE_URL}/results/${fileId}/criteria`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ group, key, value }),
+  })
+  if (!response.ok) throw new Error(`Update failed: ${response.statusText}`)
+  return response.json() as Promise<UpdateCriterionResponse>
+}
+
 export function audioUrl(fileId: string): string {
   return `${API_BASE_URL}/audio/${fileId}`
 }

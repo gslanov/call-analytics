@@ -199,6 +199,8 @@ class PipelineOrchestrator:
             if merged:
                 operator_text = merged
                 client_text = ""
+                # Update diarization segments with punctuated text from merge
+                self._update_segments_from_merge(db_file, merged)
                 logger.info("Triple merge complete for %s", db_file.id)
             else:
                 # Fallback: use mixed text without speakers
@@ -460,6 +462,56 @@ class PipelineOrchestrator:
         self.db.add(tr)
         self.db.commit()
         logger.debug("Saved transcription for %s (%d words)", db_file.id, len(result.word_timestamps))
+
+    def _update_segments_from_merge(self, db_file: File, merged_text: str) -> None:
+        """Parse triple-merge output and update diarization segments with punctuated text.
+
+        Merged format: [M:SS] ОПЕРАТОР: text  /  [M:SS] КЛИЕНТ: text
+        """
+        import re
+        from app.utils import mask_phone_numbers
+
+        diar = self.db.scalar(
+            sa_select(Diarization).where(Diarization.file_id == db_file.id)
+        )
+        if not diar:
+            return
+
+        # Parse merged lines: [0:05] ОПЕРАТОР: Добрый день, компания...
+        pattern = re.compile(r"\[(\d+):(\d{2})\]\s*(ОПЕРАТОР|КЛИЕНТ|НЕЯСНО):\s*(.+)")
+        new_segments = []
+        for line in merged_text.strip().splitlines():
+            m = pattern.match(line.strip())
+            if not m:
+                continue
+            minutes, seconds, speaker_label, text = m.groups()
+            start = int(minutes) * 60 + int(seconds)
+            speaker = "operator" if speaker_label == "ОПЕРАТОР" else "client"
+            new_segments.append({
+                "speaker": speaker,
+                "start": float(start),
+                "end": 0.0,  # will be filled below
+                "text": mask_phone_numbers(text.strip()),
+            })
+
+        if not new_segments:
+            logger.warning("Could not parse merged text into segments for %s", db_file.id)
+            return
+
+        # Fill end times: each segment ends when the next one starts
+        for i in range(len(new_segments) - 1):
+            new_segments[i]["end"] = new_segments[i + 1]["start"]
+        # Last segment: use last original segment's end, or start + 10
+        orig_segments = diar.segments or []
+        if orig_segments:
+            new_segments[-1]["end"] = orig_segments[-1].get("end", new_segments[-1]["start"] + 10)
+        else:
+            new_segments[-1]["end"] = new_segments[-1]["start"] + 10
+
+        diar.segments = new_segments
+        self.db.commit()
+        logger.info("Updated diarization segments with punctuated merge text for %s (%d segments)",
+                     db_file.id, len(new_segments))
 
     def _save_diarization(self, db_file: File, result: Any) -> None:
         existing = self.db.scalar(

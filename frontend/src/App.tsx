@@ -31,6 +31,7 @@ function App() {
   const navigate = (to: AppState) => {
     setPrevState(appState)
     setAppState(to)
+    if (to === 'results') refresh()
   }
 
   const goBack = () => {
@@ -212,7 +213,11 @@ function App() {
           {appState === 'processing' && processingFiles.length > 0 && (
             <ProgressView
               files={processingFiles}
-              onAddMore={() => setAppState('results')}
+              onAddMore={handleReset}
+              onGoToResults={() => {
+                refresh()
+                navigate('results')
+              }}
             />
           )}
 
@@ -224,6 +229,21 @@ function App() {
                 onApply={applyFilters}
                 onReset={resetFilters}
               />
+              <div className="flex justify-end -mt-2">
+                <button
+                  onClick={refresh}
+                  disabled={resultsLoading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors font-medium ${
+                    resultsLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title="Обновить список"
+                >
+                  <svg className={`w-4 h-4 ${resultsLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Обновить
+                </button>
+              </div>
             <ResultsTable
               results={results}
               total={total}
@@ -237,14 +257,6 @@ function App() {
               onPageChange={goToPage}
               onLimitChange={setPageLimit}
               onRowDetail={(id) => setSelectedResultId(id)}
-              onDelete={async (id) => {
-                try {
-                  await deleteResult(id)
-                  refresh()
-                } catch (e) {
-                  alert('Ошибка удаления: ' + (e as Error).message)
-                }
-              }}
             />
             </div>
           )}
@@ -260,6 +272,15 @@ function App() {
                   refresh()
                 } catch (e) {
                   alert('Ошибка: ' + (e as Error).message)
+                }
+              }}
+              onDelete={async (id) => {
+                try {
+                  await deleteResult(id)
+                  setSelectedResultId(null)
+                  refresh()
+                } catch (e) {
+                  alert('Ошибка удаления: ' + (e as Error).message)
                 }
               }}
             />

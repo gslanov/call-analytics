@@ -257,6 +257,15 @@ function App() {
               onPageChange={goToPage}
               onLimitChange={setPageLimit}
               onRowDetail={(id) => setSelectedResultId(id)}
+              onBulkDelete={async (ids) => {
+                // Параллельно, но с фиксацией ошибок — не ломаемся на первом падении.
+                const results = await Promise.allSettled(ids.map((id) => deleteResult(id)))
+                const failed = results.filter((r) => r.status === 'rejected')
+                refresh()
+                if (failed.length > 0) {
+                  throw new Error(`Не удалось удалить ${failed.length} из ${ids.length}`)
+                }
+              }}
             />
             </div>
           )}

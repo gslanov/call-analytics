@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState, useMemo, useEffect } from 'react'
 import type { AnalysisResult, ResultFilters } from '../types'
 import { Pagination } from './Pagination'
 import { SummaryCards } from './SummaryCards'
@@ -16,6 +16,7 @@ interface ResultsTableProps {
   onPageChange: (p: number) => void
   onLimitChange: (l: number) => void
   onRowDetail?: (fileId: string) => void
+  onBulkDelete?: (fileIds: string[]) => Promise<void>
 }
 
 type SortableCol = 'created_at' | 'operator_name' | 'overall' | 'standard' | 'loyalty' | 'kindness'
@@ -129,7 +130,58 @@ export function ResultsTable({
   onPageChange,
   onLimitChange,
   onRowDetail,
+  onBulkDelete,
 }: ResultsTableProps) {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Сбрасываем выбор при смене страницы/фильтров (чтобы не удалить «невидимое»).
+  useEffect(() => {
+    setSelected(new Set())
+  }, [page, limit, filters.operator, filters.date_from, filters.date_to, filters.score_min, filters.score_max, filters.sort, filters.order])
+
+  const visibleIds = useMemo(() => results.map((r) => r.file_id), [results])
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id))
+  const someVisibleSelected = visibleIds.some((id) => selected.has(id))
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAllVisible = () => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allVisibleSelected) {
+        visibleIds.forEach((id) => next.delete(id))
+      } else {
+        visibleIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    if (!onBulkDelete || selected.size === 0 || isDeleting) return
+    const ids = Array.from(selected)
+    const count = ids.length
+    const word = count === 1 ? 'звонок' : count < 5 ? 'звонка' : 'звонков'
+    if (!confirm(`Удалить ${count} ${word}? Это действие необратимо.`)) return
+    setIsDeleting(true)
+    try {
+      await onBulkDelete(ids)
+      setSelected(new Set())
+    } catch (e) {
+      alert('Ошибка удаления: ' + (e as Error).message)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const toggleSort = (col: SortableCol) => {
     const isActive = filters.sort === col
     onFiltersChange({
@@ -175,6 +227,20 @@ export function ResultsTable({
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                {onBulkDelete && (
+                  <th className="px-3 py-2 text-left w-8">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 cursor-pointer accent-blue-600"
+                      checked={allVisibleSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected
+                      }}
+                      onChange={toggleAllVisible}
+                      title="Выбрать все на этой странице"
+                    />
+                  </th>
+                )}
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide w-8">
                   №
                 </th>
@@ -203,8 +269,21 @@ export function ResultsTable({
               {results.map((r, idx) => (
                   <Fragment key={r.file_id}>
                     <tr
-                      className={`border-b border-gray-100 transition-colors ${rowBg(r.analysis?.overall)}`}
+                      className={`border-b border-gray-100 transition-colors ${
+                        selected.has(r.file_id) ? 'bg-blue-50 hover:bg-blue-100' : rowBg(r.analysis?.overall)
+                      }`}
                     >
+                      {onBulkDelete && (
+                        <td className="px-3 py-3">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 cursor-pointer accent-blue-600"
+                            checked={selected.has(r.file_id)}
+                            onChange={() => toggleOne(r.file_id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-3 text-xs text-gray-400 font-mono">
                         {total - ((page - 1) * limit + idx)}
                       </td>
@@ -282,8 +361,10 @@ export function ResultsTable({
                       </td>
                     </tr>
                     {r.analysis?.summary && (
-                      <tr className={`border-b border-gray-200 ${rowBg(r.analysis?.overall)}`}>
-                        <td colSpan={8} className="px-4 pb-3 pt-0">
+                      <tr className={`border-b border-gray-200 ${
+                        selected.has(r.file_id) ? 'bg-blue-50' : rowBg(r.analysis?.overall)
+                      }`}>
+                        <td colSpan={onBulkDelete ? 9 : 8} className="px-4 pb-3 pt-0">
                           <p className="text-xs text-gray-500 leading-relaxed">{r.analysis.summary}</p>
                         </td>
                       </tr>
@@ -308,6 +389,33 @@ export function ResultsTable({
         </div>
       )}
     </div>
+
+    {/* Floating bulk-action bar */}
+    {onBulkDelete && selected.size > 0 && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white border border-gray-300 shadow-xl rounded-full pl-5 pr-3 py-2 flex items-center gap-4">
+        <span className="text-sm text-gray-700">
+          Выбрано <span className="font-semibold">{selected.size}</span>
+        </span>
+        <button
+          onClick={() => setSelected(new Set())}
+          disabled={isDeleting}
+          className="text-xs text-gray-500 hover:text-gray-700 font-medium px-2 py-1"
+        >
+          Снять выбор
+        </button>
+        <button
+          onClick={handleBulkDelete}
+          disabled={isDeleting}
+          className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
+            isDeleting
+              ? 'bg-red-300 text-white cursor-not-allowed'
+              : 'bg-red-600 text-white hover:bg-red-700'
+          }`}
+        >
+          {isDeleting ? 'Удаляю…' : 'Удалить'}
+        </button>
+      </div>
+    )}
     </>
   )
 }

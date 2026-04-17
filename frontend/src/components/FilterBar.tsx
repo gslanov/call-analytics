@@ -31,9 +31,11 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
 
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(activeFilters)
 
+  const inputBase = "border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
-      <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-end gap-x-6 gap-y-4 flex-wrap">
 
         {/* Operator */}
         <div className="flex-1 min-w-48">
@@ -51,8 +53,7 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
               type="date"
               value={draft.date_from ?? ''}
               onChange={(e) => set('date_from', e.target.value || undefined)}
-              className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              className={`flex-1 min-w-0 ${inputBase}`}
             />
             <span className="text-gray-400 text-sm flex-shrink-0">—</span>
             <input
@@ -60,55 +61,31 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
               value={draft.date_to ?? ''}
               min={draft.date_from}
               onChange={(e) => set('date_to', e.target.value || undefined)}
-              className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              className={`flex-1 min-w-0 ${inputBase}`}
             />
           </div>
         </div>
 
-        {/* Score range */}
-        <div className="flex-1 min-w-48 flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">
-            Оценка: {draft.score_min ?? 0}% — {draft.score_max ?? 100}%
-          </label>
+        {/* Score range — simple two inputs, no sliders */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Оценка, %</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
               min={0}
-              max={draft.score_max ?? 100}
+              max={100}
               value={draft.score_min ?? ''}
               placeholder="0"
               onChange={(e) => {
                 const v = e.target.value === '' ? undefined : Math.max(0, Math.min(100, Number(e.target.value)))
                 set('score_min', v)
               }}
-              className="w-20 border border-gray-300 rounded-lg px-2 py-2 text-sm text-center
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              className={`w-20 text-center ${inputBase}`}
             />
-            <div className="flex-1 flex flex-col gap-1">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={draft.score_min ?? 0}
-                onChange={(e) => set('score_min', Number(e.target.value) || undefined)}
-                className="w-full accent-blue-500"
-              />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={draft.score_max ?? 100}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  set('score_max', v < 100 ? v : undefined)
-                }}
-                className="w-full accent-blue-500"
-              />
-            </div>
+            <span className="text-gray-400 text-sm">—</span>
             <input
               type="number"
-              min={draft.score_min ?? 0}
+              min={0}
               max={100}
               value={draft.score_max ?? ''}
               placeholder="100"
@@ -116,14 +93,13 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
                 const v = e.target.value === '' ? undefined : Math.max(0, Math.min(100, Number(e.target.value)))
                 set('score_max', v)
               }}
-              className="w-20 border border-gray-300 rounded-lg px-2 py-2 text-sm text-center
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              className={`w-20 text-center ${inputBase}`}
             />
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-end gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleApply}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${

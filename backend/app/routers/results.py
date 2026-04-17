@@ -49,6 +49,19 @@ def _make_list_item(db_file: File) -> ResultListItem:
     if db_file.analysis:
         analysis = AnalysisSchema.model_validate(db_file.analysis)
     call_info = parse_call_filename(db_file.original_name)
+
+    # Extract markers from criteria_details for list-view badges
+    order_confirmation: bool | None = None
+    prepayment_20k: bool | None = None
+    if db_file.analysis and db_file.analysis.criteria_details:
+        markers = db_file.analysis.criteria_details.get("markers", {}) or {}
+        oc = markers.get("order_confirmation")
+        if isinstance(oc, bool):
+            order_confirmation = oc
+        pp = markers.get("prepayment_20k")
+        if isinstance(pp, bool):
+            prepayment_20k = pp
+
     return ResultListItem(
         file_id=db_file.id,
         original_name=db_file.original_name,
@@ -65,6 +78,8 @@ def _make_list_item(db_file: File) -> ResultListItem:
         call_date=call_info["call_date"],
         call_time=call_info["call_time"],
         caller_phone=call_info["caller_phone"],
+        order_confirmation=order_confirmation,
+        prepayment_20k=prepayment_20k,
     )
 
 
@@ -308,11 +323,11 @@ def update_criteria(
     if analysis is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
 
-    group = body.get("group")  # standard / loyalty / kindness
+    group = body.get("group")  # standard / loyalty / kindness / markers
     key = body.get("key")      # criterion key
     value = body.get("value")  # true / false / null
 
-    if group not in ("standard", "loyalty", "kindness"):
+    if group not in ("standard", "loyalty", "kindness", "markers"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid group")
     if not key:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing key")
@@ -321,7 +336,9 @@ def update_criteria(
 
     cd = dict(analysis.criteria_details or {})
     group_data = dict(cd.get(group, {}))
-    if key not in group_data:
+    # For markers, allow creating the key if it doesn't exist yet (old analyses
+    # may not have markers at all — РОП still needs to mark them manually).
+    if key not in group_data and group != "markers":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown criterion: {group}.{key}")
 
     # Update the criterion value
@@ -335,25 +352,29 @@ def update_criteria(
         group_reasons[key] = f"[Ручная правка РОП] {group_reasons.get(key, '')}"
     elif value is False and key not in group_reasons:
         group_reasons[key] = "[Ручная правка РОП]"
+    elif group == "markers":
+        # Markers may have no GPT reason — always mark manual edit
+        group_reasons[key] = "[Ручная правка РОП]"
     reasons[group] = group_reasons
     cd["reasons"] = reasons
 
     analysis.criteria_details = cd
 
-    # Recalculate scores per group
-    def calc_group_score(items: dict) -> int:
-        applicable = [v for v in items.values() if v is not None and isinstance(v, bool)]
-        if not applicable:
-            return 100
-        passed = sum(1 for v in applicable if v is True)
-        return round(passed / len(applicable) * 100)
+    # Markers do NOT affect scores — skip recalculation
+    if group != "markers":
+        def calc_group_score(items: dict) -> int:
+            applicable = [v for v in items.values() if v is not None and isinstance(v, bool)]
+            if not applicable:
+                return 100
+            passed = sum(1 for v in applicable if v is True)
+            return round(passed / len(applicable) * 100)
 
-    analysis.standard = calc_group_score(cd.get("standard", {}))
-    analysis.loyalty = calc_group_score(cd.get("loyalty", {}))
-    analysis.kindness = calc_group_score(cd.get("kindness", {}))
-    analysis.overall = round(
-        analysis.standard * 0.4 + analysis.loyalty * 0.3 + analysis.kindness * 0.3
-    )
+        analysis.standard = calc_group_score(cd.get("standard", {}))
+        analysis.loyalty = calc_group_score(cd.get("loyalty", {}))
+        analysis.kindness = calc_group_score(cd.get("kindness", {}))
+        analysis.overall = round(
+            analysis.standard * 0.4 + analysis.loyalty * 0.3 + analysis.kindness * 0.3
+        )
 
     db.commit()
 

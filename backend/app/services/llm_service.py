@@ -5,8 +5,12 @@ Evaluates operator performance on 22 binary criteria across three groups:
   - loyalty (6):    client-orientation & tone
   - kindness (3):   politeness & professionalism
 
+Plus markers group (not scored — used for filtering/tagging):
+  - markers (2):    prepayment_20k, order_confirmation
+
 Each criterion is true/false/null (null = not applicable).
 Scores are computed mathematically: % of passed items among applicable ones.
+Markers do NOT affect scores — they are informational flags.
 
 Graceful degradation: returns None when API is unavailable / key not set.
 Retry: 3x with exponential backoff.
@@ -29,7 +33,10 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0  # seconds
 
 # Criteria version — increment when criteria change
-CRITERIA_VERSION = "v2"
+CRITERIA_VERSION = "v3"
+
+# Groups used in overall score calculation (markers excluded — informational only)
+SCORED_GROUPS = ("standard", "loyalty", "kindness")
 
 # Expected keys per group for validation
 CRITERIA_SCHEMA: dict[str, list[str]] = {
@@ -60,6 +67,11 @@ CRITERIA_SCHEMA: dict[str, list[str]] = {
         "no_profanity_filler_words",
         "polite_goodbye",
         "no_sarcasm_irony_aggression",
+    ],
+    # Markers — informational flags, not scored
+    "markers": [
+        "prepayment_20k",
+        "order_confirmation",
     ],
 }
 
@@ -93,15 +105,21 @@ CRITERIA_LABELS: dict[str, dict[str, str]] = {
         "polite_goodbye": "Вежливо попрощался",
         "no_sarcasm_irony_aggression": "Нет сарказма, иронии и агрессии",
     },
+    "markers": {
+        "prepayment_20k": "Предоплата заказа ≥20 000 ₽",
+        "order_confirmation": "Подтверждение заказа",
+    },
 }
 
 SYSTEM_PROMPT = """Ты — эксперт по оценке качества обслуживания в контакт-центре доставки осетинских пирогов.
 Операторы обрабатывают входящие звонки и подтверждают заказы.
 
-Проверь оператора по каждому из 22 критериев ниже. По каждому верни:
+Проверь оператора по каждому из 22 критериев (standard/loyalty/kindness) ниже. По каждому верни:
 - true — оператор выполнил
 - false — оператор НЕ выполнил
 - null — критерий неприменим к данному звонку
+
+Дополнительно — 2 маркера (markers), они НЕ влияют на оценку, это информационные флаги для фильтрации звонков.
 
 ## 1. СТАНДАРТЫ (standard)
 1. introduced_self — Оператор представился (назвал своё имя). КОНТЕКСТ: это входящий звонок, оператор НЕ ЗНАЕТ имя клиента в начале разговора. Поэтому любое женское имя в приветствии — это имя ОПЕРАТОРА, а не клиента. Примеры: «Добрый день, Галина, компания Пироги №1» = оператор Галина представилась. «Компания Пироги №1, меня зовут Анастасия» = оператор Анастасия представилась. Имена операторов: Галина, Александра, Анна, Анастасия. Если в первой реплике звучит одно из этих имён — ставь true.
@@ -130,6 +148,22 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
 1. no_profanity_filler_words — Оператор не использовал ненормативную лексику и слова-паразиты. Слово-паразит — только если употребляется МНОГОКРАТНО и навязчиво (3+ раз подряд или явно засоряет речь). Редкое «ну» или «значит» в разговорной речи НЕ считается паразитом. Засчитывай false только если паразиты реально портят впечатление от речи.
 2. polite_goodbye — Оператор вежливо попрощался с клиентом
 3. no_sarcasm_irony_aggression — Оператор не допускал ЯВНОГО сарказма, насмешки, агрессии или хамства. Ставь false ТОЛЬКО при однозначно грубых, оскорбительных или издевательских высказываниях. Нейтральные и бытовые фразы («можете ответить», «ну просто», «подождите», «я же говорю») — это НЕ сарказм и НЕ агрессия, даже если в тексте они могут показаться резкими. Помни: ты не слышишь интонацию, только текст — при сомнении ставь true.
+
+## 4. МАРКЕРЫ (markers) — НЕ ВЛИЯЮТ НА ОЦЕНКУ
+Это информационные флаги для фильтрации звонков. В reason клади либо точную цитату, либо «не озвучено».
+
+1. prepayment_20k — Маркер предоплаты для крупных заказов.
+   - СНАЧАЛА определи сумму заказа (итоговую сумму, которую оператор называет клиенту).
+   - Если сумма заказа < 20 000 ₽ ИЛИ сумма НЕ озвучена/не определяется — value=null (маркер неприменим).
+   - Если сумма заказа ≥ 20 000 ₽:
+     • value=true, если оператор (или кто-то в разговоре — но на практике это оператор) сказал, что такие заказы принимаются по предоплате — ПОЛНОЙ или ЧАСТИЧНОЙ (например «заказ от 20 тысяч мы принимаем по предоплате», «оплатите полностью или половину», «нужна предоплата на большие заказы», «от двадцати тысяч — предоплата»). Перефразировки допустимы, ключевое — озвучена связка «≥20 тыс. → предоплата (полная или частичная)».
+     • value=false, если сумма ≥20k но эта информация НЕ озвучена.
+   - ВАЖНО: ищи эту фразу по всему диалогу — и у оператора, и у клиента (клиент может её процитировать, это тоже засчитывается). На практике почти всегда её произносит оператор.
+
+2. order_confirmation — Маркер «звонок для подтверждения заказа».
+   - value=true, если в диалоге (у оператора ИЛИ у клиента) звучит фраза о том, что этот звонок — для подтверждения уже существующего заказа. Примеры: «звоню вам для подтверждения заказа», «я по поводу подтверждения вашего заказа», «мы должны подтвердить заказ», «уточняю детали по вашему заказу от [дата]». Перефразировки допустимы. Ключевое — НЕ новый заказ, а уточнение/подтверждение уже оформленного.
+   - value=false, если это явно НОВЫЙ заказ (клиент звонит заказать впервые) или звонок о чём-то другом (жалоба, вопрос и т.п.).
+   - value=null — только если диалог настолько короткий/неразборчивый, что определить невозможно.
 
 ## ФОРМАТ ОТВЕТА
 Каждый критерий — объект: {"value": true/false/null, "reason": "пояснение", "timestamp": "M:SS"}.
@@ -168,6 +202,10 @@ SYSTEM_PROMPT = """Ты — эксперт по оценке качества о
       "no_profanity_filler_words": {"value": false, "reason": "Слова-паразиты: «ну», «как бы», «типа»", "timestamp": "1:30"},
       "polite_goodbye": {"value": true, "reason": "«Спасибо большое, хорошего дня!»", "timestamp": "3:15"},
       "no_sarcasm_irony_aggression": {"value": true, "reason": "Без сарказма и агрессии"}
+    },
+    "markers": {
+      "prepayment_20k": {"value": null, "reason": "Сумма заказа 4300 ₽ — маркер неприменим"},
+      "order_confirmation": {"value": true, "reason": "«Звоню вам для подтверждения заказа»", "timestamp": "0:03"}
     }
   },
   "summary": "<2-3 предложения на русском: что хорошо, что улучшить>",
@@ -400,8 +438,13 @@ class LLMService:
         for group, expected_keys in CRITERIA_SCHEMA.items():
             group_data = details.get(group)
             if not isinstance(group_data, dict):
-                logger.warning("LLM details missing group '%s'", group)
-                return None
+                # Markers group is optional — missing is OK (old prompts, errors, etc.)
+                if group == "markers":
+                    logger.warning("LLM response missing 'markers' group — filling with nulls")
+                    group_data = {}
+                else:
+                    logger.warning("LLM details missing group '%s'", group)
+                    return None
 
             validated_group: dict[str, bool | None] = {}
             group_reasons: dict[str, str] = {}
@@ -450,6 +493,7 @@ class LLMService:
         _apply_dependencies(validated_details)
 
         # --- Compute scores mathematically ---
+        # Note: markers group is EXCLUDED from scoring — informational flags only
         standard_score = _compute_group_score(validated_details["standard"])
         loyalty_score = _compute_group_score(validated_details["loyalty"])
         kindness_score = _compute_group_score(validated_details["kindness"])

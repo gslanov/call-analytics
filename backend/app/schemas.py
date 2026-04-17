@@ -100,6 +100,9 @@ class ResultListItem(BaseModel):
     call_date: str | None = None      # "04.04" — из имени файла
     call_time: str | None = None      # "19:51" — из имени файла
     caller_phone: str | None = None   # "**3351" — последние 4 цифры
+    # Markers (informational flags, do NOT affect scores)
+    order_confirmation: bool | None = None   # звонок для подтверждения заказа
+    prepayment_20k: bool | None = None       # заказ ≥20k → озвучена предоплата
 
 
 class PaginatedResults(BaseModel):

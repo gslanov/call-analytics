@@ -217,6 +217,32 @@ export function ResultsTable({
                           загружен {formatDateMsk(r.created_at)}
                           {r.caller_phone && <span> · {r.caller_phone}</span>}
                         </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {r.order_confirmation === true && (
+                            <span
+                              className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-700"
+                              title="В диалоге звучит фраза про подтверждение заказа"
+                            >
+                              подтверждение заказа
+                            </span>
+                          )}
+                          {r.prepayment_20k === true && (
+                            <span
+                              className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700"
+                              title="Заказ ≥20 000 ₽ — оператор озвучил правило о предоплате"
+                            >
+                              предоплата озвучена
+                            </span>
+                          )}
+                          {r.prepayment_20k === false && (
+                            <span
+                              className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700"
+                              title="Заказ ≥20 000 ₽ — оператор НЕ озвучил правило о предоплате"
+                            >
+                              ≥20k без предоплаты
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-800">{r.operator_name}</div>

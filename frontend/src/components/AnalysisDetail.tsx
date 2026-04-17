@@ -35,12 +35,17 @@ const CRITERIA_LABELS: Record<string, Record<string, string>> = {
     polite_goodbye: 'Вежливо попрощался',
     no_sarcasm_irony_aggression: 'Нет сарказма/иронии/агрессии',
   },
+  markers: {
+    prepayment_20k: 'Предоплата заказа ≥20 000 ₽',
+    order_confirmation: 'Звонок для подтверждения заказа',
+  },
 }
 
 const GROUP_LABELS: Record<string, string> = {
   standard: 'Стандарты',
   loyalty: 'Лояльность',
   kindness: 'Доброжелательность',
+  markers: 'Маркеры',
 }
 
 function groupStats(items: CriteriaGroup) {
@@ -251,23 +256,41 @@ export function AnalysisDetail({ fileId, onBack, onReject, onDelete }: AnalysisD
             <span className="text-xs text-gray-400">нажмите на галочку, чтобы изменить</span>
           </div>
           <div className="flex flex-col gap-5">
-            {(['standard', 'loyalty', 'kindness'] as const).map((group) => {
-              const items = a.criteria_details![group]
-              if (!items) return null
+            {(['standard', 'loyalty', 'kindness', 'markers'] as const).map((group) => {
+              // For scored groups — hide if missing. For markers — show even if empty
+              // (старые звонки без markers — даём РОП проставить вручную по списку ключей).
+              const raw = a.criteria_details![group]
+              let items: CriteriaGroup
+              if (group === 'markers') {
+                const known = CRITERIA_LABELS.markers ?? {}
+                const base: CriteriaGroup = {}
+                for (const k of Object.keys(known)) base[k] = null
+                items = { ...base, ...(raw ?? {}) }
+              } else {
+                if (!raw) return null
+                items = raw
+              }
               const labels = CRITERIA_LABELS[group] ?? {}
               const { passed, total } = groupStats(items)
+              const isMarkers = group === 'markers'
               return (
-                <div key={group}>
+                <div key={group} className={isMarkers ? 'pt-4 mt-1 border-t border-gray-100' : ''}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-semibold text-gray-700">{GROUP_LABELS[group]}</span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      total === 0 ? 'bg-gray-100 text-gray-500'
-                        : passed === total ? 'bg-green-100 text-green-700'
-                        : passed / total >= 0.7 ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {total === 0 ? 'Н/П' : `${passed}/${total}`}
-                    </span>
+                    {isMarkers ? (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                        не влияют на оценку
+                      </span>
+                    ) : (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        total === 0 ? 'bg-gray-100 text-gray-500'
+                          : passed === total ? 'bg-green-100 text-green-700'
+                          : passed / total >= 0.7 ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {total === 0 ? 'Н/П' : `${passed}/${total}`}
+                      </span>
+                    )}
                   </div>
                   <div className="grid gap-1">
                     {Object.entries(items).map(([key, val]) => {

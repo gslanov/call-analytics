@@ -33,6 +33,9 @@ export interface AnalysisResult {
   call_date?: string | null    // "04.04"
   call_time?: string | null    // "19:51"
   caller_phone?: string | null // "**3351"
+  // Markers (informational, not scored)
+  order_confirmation?: boolean | null  // звонок для подтверждения заказа
+  prepayment_20k?: boolean | null      // заказ ≥20k → озвучена предоплата
 }
 
 export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'reports' | 'ftp_files' | 'settings'
@@ -99,15 +102,18 @@ export interface CriteriaReasons {
   standard?: Record<string, string>
   loyalty?: Record<string, string>
   kindness?: Record<string, string>
+  markers?: Record<string, string>
   standard_timestamps?: Record<string, number>
   loyalty_timestamps?: Record<string, number>
   kindness_timestamps?: Record<string, number>
+  markers_timestamps?: Record<string, number>
 }
 
 export interface CriteriaDetails {
   standard: CriteriaGroup
   loyalty: CriteriaGroup
   kindness: CriteriaGroup
+  markers?: CriteriaGroup
   reasons?: CriteriaReasons
 }
 

@@ -102,9 +102,9 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleApply}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium active:scale-95 transition-all duration-150 ${
               hasChanges
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
                 : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
             }`}
           >
@@ -112,7 +112,7 @@ export function FilterBar({ activeFilters, onApply, onReset }: FilterBarProps) {
           </button>
           <button
             onClick={handleReset}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:scale-95 transition-all duration-150"
           >
             ⟲ Сброс
           </button>

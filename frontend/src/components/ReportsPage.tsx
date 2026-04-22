@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ScoreCard } from './ScoreCard'
+import { CriteriaReport } from './CriteriaReport'
 
 const API = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+
+type ReportTab = 'by_operator' | 'by_criteria'
 
 interface OperatorReport {
   name: string
@@ -45,6 +48,7 @@ interface ReportsPageProps {
 }
 
 export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
+  const [tab, setTab] = useState<ReportTab>('by_operator')
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +79,34 @@ export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
 
   return (
     <div className="space-y-6">
+      {/* Tab switcher */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-2 py-2 inline-flex gap-1">
+        <button
+          onClick={() => setTab('by_operator')}
+          className={`text-sm font-medium px-4 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
+            tab === 'by_operator'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          По операторам
+        </button>
+        <button
+          onClick={() => setTab('by_criteria')}
+          className={`text-sm font-medium px-4 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
+            tab === 'by_criteria'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          По критериям
+        </button>
+      </div>
+
+      {tab === 'by_criteria' ? (
+        <CriteriaReport />
+      ) : (
+      <>
       {/* Header + date filter */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -95,9 +127,9 @@ export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
             />
             <button
               onClick={fetchReport}
-              className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
+              className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 hover:shadow-md active:scale-95 transition-all duration-150"
             >
-              Обновить
+              Применить
             </button>
             <button
               onClick={() => {
@@ -106,7 +138,7 @@ export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
                 if (dateTo) params.set('date_to', new Date(dateTo + 'T23:59:59').toISOString())
                 window.open(`${API}/reports/download${params.toString() ? '?' + params : ''}`, '_blank')
               }}
-              className="text-sm border border-gray-300 text-gray-600 px-4 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              className="text-sm border border-gray-300 text-gray-700 px-4 py-1.5 rounded-lg hover:bg-gray-100 hover:border-gray-400 hover:shadow-sm active:scale-95 transition-all duration-150"
             >
               Скачать CSV
             </button>
@@ -216,6 +248,8 @@ export function ReportsPage({ onOperatorClick }: ReportsPageProps = {}) {
           </div>
         </>
       ) : null}
+      </>
+      )}
     </div>
   )
 }

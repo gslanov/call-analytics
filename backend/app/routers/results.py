@@ -2,12 +2,16 @@
 GET /api/v1/status/{file_id} — lightweight polling fallback.
 """
 
+import csv
+import io
 import math
 import uuid
 from datetime import datetime
+from urllib.parse import quote as url_quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import asc, desc, func, nulls_last, select
+from fastapi.responses import StreamingResponse
+from sqlalchemy import Select, asc, desc, func, nulls_last, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
@@ -21,6 +25,7 @@ from app.schemas import (
     ResultListItem,
     TranscriptionDetail,
 )
+from app.services.llm_service import CRITERIA_LABELS, CRITERIA_SCHEMA
 
 router = APIRouter(tags=["results"])
 
@@ -83,6 +88,73 @@ def _make_list_item(db_file: File) -> ResultListItem:
     )
 
 
+def _build_results_query(
+    *,
+    operator: str | None = None,
+    status_filter: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    score_min: int | None = None,
+    score_max: int | None = None,
+    q: str | None = None,
+    sort: str | None = None,
+    order: str | None = "desc",
+) -> tuple[Select, bool, bool]:
+    """Строит фильтрованный SELECT File с eager-load оператора/анализа/диаризации.
+
+    Возвращает: (query, has_operator_join, has_analysis_join) — флаги нужны, чтобы
+    вызывающий код не делал двойной join при добавлении сортировки.
+    """
+    query: Select = (
+        select(File)
+        .options(
+            selectinload(File.operator),
+            selectinload(File.analysis),
+            selectinload(File.diarization),
+        )
+    )
+    has_operator_join = False
+    has_analysis_join = False
+
+    if operator:
+        query = query.join(Operator, Operator.id == File.operator_id).where(
+            Operator.name.ilike(f"%{operator}%")
+        )
+        has_operator_join = True
+
+    if status_filter is not None:
+        query = query.where(File.status == status_filter)
+    if date_from is not None:
+        query = query.where(File.created_at >= date_from)
+    if date_to is not None:
+        query = query.where(File.created_at <= date_to)
+    if q:
+        query = query.where(File.original_name.ilike(f"%{q}%"))
+
+    if score_min is not None or score_max is not None:
+        query = query.join(Analysis, Analysis.file_id == File.id)
+        has_analysis_join = True
+        if score_min is not None:
+            query = query.where(Analysis.overall >= score_min)
+        if score_max is not None:
+            query = query.where(Analysis.overall <= score_max)
+
+    sort_col = SORT_COLUMNS.get(sort) if sort else None
+    if sort_col is not None:
+        if sort in ("overall", "standard", "loyalty", "kindness") and not has_analysis_join:
+            query = query.outerjoin(Analysis, Analysis.file_id == File.id)
+            has_analysis_join = True
+        if sort == "operator_name" and not has_operator_join:
+            query = query.outerjoin(Operator, Operator.id == File.operator_id)
+            has_operator_join = True
+        direction = asc if order == "asc" else desc
+        query = query.order_by(nulls_last(direction(sort_col)))
+    else:
+        query = query.order_by(File.created_at.desc())
+
+    return query, has_operator_join, has_analysis_join
+
+
 @router.get("/results", response_model=PaginatedResults)
 def list_results(
     page: int = Query(1, ge=1, description="Номер страницы"),
@@ -99,55 +171,20 @@ def list_results(
     db: Session = Depends(get_db),
 ) -> PaginatedResults:
     """Список обработанных звонков с пагинацией и фильтрацией."""
-    query = (
-        select(File)
-        .options(
-            selectinload(File.operator),
-            selectinload(File.analysis),
-            selectinload(File.diarization),
-        )
+    query, _, _ = _build_results_query(
+        operator=operator,
+        status_filter=status_filter,
+        date_from=date_from,
+        date_to=date_to,
+        score_min=score_min,
+        score_max=score_max,
+        q=q,
+        sort=sort,
+        order=order,
     )
 
-    # Bug #4: filter by operator name (LIKE), not UUID
-    if operator:
-        query = query.join(Operator, Operator.id == File.operator_id).where(
-            Operator.name.ilike(f"%{operator}%")
-        )
-
-    if status_filter is not None:
-        query = query.where(File.status == status_filter)
-    if date_from is not None:
-        query = query.where(File.created_at >= date_from)
-    if date_to is not None:
-        query = query.where(File.created_at <= date_to)
-    if q:
-        query = query.where(File.original_name.ilike(f"%{q}%"))
-
-    # Score filtering requires join with analyses
-    if score_min is not None or score_max is not None:
-        query = query.join(Analysis, Analysis.file_id == File.id)
-        if score_min is not None:
-            query = query.where(Analysis.overall >= score_min)
-        if score_max is not None:
-            query = query.where(Analysis.overall <= score_max)
-
-    # Count total
     count_query = select(func.count()).select_from(query.subquery())
     total = db.scalar(count_query) or 0
-
-    # Динамическая сортировка по запросу фронтенда
-    sort_col = SORT_COLUMNS.get(sort) if sort else None
-    if sort_col is not None:
-        # Если сортируем по полю Analysis — нужен outerjoin (если ещё не добавлен)
-        if sort in ("overall", "standard", "loyalty", "kindness") and score_min is None and score_max is None:
-            query = query.outerjoin(Analysis, Analysis.file_id == File.id)
-        # Если сортируем по operator_name — нужен join (если ещё не добавлен через фильтр)
-        if sort == "operator_name" and not operator:
-            query = query.outerjoin(Operator, Operator.id == File.operator_id)
-        direction = asc if order == "asc" else desc
-        query = query.order_by(nulls_last(direction(sort_col)))
-    else:
-        query = query.order_by(File.created_at.desc())
 
     offset = (page - 1) * limit
     query = query.offset(offset).limit(limit)
@@ -162,6 +199,160 @@ def list_results(
         page=page,
         limit=limit,
         pages=pages,
+    )
+
+
+# Максимальное число строк за одну выгрузку (защита от ошибочной выгрузки за год)
+EXPORT_ROW_LIMIT = 5000
+
+
+def _fmt_bool(value) -> str:
+    """true → Да, false → Нет, None/не булева → —"""
+    if value is True:
+        return "Да"
+    if value is False:
+        return "Нет"
+    return "—"
+
+
+def _content_disposition(filename: str) -> str:
+    """RFC 5987: ASCII fallback + UTF-8 для имён с кириллицей.
+
+    Без этого браузеры сохраняют файл крякозяброй.
+    """
+    ascii_fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_")
+    utf8_quoted = url_quote(filename)
+    return f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{utf8_quoted}"
+
+
+@router.get("/results/export")
+def export_results(
+    operator: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
+    score_min: int | None = Query(None, ge=0, le=100),
+    score_max: int | None = Query(None, ge=0, le=100),
+    q: str | None = Query(None),
+    sort: str | None = Query(None),
+    order: str | None = Query("desc"),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """CSV-выгрузка списка звонков с теми же фильтрами, что и /results.
+
+    Файл открывается в Excel (UTF-8 BOM + разделитель ';').
+    Ограничение EXPORT_ROW_LIMIT строк — защита от случайной выгрузки за год.
+    """
+    from app.utils import parse_call_filename
+
+    query, _, _ = _build_results_query(
+        operator=operator,
+        status_filter=status_filter,
+        date_from=date_from,
+        date_to=date_to,
+        score_min=score_min,
+        score_max=score_max,
+        q=q,
+        sort=sort,
+        order=order,
+    )
+
+    count_query = select(func.count()).select_from(query.subquery())
+    total = db.scalar(count_query) or 0
+    if total > EXPORT_ROW_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Слишком много звонков для одной выгрузки ({total}). "
+                f"Лимит {EXPORT_ROW_LIMIT}. Уточните фильтры по датам или оператору."
+            ),
+        )
+
+    query = query.limit(EXPORT_ROW_LIMIT)
+    files = db.scalars(query).unique().all()
+
+    output = io.StringIO()
+    output.write("﻿")  # BOM для Excel
+    writer = csv.writer(output, delimiter=";")
+
+    # Шапка: базовые поля + маркеры + 22 критерия + резюме
+    header = [
+        "Дата звонка", "Время звонка", "Телефон",
+        "Оператор", "Длительность (сек)",
+        "Стандарты %", "Лояльность %", "Доброжел. %", "Общий %",
+        "Подтверждение заказа", "Предоплата ≥20k",
+    ]
+    # Порядок колонок критериев фиксируем по CRITERIA_SCHEMA (single source of truth)
+    criterion_keys: list[tuple[str, str]] = []  # [(group, key), ...]
+    for group in ("standard", "loyalty", "kindness"):
+        for key in CRITERIA_SCHEMA[group]:
+            label = CRITERIA_LABELS[group].get(key, key)
+            header.append(label)
+            criterion_keys.append((group, key))
+    header.extend(["Резюме", "Отклонён", "Причина отклонения"])
+    writer.writerow(header)
+
+    for f in files:
+        call_info = parse_call_filename(f.original_name)
+        analysis = f.analysis
+        criteria_details = (analysis.criteria_details if analysis else None) or {}
+        markers = criteria_details.get("markers") or {}
+
+        row: list[str | int | None] = [
+            call_info.get("call_date") or "",
+            call_info.get("call_time") or "",
+            call_info.get("caller_phone") or "",
+            f.operator.name if f.operator else "",
+            int(f.duration_sec) if f.duration_sec else "",
+        ]
+
+        if analysis:
+            row.extend([
+                f"{analysis.standard}%",
+                f"{analysis.loyalty}%",
+                f"{analysis.kindness}%",
+                f"{analysis.overall}%",
+            ])
+        else:
+            row.extend(["", "", "", ""])
+
+        # Маркеры
+        row.append(_fmt_bool(markers.get("order_confirmation")))
+        row.append(_fmt_bool(markers.get("prepayment_20k")))
+
+        # 22 критерия
+        for group, key in criterion_keys:
+            group_data = criteria_details.get(group) or {}
+            row.append(_fmt_bool(group_data.get(key)))
+
+        # Резюме + статус отклонения
+        if analysis:
+            row.append(analysis.summary or "")
+            row.append("Да" if analysis.rejected else "")
+            row.append(analysis.rejection_reason or "" if analysis.rejected else "")
+        else:
+            row.extend(["", "", ""])
+
+        writer.writerow(row)
+
+    output.seek(0)
+
+    # Имя файла: calls_<operator>_<from>_<to>.csv
+    parts = ["calls"]
+    if operator:
+        parts.append(operator)
+    if date_from:
+        parts.append(date_from.strftime("%Y-%m-%d"))
+    if date_to:
+        parts.append(date_to.strftime("%Y-%m-%d"))
+    if len(parts) == 1:
+        parts.append(datetime.utcnow().strftime("%Y-%m-%d"))
+    filename = "_".join(parts) + ".csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
 
 

@@ -233,8 +233,8 @@ function App() {
                 <button
                   onClick={refresh}
                   disabled={resultsLoading}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors font-medium ${
-                    resultsLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 hover:shadow-sm active:scale-95 transition-all duration-150 font-medium ${
+                    resultsLoading ? 'opacity-50 cursor-not-allowed hover:bg-white hover:border-gray-300 hover:shadow-none active:scale-100' : ''
                   }`}
                   title="Обновить список"
                 >

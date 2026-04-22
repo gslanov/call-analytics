@@ -117,6 +117,36 @@ export interface CriteriaDetails {
   reasons?: CriteriaReasons
 }
 
+// Отчёт «процент по каждому критерию» (новая вкладка в ReportsPage)
+export interface CriterionStats {
+  key: string
+  label: string
+  pass_count: number
+  fail_count: number
+  applicable_count: number
+  pass_rate: number | null  // null если applicable_count === 0 (критерий никогда не применим)
+}
+
+export interface CriteriaGroupReport {
+  label: string
+  criteria: CriterionStats[]
+}
+
+export interface CriteriaReportData {
+  total_calls: number
+  filters: {
+    date_from: string | null
+    date_to: string | null
+    operator: string | null
+  }
+  groups: {
+    standard: CriteriaGroupReport
+    loyalty: CriteriaGroupReport
+    kindness: CriteriaGroupReport
+    markers: CriteriaGroupReport
+  }
+}
+
 export interface AnalysisDetailResult extends AnalysisResult {
   audio_url?: string
   transcription?: {

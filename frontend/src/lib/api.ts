@@ -78,13 +78,9 @@ export async function fetchFileStatus(fileId: string): Promise<FileStatusRespons
 export const WS_URL = import.meta.env.VITE_WS_URL ??
   `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/ws`
 
-import type { ResultFilters, ResultsPage, AnalysisDetailResult } from '../types'
+import type { ResultFilters, ResultsPage, AnalysisDetailResult, CriteriaReportData } from '../types'
 
-export async function fetchResults(
-  filters: ResultFilters,
-  page: number,
-  limit: number
-): Promise<ResultsPage> {
+function buildResultsParams(filters: ResultFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.operator) params.set('operator', filters.operator)
   if (filters.date_from) params.set('date_from', filters.date_from)
@@ -93,6 +89,49 @@ export async function fetchResults(
   if (filters.score_max != null) params.set('score_max', String(filters.score_max))
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.order) params.set('order', filters.order)
+  return params
+}
+
+export function buildResultsExportUrl(filters: ResultFilters): string {
+  const params = buildResultsParams(filters)
+  const qs = params.toString()
+  return `${API_BASE_URL}/results/export${qs ? '?' + qs : ''}`
+}
+
+export interface CriteriaReportFilters {
+  date_from?: string
+  date_to?: string
+  operator?: string
+}
+
+export async function fetchCriteriaReport(
+  filters: CriteriaReportFilters
+): Promise<CriteriaReportData> {
+  const params = new URLSearchParams()
+  if (filters.date_from) params.set('date_from', filters.date_from)
+  if (filters.date_to) params.set('date_to', filters.date_to)
+  if (filters.operator) params.set('operator', filters.operator)
+  const qs = params.toString()
+  const response = await fetch(`${API_BASE_URL}/reports/criteria${qs ? '?' + qs : ''}`)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json() as Promise<CriteriaReportData>
+}
+
+export function buildCriteriaReportDownloadUrl(filters: CriteriaReportFilters): string {
+  const params = new URLSearchParams()
+  if (filters.date_from) params.set('date_from', filters.date_from)
+  if (filters.date_to) params.set('date_to', filters.date_to)
+  if (filters.operator) params.set('operator', filters.operator)
+  const qs = params.toString()
+  return `${API_BASE_URL}/reports/criteria/download${qs ? '?' + qs : ''}`
+}
+
+export async function fetchResults(
+  filters: ResultFilters,
+  page: number,
+  limit: number
+): Promise<ResultsPage> {
+  const params = buildResultsParams(filters)
   params.set('page', String(page))
   params.set('limit', String(limit))
 

@@ -1,5 +1,6 @@
 import { Fragment, useState, useMemo, useEffect } from 'react'
 import type { AnalysisResult, ResultFilters } from '../types'
+import { buildResultsExportUrl } from '../lib/api'
 import { Pagination } from './Pagination'
 import { SummaryCards } from './SummaryCards'
 
@@ -207,6 +208,25 @@ export function ResultsTable({
               {useMock && <span className="ml-2 text-yellow-500 text-xs">(demo-данные)</span>}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (total === 0 || useMock) return
+              window.open(buildResultsExportUrl(filters), '_blank')
+            }}
+            disabled={total === 0 || useMock}
+            title={
+              useMock
+                ? 'Демо-данные — выгрузка недоступна'
+                : total === 0
+                  ? 'Нет звонков для выгрузки'
+                  : 'Скачать звонки с текущими фильтрами в Excel'
+            }
+            className="text-sm border border-gray-300 text-gray-700 px-4 py-1.5 rounded-lg hover:bg-gray-100 hover:border-gray-400 hover:shadow-sm active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 disabled:hover:shadow-none disabled:active:scale-100 flex items-center gap-1.5"
+          >
+            <span>⬇</span>
+            <span>Скачать в Excel</span>
+          </button>
         </div>
 
         {/* Active filter badges */}

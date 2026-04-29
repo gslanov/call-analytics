@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -29,8 +30,10 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Retry
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 RETRY_BASE_DELAY = 2.0  # seconds
+RETRY_MAX_DELAY = 60.0
+RATE_LIMIT_BASE_DELAY = 10.0
 
 # Criteria version — increment when criteria change
 CRITERIA_VERSION = "v3"
@@ -356,6 +359,11 @@ class LLMService:
         """Call GPT-4 with retry on failure or invalid JSON."""
         last_exc: Exception | None = None
 
+        try:
+            from openai import APIConnectionError, APITimeoutError, RateLimitError, APIStatusError
+        except ImportError:
+            APIConnectionError = APITimeoutError = RateLimitError = APIStatusError = ()  # type: ignore
+
         for attempt in range(1, MAX_RETRIES + 1):
             sys_prompt = STRICT_SYSTEM_PROMPT if (strict or attempt > 1) else SYSTEM_PROMPT
             try:
@@ -364,25 +372,41 @@ class LLMService:
                 if result is not None:
                     logger.info("LLM analysis done on attempt %d", attempt)
                     return result
-                # Invalid JSON → retry with strict prompt
                 logger.warning(
                     "LLM attempt %d: invalid JSON response, retrying…", attempt
                 )
             except Exception as exc:
                 last_exc = exc
                 err_type = type(exc).__name__
-                if attempt < MAX_RETRIES:
-                    delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                is_rate_limit = isinstance(exc, RateLimitError) if RateLimitError else False
+                is_5xx = (
+                    isinstance(exc, APIStatusError)
+                    and getattr(exc, "status_code", 0) >= 500
+                ) if APIStatusError else False
+                is_transient = (
+                    is_rate_limit
+                    or is_5xx
+                    or isinstance(exc, (APIConnectionError, APITimeoutError))
+                    if APIConnectionError else True
+                )
+
+                if attempt < MAX_RETRIES and is_transient:
+                    base = RATE_LIMIT_BASE_DELAY if is_rate_limit else RETRY_BASE_DELAY
+                    cap = min(RETRY_MAX_DELAY, base * (2 ** (attempt - 1)))
+                    delay = random.uniform(0, cap)
                     logger.warning(
-                        "LLM attempt %d/%d failed (%s: %s). Retrying in %.1fs…",
-                        attempt, MAX_RETRIES, err_type, exc, delay,
+                        "LLM attempt %d/%d failed (%s%s: %s). Retrying in %.1fs…",
+                        attempt, MAX_RETRIES, err_type,
+                        " RATE_LIMIT" if is_rate_limit else "",
+                        exc, delay,
                     )
                     time.sleep(delay)
                 else:
                     logger.error(
                         "LLM failed after %d attempts (%s: %s) — graceful degradation",
-                        MAX_RETRIES, err_type, exc,
+                        attempt, err_type, exc,
                     )
+                    break
 
         return None  # graceful degradation
 

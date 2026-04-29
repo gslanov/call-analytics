@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     calltouch_site_id: str = ""
     calltouch_api_key: str = ""
     calltouch_call_records_path: str = "/app/data/calltouch_records"
+    calltouch_webhook_secret: str = ""
+
+    # Auth (app-level Basic Auth — defense in depth поверх nginx)
+    basic_auth_user: str = ""
+    basic_auth_password: str = ""
 
     @field_validator("cors_origins", mode="before")
     @classmethod

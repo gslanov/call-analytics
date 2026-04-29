@@ -71,12 +71,20 @@ export function useUpload(): UseUploadReturn {
       for (const ve of result.validation_errors ?? []) {
         errorByName.set(ve.file, ve.error)
       }
+      // Карта дубликатов из accepted[] — бэк помечает is_duplicate=true для уже существующих хешей
+      const duplicateNames = new Set<string>()
+      for (const a of result.accepted ?? []) {
+        if (a.is_duplicate) duplicateNames.add(a.original_name)
+      }
 
       setFiles((prev) =>
         prev.map((f) => {
           const errMsg = errorByName.get(f.file.name)
           if (errMsg) {
             return { ...f, status: 'error', error: errMsg, progress: 0 }
+          }
+          if (duplicateNames.has(f.file.name)) {
+            return { ...f, status: 'duplicate', progress: 100 }
           }
           return { ...f, status: 'done', progress: 100 }
         })

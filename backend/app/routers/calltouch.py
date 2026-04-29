@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime
 from typing import Any, Optional
 
@@ -5,11 +6,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import SessionLocal
 from app.models import CallRecord, File
 from app.services.calltouch_handler import process_webhook, parse_calltime
 
 router = APIRouter(prefix="/calltouch", tags=["calltouch"])
+
+
+def _verify_webhook_secret(request: Request) -> None:
+    """Проверка shared secret для webhook'а Calltouch.
+
+    Если CALLTOUCH_WEBHOOK_SECRET не задан — пропускаем (обратная совместимость).
+    Если задан — требуется в заголовке X-Webhook-Secret или query-параметре `secret`.
+    """
+    expected = settings.calltouch_webhook_secret
+    if not expected:
+        return
+    provided = request.headers.get("X-Webhook-Secret") or request.query_params.get("secret") or ""
+    if not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
 
 def get_db():
@@ -25,6 +41,9 @@ async def calltouch_webhook(request: Request, db: Session = Depends(get_db)):
     import logging
     import json
     logger = logging.getLogger(__name__)
+
+    # Shared secret check (если задан CALLTOUCH_WEBHOOK_SECRET в env)
+    _verify_webhook_secret(request)
 
     # Support GET query params, POST form data, and POST JSON
     if request.method == "GET":

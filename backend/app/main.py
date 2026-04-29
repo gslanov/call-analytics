@@ -83,6 +83,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.auth import BasicAuthMiddleware
+app.add_middleware(BasicAuthMiddleware)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

@@ -48,6 +48,20 @@ SORT_COLUMNS = {
 }
 
 
+def _csv_safe(value):
+    """Защита от CSV injection: префикс апострофом для значений, начинающихся с
+    =, +, -, @, \\t, \\r — иначе Excel/LibreOffice исполнит формулу.
+    """
+    if value is None:
+        return ""
+    s = str(value)
+    if not s:
+        return s
+    if s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 def _make_list_item(db_file: File) -> ResultListItem:
     from app.utils import parse_call_filename
     analysis = None
@@ -299,10 +313,10 @@ def export_results(
         markers = criteria_details.get("markers") or {}
 
         row: list[str | int | None] = [
-            call_info.get("call_date") or "",
-            call_info.get("call_time") or "",
-            call_info.get("caller_phone") or "",
-            f.operator.name if f.operator else "",
+            _csv_safe(call_info.get("call_date") or ""),
+            _csv_safe(call_info.get("call_time") or ""),
+            _csv_safe(call_info.get("caller_phone") or ""),
+            _csv_safe(f.operator.name if f.operator else ""),
             int(f.duration_sec) if f.duration_sec else "",
         ]
 
@@ -325,11 +339,11 @@ def export_results(
             group_data = criteria_details.get(group) or {}
             row.append(_fmt_bool(group_data.get(key)))
 
-        # Резюме + статус отклонения
+        # Резюме + статус отклонения (sanitize summary/reason — могут содержать пользовательский ввод)
         if analysis:
-            row.append(analysis.summary or "")
+            row.append(_csv_safe(analysis.summary or ""))
             row.append("Да" if analysis.rejected else "")
-            row.append(analysis.rejection_reason or "" if analysis.rejected else "")
+            row.append(_csv_safe(analysis.rejection_reason or "" if analysis.rejected else ""))
         else:
             row.extend(["", "", ""])
 

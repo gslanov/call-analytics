@@ -2,7 +2,15 @@ import { parseHttpError, networkError, type ParsedError } from './errors'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
+export interface AcceptedFile {
+  file_id: string
+  original_name: string
+  is_duplicate: boolean
+}
+
 export interface UploadResponse {
+  // accepted — новый формат от бэка после фикса mapping bug; старый бэк его не пришлёт
+  accepted?: AcceptedFile[]
   file_ids: string[]
   operator: string
   status: string

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import File as FileModel, Operator
-from app.schemas import UploadResponse, ValidationError
+from app.schemas import AcceptedFile, UploadResponse, ValidationError
 from app.services.audio_validator import validate_audio_file_path
 from app.services.queue import QueueManager
 from app.utils import sanitize_filename, fix_encoding, parse_call_filename
@@ -102,6 +102,7 @@ async def upload_files(
 
     validation_errors: list[ValidationError] = []
     accepted_file_ids: list[str] = []
+    accepted: list[AcceptedFile] = []
 
     for upload in files:
         filename = sanitize_filename(upload.filename or "unknown")
@@ -141,6 +142,11 @@ async def upload_files(
                 existing_id = hash_to_file_id.get(fh)
                 if existing_id:
                     accepted_file_ids.append(str(existing_id))
+                    accepted.append(AcceptedFile(
+                        file_id=str(existing_id),
+                        original_name=filename,
+                        is_duplicate=True,
+                    ))
                     continue
             validation_errors.append(ValidationError(file=filename, error=result.error or "Неизвестная ошибка"))
             continue
@@ -174,9 +180,19 @@ async def upload_files(
             )
             if existing:
                 accepted_file_ids.append(str(existing))
+                accepted.append(AcceptedFile(
+                    file_id=str(existing),
+                    original_name=filename,
+                    is_duplicate=True,
+                ))
             continue
         hash_to_file_id[result.file_hash] = file_id
         accepted_file_ids.append(str(file_id))
+        accepted.append(AcceptedFile(
+            file_id=str(file_id),
+            original_name=filename,
+            is_duplicate=False,
+        ))
 
     # Если ВСЕ файлы упали валидацией — откат и 400 (frontend поймёт ошибку)
     if validation_errors and not accepted_file_ids:
@@ -197,6 +213,7 @@ async def upload_files(
 
     # Частичный успех: 200 с принятыми ids + список ошибок per-file
     return UploadResponse(
+        accepted=accepted,
         file_ids=accepted_file_ids,
         operator=operator_name.strip(),
         status="queued",

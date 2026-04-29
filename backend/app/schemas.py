@@ -6,7 +6,16 @@ from pydantic import BaseModel, Field
 
 # --- Upload ---
 
+class AcceptedFile(BaseModel):
+    file_id: str
+    original_name: str
+    is_duplicate: bool = False
+
+
 class UploadResponse(BaseModel):
+    # accepted — новый поле, фронт мапит по original_name (нет index drift при partial success)
+    accepted: list[AcceptedFile] = []
+    # file_ids оставлен для обратной совместимости со старым фронтом
     file_ids: list[str]
     operator: str
     status: str

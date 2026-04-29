@@ -13,6 +13,7 @@ History:
 from __future__ import annotations
 
 import logging
+import random
 import time
 from pathlib import Path
 from typing import Any
@@ -22,8 +23,10 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Retry
-MAX_RETRIES = 3
+MAX_RETRIES = 5  # с jitter и backoff покрывает кратковременные 429/500
 RETRY_BASE_DELAY = 2.0  # seconds
+RETRY_MAX_DELAY = 60.0
+RATE_LIMIT_BASE_DELAY = 10.0  # 429 — даём API больше времени восстановиться
 
 # OpenAI API supports files up to 25 MB
 MAX_API_FILE_SIZE = 25 * 1024 * 1024
@@ -108,8 +111,19 @@ class WhisperService:
     # ------------------------------------------------------------------
 
     def _transcribe_with_retry(self, path: Path, offset_sec: float = 0.0) -> TranscriptionResult:
-        """Transcribe with exponential backoff retry."""
+        """Transcribe with exponential backoff + full jitter retry.
+
+        429 (RateLimitError) обрабатывается отдельно с увеличенной базовой задержкой
+        — в идеале читаем Retry-After из заголовков, но OpenAI SDK его уже учитывает
+        внутри. Дополнительный backoff страхует от наших собственных каскадов.
+        """
         last_exc: Exception | None = None
+
+        # Импорт внутри — openai необязателен в тестах
+        try:
+            from openai import APIConnectionError, APITimeoutError, RateLimitError, APIStatusError
+        except ImportError:
+            APIConnectionError = APITimeoutError = RateLimitError = APIStatusError = ()  # type: ignore
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -121,15 +135,32 @@ class WhisperService:
                 return result
             except Exception as exc:
                 last_exc = exc
-                if attempt < MAX_RETRIES:
-                    delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                is_rate_limit = isinstance(exc, RateLimitError) if RateLimitError else False
+                is_5xx = (
+                    isinstance(exc, APIStatusError)
+                    and getattr(exc, "status_code", 0) >= 500
+                ) if APIStatusError else False
+                is_transient = (
+                    is_rate_limit
+                    or is_5xx
+                    or isinstance(exc, (APIConnectionError, APITimeoutError))
+                    if APIConnectionError else True
+                )
+
+                if attempt < MAX_RETRIES and is_transient:
+                    base = RATE_LIMIT_BASE_DELAY if is_rate_limit else RETRY_BASE_DELAY
+                    cap = min(RETRY_MAX_DELAY, base * (2 ** (attempt - 1)))
+                    delay = random.uniform(0, cap)  # full jitter — снижает thundering herd
                     logger.warning(
-                        "Whisper API attempt %d/%d failed (%s). Retrying in %.1fs...",
-                        attempt, MAX_RETRIES, exc, delay,
+                        "Whisper API attempt %d/%d failed (%s%s). Retrying in %.1fs...",
+                        attempt, MAX_RETRIES, type(exc).__name__,
+                        " RATE_LIMIT" if is_rate_limit else "",
+                        delay,
                     )
                     time.sleep(delay)
                 else:
-                    logger.error("Whisper API failed after %d attempts: %s", MAX_RETRIES, exc)
+                    logger.error("Whisper API failed after %d attempts: %s", attempt, exc)
+                    break
 
         raise RuntimeError(
             f"Whisper API transcription failed after {MAX_RETRIES} retries"

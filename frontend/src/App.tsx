@@ -85,11 +85,20 @@ function App() {
     setAppState('uploading')
     const result = await startUpload()
     if (result) {
-      // Map file_ids back to original file names (order preserved from request)
-      const pf: ProcessingFile[] = result.file_ids.map((id, i) => ({
-        file_id: id,
-        file_name: files[i]?.file.name ?? id,
-      }))
+      // Используем accepted[] (с original_name из бэка) — без index drift при partial success.
+      // Fallback: старый формат file_ids[] если бэк ещё не задеплоен.
+      let pf: ProcessingFile[]
+      if (result.accepted && result.accepted.length > 0) {
+        pf = result.accepted.map((a) => ({
+          file_id: a.file_id,
+          file_name: a.original_name,
+        }))
+      } else {
+        pf = result.file_ids.map((id, i) => ({
+          file_id: id,
+          file_name: files[i]?.file.name ?? id,
+        }))
+      }
       setProcessingFiles(pf)
       setAppState('processing')
     } else {

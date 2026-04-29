@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     basic_auth_user: str = ""
     basic_auth_password: str = ""
 
+    # Pipeline concurrency — сколько файлов воркер обрабатывает параллельно.
+    # Path B (один процесс, asyncio.gather + Semaphore). True parallelism через
+    # несколько процессов потребует Postgres durable queue (фаза 5+).
+    pipeline_concurrency: int = 4
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str) -> str:

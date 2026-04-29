@@ -1,6 +1,12 @@
-"""QueueManager — in-memory async FIFO queue for audio processing.
+"""QueueManager — async FIFO queue for audio processing.
 
-Sequential (1 file at a time) processing via asyncio.Queue.
+Параллельная обработка через asyncio.Semaphore (path B, без Postgres queue).
+Concurrency задаётся `settings.pipeline_concurrency` (env PIPELINE_CONCURRENCY).
+
+Pipeline почти полностью I/O-bound (OpenAI API), потому asyncio даёт реальный
+speedup без multiprocess. True parallelism через несколько процессов потребует
+Postgres durable queue с `SELECT FOR UPDATE SKIP LOCKED` (фаза 5+).
+
 On server startup — re-queues files stuck in non-terminal states
 (transcribing, diarizing, analyzing) so they resume from their checkpoint.
 """
@@ -22,14 +28,15 @@ RESUMABLE_STATUSES = {"queued", "transcribing", "diarizing", "analyzing"}
 
 
 class QueueManager:
-    """Async in-memory FIFO queue."""
+    """Async parallel queue (semaphore-bounded)."""
 
     _instance: "QueueManager | None" = None
 
     def __init__(self) -> None:
         self._queue: asyncio.Queue[uuid.UUID] = asyncio.Queue()
         self._running = False
-        self._current: uuid.UUID | None = None
+        self._current: uuid.UUID | None = None  # «первый из активных» (для health)
+        self._in_progress: set[uuid.UUID] = set()
 
     @classmethod
     def get_instance(cls) -> "QueueManager":
@@ -87,43 +94,78 @@ class QueueManager:
             await self._queue.put(f.id)
 
     async def process_queue(self) -> None:
-        """Infinite loop — process files one at a time."""
-        from app.services.pipeline import PipelineOrchestrator
-        from app.database import SessionLocal
+        """Параллельная обработка файлов через Semaphore.
+
+        Один процесс воркера, но N файлов одновременно «в полёте» через asyncio.
+        Pipeline почти полностью I/O-bound (OpenAI API), поэтому asyncio даёт
+        реальный спид-ап без multiprocess.
+
+        Concurrency = settings.pipeline_concurrency (env PIPELINE_CONCURRENCY).
+        """
+        from app.config import settings as _settings
 
         self._running = True
-        logger.info("Queue worker started")
+        sem = asyncio.Semaphore(_settings.pipeline_concurrency)
+        in_flight: set[asyncio.Task] = set()
+        logger.info(
+            "Queue worker started (concurrency=%d)",
+            _settings.pipeline_concurrency,
+        )
 
         while self._running:
             try:
-                # Wait for next file (timeout=1s so we can check _running flag)
+                # Полёт лишних задач не запускаем сверх concurrency
                 try:
                     file_id = await asyncio.wait_for(self._queue.get(), timeout=1.0)
                 except asyncio.TimeoutError:
+                    # Вычищаем завершённые задачи периодически
+                    in_flight = {t for t in in_flight if not t.done()}
                     continue
 
-                self._current = file_id
-                logger.info("Processing file %s", file_id)
-
-                db = SessionLocal()
-                try:
-                    orchestrator = PipelineOrchestrator(db)
-                    await orchestrator.process_file(file_id)
-                except Exception as exc:
-                    logger.error("Unhandled error processing %s: %s", file_id, exc, exc_info=True)
-                finally:
-                    db.close()
-                    self._queue.task_done()
-                    self._current = None
+                # Acquire без блокировки потока — ждём слот
+                await sem.acquire()
+                task = asyncio.create_task(
+                    self._process_one(file_id, sem),
+                    name=f"pipeline-{file_id}",
+                )
+                in_flight.add(task)
+                # Чистим завершённые (предотвращаем утечку)
+                in_flight = {t for t in in_flight if not t.done()}
 
             except asyncio.CancelledError:
-                logger.info("Queue worker cancelled")
+                logger.info("Queue worker cancelled — waiting for %d in-flight task(s)", len(in_flight))
+                # Дожидаемся текущих файлов перед остановкой (не убиваем pipeline в середине)
+                if in_flight:
+                    await asyncio.gather(*in_flight, return_exceptions=True)
                 break
             except Exception as exc:
                 logger.error("Queue worker error: %s", exc, exc_info=True)
 
         self._running = False
         logger.info("Queue worker stopped")
+
+    async def _process_one(self, file_id: uuid.UUID, sem: asyncio.Semaphore) -> None:
+        """Обработать ОДИН файл. Освобождает Semaphore в finally."""
+        from app.services.pipeline import PipelineOrchestrator
+        from app.database import SessionLocal
+
+        self._in_progress.add(file_id)
+        # Для health-эндпоинта показываем «первый из активных»
+        self._current = next(iter(self._in_progress), None)
+
+        logger.info("Processing file %s (in_flight=%d)", file_id, len(self._in_progress))
+        db = SessionLocal()
+        try:
+            orchestrator = PipelineOrchestrator(db)
+            await orchestrator.process_file(file_id)
+        except Exception as exc:
+            logger.error("Unhandled error processing %s: %s", file_id, exc, exc_info=True)
+        finally:
+            db.close()
+            self._queue.task_done()
+            self._in_progress.discard(file_id)
+            self._current = next(iter(self._in_progress), None)
+            sem.release()
 
     def stop(self) -> None:
         self._running = False

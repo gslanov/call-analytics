@@ -43,6 +43,7 @@ services:
       BASIC_AUTH_USER: ${BASIC_AUTH_USER:-}
       BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
       CALLTOUCH_WEBHOOK_SECRET: ${CALLTOUCH_WEBHOOK_SECRET:-}
+      PIPELINE_CONCURRENCY: ${PIPELINE_CONCURRENCY:-4}
     depends_on:
       db:
         condition: service_healthy

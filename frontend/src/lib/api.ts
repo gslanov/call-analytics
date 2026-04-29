@@ -1,3 +1,5 @@
+import { parseHttpError, networkError, type ParsedError } from './errors'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
 export interface UploadResponse {
@@ -5,6 +7,7 @@ export interface UploadResponse {
   operator: string
   status: string
   total_files: number
+  validation_errors?: Array<{ file: string; error: string }>
 }
 
 export interface ValidationError {
@@ -12,10 +15,20 @@ export interface ValidationError {
   details: Array<{ file: string; error: string }>
 }
 
+export class ApiError extends Error {
+  parsed: ParsedError
+  constructor(parsed: ParsedError) {
+    super(parsed.message)
+    this.name = 'ApiError'
+    this.parsed = parsed
+  }
+}
+
 export async function uploadFiles(
   files: File[],
   operatorName: string,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<UploadResponse> {
   return new Promise((resolve, reject) => {
     const formData = new FormData()
@@ -24,6 +37,11 @@ export async function uploadFiles(
 
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${API_BASE_URL}/upload`)
+
+    if (signal) {
+      const onAbort = () => xhr.abort()
+      signal.addEventListener('abort', onAbort, { once: true })
+    }
 
     if (onProgress) {
       xhr.upload.onprogress = (e) => {
@@ -35,13 +53,18 @@ export async function uploadFiles(
 
     xhr.onload = () => {
       if (xhr.status === 200) {
-        resolve(JSON.parse(xhr.responseText) as UploadResponse)
+        try {
+          resolve(JSON.parse(xhr.responseText) as UploadResponse)
+        } catch {
+          reject(new ApiError({ message: 'Сервер вернул некорректный ответ' }))
+        }
       } else {
-        reject(new Error(xhr.responseText || `HTTP ${xhr.status}`))
+        reject(new ApiError(parseHttpError(xhr.status, xhr.responseText)))
       }
     }
 
-    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.onerror = () => reject(new ApiError(networkError()))
+    xhr.onabort = () => reject(new ApiError({ message: 'Загрузка отменена' }))
     xhr.send(formData)
   })
 }

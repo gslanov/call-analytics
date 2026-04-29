@@ -65,6 +65,17 @@ function App() {
     }
   }, [appState, selectedResultId])
 
+  // Предупреждение при попытке закрыть вкладку во время загрузки
+  useEffect(() => {
+    if (!isUploading) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isUploading])
+
   const handleFilesSelected = (newFiles: File[]) => {
     addFiles(newFiles)
     setAppState('files_picked')

@@ -18,13 +18,14 @@ function formatBytes(bytes: number): string {
 }
 
 function StatusBadge({ status }: { status: UploadedFile['status'] }) {
-  const map = {
+  const map: Record<UploadedFile['status'], { label: string; cls: string }> = {
     pending: { label: 'Ожидает', cls: 'bg-gray-100 text-gray-600' },
     uploading: { label: 'Загружается', cls: 'bg-blue-100 text-blue-700' },
     done: { label: 'Загружен', cls: 'bg-green-100 text-green-700' },
     error: { label: 'Ошибка', cls: 'bg-red-100 text-red-700' },
+    duplicate: { label: 'Уже загружен', cls: 'bg-amber-100 text-amber-700' },
   }
-  const { label, cls } = map[status]
+  const { label, cls } = map[status] || map.pending
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{label}</span>
   )
@@ -65,7 +66,14 @@ export function FileList({
               <span className="text-lg">🎵</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{f.file.name}</p>
-                <p className="text-xs text-gray-400">{formatBytes(f.file.size)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-gray-400">{formatBytes(f.file.size)}</p>
+                  {f.error && (
+                    <p className="text-xs text-red-500 truncate" title={f.error}>
+                      · {f.error}
+                    </p>
+                  )}
+                </div>
               </div>
               <StatusBadge status={f.status} />
               <button

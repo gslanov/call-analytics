@@ -1,8 +1,9 @@
 export interface UploadedFile {
   file: File
   id: string
-  status: 'pending' | 'uploading' | 'done' | 'error'
+  status: 'pending' | 'uploading' | 'done' | 'error' | 'duplicate'
   progress: number
+  error?: string  // human-readable error from validation/upload
 }
 
 export interface UploadResponse {
@@ -10,6 +11,7 @@ export interface UploadResponse {
   operator: string
   status: string
   total_files: number
+  validation_errors?: Array<{ file: string; error: string }>
 }
 
 export interface AnalysisResult {

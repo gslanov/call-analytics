@@ -11,6 +11,7 @@ class UploadResponse(BaseModel):
     operator: str
     status: str
     total_files: int
+    validation_errors: list["ValidationError"] = []
 
 
 class ValidationError(BaseModel):

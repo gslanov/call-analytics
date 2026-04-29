@@ -47,7 +47,12 @@ class QueueManager:
         logger.info("Queued file %s (queue size: %d)", file_id, self._queue.qsize())
 
     def enqueue_sync(self, file_id: uuid.UUID) -> None:
-        """Thread-safe enqueue from sync context (e.g. upload router)."""
+        """Thread-safe enqueue from sync context (e.g. upload router).
+
+        Бросает исключение наверх если очередь не приняла файл — иначе upload
+        вернёт пользователю 200, но файл навсегда останется в status=queued
+        (silent loss). Caller (upload.py) ловит и помечает файл failed.
+        """
         try:
             loop = asyncio.get_running_loop()
             loop.call_soon_threadsafe(self._queue.put_nowait, file_id)
@@ -56,6 +61,7 @@ class QueueManager:
             self._queue.put_nowait(file_id)
         except Exception as exc:
             logger.error("Failed to enqueue %s: %s", file_id, exc)
+            raise
 
     async def recover_interrupted(self, db: "Session") -> None:
         """On startup: re-queue files that were interrupted mid-processing."""

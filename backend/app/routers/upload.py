@@ -209,7 +209,18 @@ async def upload_files(
         fid = uuid.UUID(fid_str)
         row = db.get(FileModel, fid)
         if row and row.status == "queued":
-            q.enqueue_sync(fid)
+            try:
+                q.enqueue_sync(fid)
+            except Exception as exc:
+                # Если очередь упала — помечаем файл failed, чтобы пользователь
+                # увидел ошибку, а не висящий "queued" навсегда
+                row.status = "failed"
+                row.error_message = f"Не удалось поставить в очередь: {exc}"
+                db.commit()
+                validation_errors.append(ValidationError(
+                    file=row.original_name,
+                    error="Сервис очереди недоступен — попробуй позже",
+                ))
 
     # Частичный успех: 200 с принятыми ids + список ошибок per-file
     return UploadResponse(

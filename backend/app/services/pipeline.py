@@ -361,43 +361,49 @@ class PipelineOrchestrator:
             logger.warning("Triple merge: whisper-1 returned no segments")
             return None
 
-        # 3. Assign speakers by channel energy
+        # 3. Assign speakers by channel energy.
+        # Читаем фрагментами по таймстемпам (а не весь файл целиком) — на 1ГБ звонке
+        # full-load = 600MB float32 в RAM, фрагментный — единицы MB.
         try:
-            audio_data, sr = sf.read(audio_path)
+            snd = sf.SoundFile(audio_path)
         except Exception as exc:
-            logger.error("Triple merge: cannot read audio: %s", exc)
+            logger.error("Triple merge: cannot open audio: %s", exc)
             return None
 
-        if audio_data.ndim != 2 or audio_data.shape[1] != 2:
-            logger.info("Triple merge: not stereo, skipping speaker assignment")
-            return None
+        try:
+            if snd.channels != 2:
+                logger.info("Triple merge: not stereo, skipping speaker assignment")
+                return None
+            sr = snd.samplerate
+            n_frames = snd.frames
 
-        left = audio_data[:, 0]
-        right = audio_data[:, 1]
+            labeled_lines = []
+            for seg in whisper_segments:
+                start = seg.start if hasattr(seg, 'start') else seg.get("start", 0)
+                end = seg.end if hasattr(seg, 'end') else seg.get("end", 0)
+                text = (seg.text if hasattr(seg, 'text') else seg.get("text", "")).strip()
 
-        labeled_lines = []
-        for seg in whisper_segments:
-            start = seg.start if hasattr(seg, 'start') else seg.get("start", 0)
-            end = seg.end if hasattr(seg, 'end') else seg.get("end", 0)
-            text = (seg.text if hasattr(seg, 'text') else seg.get("text", "")).strip()
+                s_start = max(0, int(start * sr))
+                s_end = min(n_frames, int(end * sr))
+                if s_end > s_start:
+                    snd.seek(s_start)
+                    chunk = snd.read(frames=s_end - s_start, dtype='float32', always_2d=True)
+                    l_energy = float(np.sqrt(np.mean(chunk[:, 0] ** 2)))
+                    r_energy = float(np.sqrt(np.mean(chunk[:, 1] ** 2)))
+                else:
+                    l_energy = r_energy = 0.0
 
-            s_start = int(start * sr)
-            s_end = int(end * sr)
-            if s_end > s_start:
-                l_energy = np.sqrt(np.mean(left[s_start:s_end] ** 2))
-                r_energy = np.sqrt(np.mean(right[s_start:s_end] ** 2))
-            else:
-                l_energy = r_energy = 0
+                if l_energy > r_energy * 1.3:
+                    speaker = "ОПЕРАТОР"
+                elif r_energy > l_energy * 1.3:
+                    speaker = "КЛИЕНТ"
+                else:
+                    speaker = "НЕЯСНО"
 
-            if l_energy > r_energy * 1.3:
-                speaker = "ОПЕРАТОР"
-            elif r_energy > l_energy * 1.3:
-                speaker = "КЛИЕНТ"
-            else:
-                speaker = "НЕЯСНО"
-
-            m, s = divmod(int(start), 60)
-            labeled_lines.append(f"[{m}:{s:02d}] {speaker}: {text}")
+                m, s = divmod(int(start), 60)
+                labeled_lines.append(f"[{m}:{s:02d}] {speaker}: {text}")
+        finally:
+            snd.close()
 
         whisper_labeled = "\n".join(labeled_lines)
         logger.info("Triple merge: %d whisper segments with speakers", len(labeled_lines))

@@ -11,7 +11,7 @@ from urllib.parse import quote as url_quote
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -177,54 +177,69 @@ def _compute_criteria_report(
 ) -> dict:
     """Считает процент выполнения по каждому из 22 критериев + 2 маркера.
 
-    Алгоритм: загружаем все применимые analyses (~130/день × период), парсим
-    criteria_details в Python. Для каждого критерия считаем:
-      pass_count   — сколько раз значение true
-      fail_count   — сколько раз false
-      applicable   — pass + fail (null исключаются как «не применимо»)
-      pass_rate    — pass_count / applicable * 100, либо null если applicable = 0
-    """
-    query = (
-        select(Analysis.criteria_details)
-        .join(File, File.id == Analysis.file_id)
-        .where(
-            File.status == "done",
-            Analysis.rejected == False,  # noqa: E712
-        )
-    )
-    if date_from is not None:
-        query = query.where(File.created_at >= date_from)
-    if date_to is not None:
-        query = query.where(File.created_at <= date_to)
-    if operator:
-        query = query.join(Operator, Operator.id == File.operator_id).where(
-            Operator.name.ilike(f"%{operator}%")
-        )
+    Считает агрегацию ЦЕЛИКОМ в SQL через `COUNT(*) FILTER (WHERE jsonb-path = 'true')`
+    — один запрос вместо тысяч строк в Python. Использует GIN-индекс на
+    criteria_details (миграция d5e6f7a8b9c0).
 
-    # Стримим по 500 строк за раз: peak RAM не растёт от размера выборки
-    # На 25k записей экономия ~250MB pyhon-объектов (вместо .all())
+    Совместимость: criteria_details может быть в новом формате
+    `{"value": bool, "reason": "...", "timestamp": "..."}` или старом плоском
+    `{key: bool|null}`. COALESCE проверяет оба пути.
+    """
+    # Безопасность: group/key приходят из CRITERIA_SCHEMA (whitelist в коде).
+    # SQL injection невозможна — никакого user input в идентификаторах.
+    filter_columns: list[str] = []
+    for group, keys in CRITERIA_SCHEMA.items():
+        for key in keys:
+            new_path = f"analyses.criteria_details->'{group}'->'{key}'->>'value'"
+            old_path = f"analyses.criteria_details->'{group}'->>'{key}'"
+            value_expr = f"COALESCE({new_path}, {old_path})"
+            filter_columns.append(
+                f"COUNT(*) FILTER (WHERE {value_expr} = 'true') "
+                f"AS \"{group}__{key}__pass\""
+            )
+            filter_columns.append(
+                f"COUNT(*) FILTER (WHERE {value_expr} = 'false') "
+                f"AS \"{group}__{key}__fail\""
+            )
+
+    where_parts: list[str] = [
+        "files.status = 'done'",
+        "analyses.rejected = false",
+    ]
+    params: dict = {}
+    operator_join = ""
+    if date_from is not None:
+        where_parts.append("files.created_at >= :date_from")
+        params["date_from"] = date_from
+    if date_to is not None:
+        where_parts.append("files.created_at <= :date_to")
+        params["date_to"] = date_to
+    if operator:
+        operator_join = "JOIN operators ON operators.id = files.operator_id"
+        where_parts.append("operators.name ILIKE :op_pattern")
+        params["op_pattern"] = f"%{operator}%"
+
+    sql = text(f"""
+        SELECT
+            COUNT(*) AS total_calls,
+            {', '.join(filter_columns)}
+        FROM analyses
+        JOIN files ON files.id = analyses.file_id
+        {operator_join}
+        WHERE {' AND '.join(where_parts)}
+    """)
+
+    row = db.execute(sql, params).mappings().one()
+    total_calls = int(row["total_calls"] or 0)
+
     counters: dict[str, dict[str, dict[str, int]]] = {}
     for group, keys in CRITERIA_SCHEMA.items():
-        counters[group] = {key: {"pass": 0, "fail": 0} for key in keys}
-
-    total_calls = 0
-    for (criteria_details,) in db.execute(query.execution_options(yield_per=500)):
-        total_calls += 1
-        if not criteria_details:
-            continue
-        # criteria_details может быть в новом формате {value, reason, timestamp}
-        # или в старом плоском {key: bool|null}
-        for group, keys in CRITERIA_SCHEMA.items():
-            group_data = criteria_details.get(group) or {}
-            for key in keys:
-                raw = group_data.get(key)
-                # Новый формат: {"value": true/false/null, ...}
-                value = raw.get("value") if isinstance(raw, dict) else raw
-                if value is True:
-                    counters[group][key]["pass"] += 1
-                elif value is False:
-                    counters[group][key]["fail"] += 1
-                # None/отсутствует → «не применимо», не учитываем
+        counters[group] = {}
+        for key in keys:
+            counters[group][key] = {
+                "pass": int(row.get(f"{group}__{key}__pass") or 0),
+                "fail": int(row.get(f"{group}__{key}__fail") or 0),
+            }
 
     groups_out: dict[str, dict] = {}
     for group, keys in CRITERIA_SCHEMA.items():

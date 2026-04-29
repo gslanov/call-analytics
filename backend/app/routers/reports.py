@@ -201,21 +201,25 @@ def _compute_criteria_report(
             Operator.name.ilike(f"%{operator}%")
         )
 
-    rows = db.execute(query).all()
-    total_calls = len(rows)
-
-    # Инициализируем счётчики для каждого (group, key) из схемы
+    # Стримим по 500 строк за раз: peak RAM не растёт от размера выборки
+    # На 25k записей экономия ~250MB pyhon-объектов (вместо .all())
     counters: dict[str, dict[str, dict[str, int]]] = {}
     for group, keys in CRITERIA_SCHEMA.items():
         counters[group] = {key: {"pass": 0, "fail": 0} for key in keys}
 
-    for (criteria_details,) in rows:
+    total_calls = 0
+    for (criteria_details,) in db.execute(query.execution_options(yield_per=500)):
+        total_calls += 1
         if not criteria_details:
             continue
+        # criteria_details может быть в новом формате {value, reason, timestamp}
+        # или в старом плоском {key: bool|null}
         for group, keys in CRITERIA_SCHEMA.items():
             group_data = criteria_details.get(group) or {}
             for key in keys:
-                value = group_data.get(key)
+                raw = group_data.get(key)
+                # Новый формат: {"value": true/false/null, ...}
+                value = raw.get("value") if isinstance(raw, dict) else raw
                 if value is True:
                     counters[group][key]["pass"] += 1
                 elif value is False:

@@ -35,15 +35,12 @@ MAX_API_FILE_SIZE = 25 * 1024 * 1024
 # for Russian speech, names, and domain-specific terms
 TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
 
-# Domain prompt helps the model recognize specific terms correctly.
-# Keep it moderate — too long causes hallucination (model echoes prompt into text).
-# Tested: long prompt (30+ terms) → hallucination in 2/8 calls.
-# Short prompt (5 terms) → missed "Пироги №1" in greeting.
-# This length (15 terms) is the sweet spot from A/B testing.
-DOMAIN_PROMPT = (
-    "Компания Пироги №1. Осетинские пироги, облепиха, сулугуни, хачапури, "
-    "Галина, Александра, Анна, Анастасия, доставка, курьер, самовывоз"
-)
+# Domain prompt отключён: на проде в ~20% звонков gpt-4o-transcribe вставлял
+# текст промпта в транскрипцию как реплику оператора (имена/блюда из подсказки),
+# из-за чего LLM-аналитик ставил ложные галочки «представился», «перечислил состав»
+# и т.п. Доменная коррекция терминов теперь делается на этапе тройного мерджа
+# через подсказку GPT-5.4 (см. PipelineOrchestrator._MERGE_PROMPT).
+DOMAIN_PROMPT = ""
 
 
 class TranscriptionResult:
@@ -171,13 +168,15 @@ class WhisperService:
         client = self._get_client()
 
         with open(path, "rb") as audio_file:
-            response = client.audio.transcriptions.create(
-                model=TRANSCRIPTION_MODEL,
-                file=audio_file,
-                language="ru",
-                response_format="text",
-                prompt=DOMAIN_PROMPT,
-            )
+            kwargs: dict[str, Any] = {
+                "model": TRANSCRIPTION_MODEL,
+                "file": audio_file,
+                "language": "ru",
+                "response_format": "text",
+            }
+            if DOMAIN_PROMPT:
+                kwargs["prompt"] = DOMAIN_PROMPT
+            response = client.audio.transcriptions.create(**kwargs)
 
         # gpt-4o-transcribe returns plain text (no word timestamps)
         full_text = str(response).strip() if response else ""

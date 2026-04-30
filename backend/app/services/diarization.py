@@ -230,13 +230,15 @@ class DiarizationService:
                 if not ch_path.exists():
                     continue
                 with open(ch_path, "rb") as f:
-                    resp = client.audio.transcriptions.create(
-                        model=TRANSCRIPTION_MODEL,
-                        file=f,
-                        language="ru",
-                        response_format="text",
-                        prompt=DOMAIN_PROMPT,
-                    )
+                    kwargs: dict[str, Any] = {
+                        "model": TRANSCRIPTION_MODEL,
+                        "file": f,
+                        "language": "ru",
+                        "response_format": "text",
+                    }
+                    if DOMAIN_PROMPT:
+                        kwargs["prompt"] = DOMAIN_PROMPT
+                    resp = client.audio.transcriptions.create(**kwargs)
                 text = str(resp).strip() if resp else ""
                 if label == "L":
                     l_text = text

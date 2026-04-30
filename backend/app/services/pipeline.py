@@ -312,6 +312,14 @@ class PipelineOrchestrator:
 5. Расставь правильную пунктуацию: запятые, точки, вопросительные и восклицательные знаки, тире. Текст должен читаться как грамотный русский язык
 6. Контекст: колл-центр доставки осетинских пирогов "Пироги №1". Операторы: Галина, Александра, Анна, Анастасия
 
+ДОМЕННЫЕ ТЕРМИНЫ (правь ТОЛЬКО если в обеих транскрибациях слово явно искажено по звучанию и из контекста очевидно, что имелся в виду один из этих терминов):
+- Бренд: «Пироги №1», «Пироги номер один»
+- Блюда: осетинские пироги, хачапури, сулугуни, облепиха, чак-чак
+- Способы получения: доставка, курьер, самовывоз
+- Имена операторов (используй только если оператор сам себя называет по имени): Галина, Александра, Анна, Анастасия
+
+ВАЖНО: НЕ вставляй эти термины «на всякий случай», если их нет в обеих транскрибациях. Если оператор НЕ называет компанию, бренд, состав или имя — оставь как есть. Не додумывай реплики.
+
 Верни ТОЛЬКО строки в формате:
 [M:SS] ОПЕРАТОР: текст
 [M:SS] КЛИЕНТ: текст
@@ -344,14 +352,16 @@ class PipelineOrchestrator:
 
         def _run_whisper_1():
             with open(audio_path, "rb") as f:
-                return client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=f,
-                    language="ru",
-                    prompt=DOMAIN_PROMPT,
-                    response_format="verbose_json",
-                    timestamp_granularities=["word", "segment"],
-                )
+                kwargs: dict[str, Any] = {
+                    "model": "whisper-1",
+                    "file": f,
+                    "language": "ru",
+                    "response_format": "verbose_json",
+                    "timestamp_granularities": ["word", "segment"],
+                }
+                if DOMAIN_PROMPT:
+                    kwargs["prompt"] = DOMAIN_PROMPT
+                return client.audio.transcriptions.create(**kwargs)
 
         loop = asyncio.get_running_loop()
         whisper_response = await loop.run_in_executor(None, _run_whisper_1)

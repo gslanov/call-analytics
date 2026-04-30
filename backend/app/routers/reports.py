@@ -39,9 +39,11 @@ def get_reports(
 
     Исключает отклонённые (rejected) анализы.
     """
-    # Base filter: done files with non-rejected analysis
+    # Base filter: done classical files with non-rejected analysis.
+    # Non-classical (no_answer/voicemail/internal/short) исключаются из всех отчётов.
     base_filter = and_(
         File.status == "done",
+        File.call_type == "classical",
         Analysis.rejected == False,  # noqa: E712
     )
     if date_from:
@@ -104,6 +106,7 @@ def get_reports(
         .join(File, File.id == Analysis.file_id)
         .where(
             File.status == "done",
+            File.call_type == "classical",
             Analysis.rejected == True,  # noqa: E712
         )
     ) or 0
@@ -204,6 +207,7 @@ def _compute_criteria_report(
 
     where_parts: list[str] = [
         "files.status = 'done'",
+        "files.call_type = 'classical'",
         "analyses.rejected = false",
     ]
     params: dict = {}

@@ -116,6 +116,32 @@ class PipelineOrchestrator:
                 return
             logger.info("Stage 2 skipped (checkpoint): %s", file_id)
 
+        # --- Stage 2.5: классификация типа звонка ---
+        # Если не classical (недозвон/автоответчик/курьер/обрыв) — пропускаем
+        # дорогой LLM-анализ. Запись остаётся в БД, но скрывается из API/UI.
+        from app.services.call_classifier import classify_call
+        diar_segments_dicts = [
+            {
+                "speaker": s.speaker,
+                "start": s.start,
+                "end": s.end,
+                "text": s.text,
+            }
+            for s in diarization_result.transcript_segments
+        ]
+        call_type = classify_call(diar_segments_dicts)
+        if db_file.call_type != call_type:
+            db_file.call_type = call_type
+            self.db.commit()
+
+        if call_type != "classical":
+            logger.info(
+                "Pipeline %s classified as '%s' — skipping LLM analysis (will be hidden from UI)",
+                file_id, call_type,
+            )
+            self._set_status(db_file, "done", stage=4, progress=STAGE_PROGRESS[4])
+            return
+
         # --- Stage 3: LLM Analysis (non-fatal) ---
         if db_file.stage < 3:
             self._set_status(db_file, "analyzing", stage=3, progress=STAGE_PROGRESS[2] + 5)

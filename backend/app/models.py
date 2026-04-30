@@ -57,6 +57,9 @@ class File(Base):
     operatorphone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
     order_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # call_type — классификация после диаризации. Non-classical звонки остаются
+    # в БД для аудита, но скрываются из API/UI и из отчётов (фильтр по умолчанию).
+    call_type: Mapped[str] = mapped_column(String(20), server_default="classical", nullable=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()

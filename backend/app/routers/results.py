@@ -145,6 +145,10 @@ def _build_results_query(
     if q:
         query = query.where(File.original_name.ilike(f"%{q}%"))
 
+    # Скрываем не-классические звонки (недозвон/автоответчик/курьер/обрыв) —
+    # РОП их вручную удаляла. Видимы только в одиночном fetch /results/{id}.
+    query = query.where(File.call_type == "classical")
+
     if score_min is not None or score_max is not None:
         query = query.join(Analysis, Analysis.file_id == File.id)
         has_analysis_join = True

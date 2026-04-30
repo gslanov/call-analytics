@@ -16,7 +16,7 @@ from app.database import get_db
 from app.models import File as FileModel, Operator
 from app.services.audio_validator import validate_audio_file, _probe_audio
 from app.services.queue import QueueManager
-from app.utils import sanitize_filename
+from app.utils import sanitize_filename, parse_call_started_at
 
 router = APIRouter(tags=["sftp"])
 
@@ -206,16 +206,18 @@ def process_sftp_files(
         dest = dest_dir / f"{file_id}{ext}"
         dest.write_bytes(content)
 
+        clean_name = sanitize_filename(filename)
         db_file = FileModel(
             id=file_id,
             operator_id=op.id,
-            original_name=sanitize_filename(filename),
+            original_name=clean_name,
             file_hash=result.file_hash,
             file_size=len(content),
             duration_sec=result.duration_sec,
             audio_path=str(dest),
             status="queued",
             stage=0,
+            call_started_at=parse_call_started_at(clean_name),
         )
         try:
             with db.begin_nested():

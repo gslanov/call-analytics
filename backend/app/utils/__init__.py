@@ -2,6 +2,7 @@
 
 import os
 import re
+from datetime import datetime, time
 
 # Паттерны российских телефонов в транскрипте
 # Цифрами: +79031947793, 89031947793, 79031947793
@@ -76,6 +77,54 @@ def parse_call_filename(name: str) -> dict[str, str | None]:
             result["operator_name"] = cleaned
 
     return result
+
+
+def parse_call_started_at(name: str) -> datetime | None:
+    """Парсит фактическую дату+время звонка из имени файла Манго.
+
+    Имена идут в виде `2026-04-04__19-51-19__...` — это локальное время МСК
+    (так пишет Манго в callsrec). Возвращаем naive datetime в МСК.
+
+    Замечание про TZ: `created_at` в БД хранится как `func.now()` (TZ контейнера
+    Postgres, обычно UTC). Фильтр в reports/results использует
+    `COALESCE(call_started_at, created_at)` — для записей с заполненным
+    `call_started_at` (после бэкфилла — это все классические звонки) фильтр
+    работает в МСК и совпадает с тем, что вводит РОП. Для редких записей с
+    NULL (имена не от Манго) фолбэк через `created_at` даёт сдвиг в 3 часа,
+    но это окраина выборки.
+    """
+    stem = os.path.splitext(name)[0]
+    parts = stem.split("__")
+    if len(parts) < 2:
+        return None
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", parts[0])
+    if not m:
+        return None
+    year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    tm = re.match(r"^(\d{2})-(\d{2})-(\d{2})$", parts[1])
+    if tm:
+        hour, minute, second = int(tm.group(1)), int(tm.group(2)), int(tm.group(3))
+    else:
+        hour = minute = second = 0
+    try:
+        return datetime(year, month, day, hour, minute, second)
+    except ValueError:
+        return None
+
+
+def normalize_date_to(d: datetime | None) -> datetime | None:
+    """Если в `date_to` нет времени (полночь), расширяем до конца суток.
+
+    FilterBar шлёт `2026-04-24` без времени → FastAPI парсит как 00:00:00 →
+    `<= date_to` отсекает все звонки за выбранный день. ReportsPage уже сам
+    шлёт `T23:59:59`, его не трогаем (microsecond=0 + time=23:59:59 пройдёт
+    проверку и не перезапишется).
+    """
+    if d is None:
+        return None
+    if d.time() == time(0, 0, 0) and d.microsecond == 0:
+        return d.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return d
 
 
 def fix_encoding(text: str) -> str:

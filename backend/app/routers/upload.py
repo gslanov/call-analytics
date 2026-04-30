@@ -15,7 +15,7 @@ from app.models import File as FileModel, Operator
 from app.schemas import AcceptedFile, UploadResponse, ValidationError
 from app.services.audio_validator import validate_audio_file_path
 from app.services.queue import QueueManager
-from app.utils import sanitize_filename, fix_encoding, parse_call_filename
+from app.utils import sanitize_filename, fix_encoding, parse_call_filename, parse_call_started_at
 
 router = APIRouter(tags=["upload"])
 
@@ -165,6 +165,7 @@ async def upload_files(
             audio_path=str(final_path),
             status="queued",
             stage=0,
+            call_started_at=parse_call_started_at(filename),
         )
         try:
             with db.begin_nested():

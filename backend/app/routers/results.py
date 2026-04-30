@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.models import Analysis, File, Operator
+from app.utils import normalize_date_to
 from app.schemas import (
     AnalysisSchema,
     DiarizationDetail,
@@ -138,10 +139,14 @@ def _build_results_query(
 
     if status_filter is not None:
         query = query.where(File.status == status_filter)
+    # Фильтр по дате звонка (call_started_at, парсится из имени файла Манго).
+    # Фолбэк через COALESCE на created_at для старых записей до бэкфилла.
+    date_to = normalize_date_to(date_to)
+    call_date = func.coalesce(File.call_started_at, File.created_at)
     if date_from is not None:
-        query = query.where(File.created_at >= date_from)
+        query = query.where(call_date >= date_from)
     if date_to is not None:
-        query = query.where(File.created_at <= date_to)
+        query = query.where(call_date <= date_to)
     if q:
         query = query.where(File.original_name.ilike(f"%{q}%"))
 
@@ -168,7 +173,9 @@ def _build_results_query(
         direction = asc if order == "asc" else desc
         query = query.order_by(nulls_last(direction(sort_col)))
     else:
-        query = query.order_by(File.created_at.desc())
+        # Сортировка по дате звонка (то же, что и фильтр) — иначе при выборе
+        # «24.04» наверху появятся свежезагруженные звонки за прошлые дни.
+        query = query.order_by(call_date.desc())
 
     return query, has_operator_join, has_analysis_join
 

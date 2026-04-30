@@ -60,6 +60,10 @@ class File(Base):
     # call_type — классификация после диаризации. Non-classical звонки остаются
     # в БД для аудита, но скрываются из API/UI и из отчётов (фильтр по умолчанию).
     call_type: Mapped[str] = mapped_column(String(20), server_default="classical", nullable=False)
+    # Фактическая дата+время звонка (парсится из имени файла Манго). Используется
+    # для фильтров в /reports и /results — РОП ставит дату 24.04 и хочет звонки
+    # за 24.04, даже если она их загрузила в понедельник 28.04.
+    call_started_at: Mapped[datetime | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
@@ -80,6 +84,7 @@ class File(Base):
         Index("idx_files_operator", "operator_id"),
         Index("idx_files_status", "status"),
         Index("idx_files_created", "created_at"),
+        Index("idx_files_call_started", "call_started_at"),
         Index("idx_files_hash", "file_hash"),
         Index(
             "uq_files_hash_active",

@@ -17,6 +17,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Analysis, File, Operator
 from app.services.llm_service import CRITERIA_LABELS, CRITERIA_SCHEMA
+from app.utils import normalize_date_to
+
+
+def _call_date_expr():
+    """SQL-выражение «дата звонка»: парсим из имени файла при загрузке, фолбэк
+    на дату загрузки если поле не заполнено (старые записи / ручная загрузка
+    без timestamp в имени).
+    """
+    return func.coalesce(File.call_started_at, File.created_at)
 
 router = APIRouter(tags=["reports"])
 
@@ -46,10 +55,12 @@ def get_reports(
         File.call_type == "classical",
         Analysis.rejected == False,  # noqa: E712
     )
+    date_to = normalize_date_to(date_to)
+    call_date = _call_date_expr()
     if date_from:
-        base_filter = and_(base_filter, File.created_at >= date_from)
+        base_filter = and_(base_filter, call_date >= date_from)
     if date_to:
-        base_filter = and_(base_filter, File.created_at <= date_to)
+        base_filter = and_(base_filter, call_date <= date_to)
 
     # Per-operator stats
     operator_query = (
@@ -212,11 +223,15 @@ def _compute_criteria_report(
     ]
     params: dict = {}
     operator_join = ""
+    date_to = normalize_date_to(date_to)
+    # COALESCE: фильтр по дате звонка с фолбэком на дату загрузки для старых
+    # записей где call_started_at не успели бэкфилнуть.
+    call_date_sql = "COALESCE(files.call_started_at, files.created_at)"
     if date_from is not None:
-        where_parts.append("files.created_at >= :date_from")
+        where_parts.append(f"{call_date_sql} >= :date_from")
         params["date_from"] = date_from
     if date_to is not None:
-        where_parts.append("files.created_at <= :date_to")
+        where_parts.append(f"{call_date_sql} <= :date_to")
         params["date_to"] = date_to
     if operator:
         operator_join = "JOIN operators ON operators.id = files.operator_id"

@@ -1,0 +1,582 @@
+{
+  "summary": {
+    "google/gemini-3-flash-preview": {
+      "successes": 5,
+      "failures": 0,
+      "avg_real_diffs": 0.2,
+      "avg_delta_overall": 0.6,
+      "avg_elapsed_sec": 12.7,
+      "input_tokens_total": 21141,
+      "output_tokens_total": 5994,
+      "cost_usd_total_5calls": 0.0286,
+      "cost_per_call_usd": 0.00571
+    },
+    "z-ai/glm-5.1": {
+      "successes": 5,
+      "failures": 0,
+      "avg_real_diffs": 1.0,
+      "avg_delta_overall": -0.2,
+      "avg_elapsed_sec": 27.0,
+      "input_tokens_total": 20303,
+      "output_tokens_total": 5826,
+      "cost_usd_total_5calls": 0.0417,
+      "cost_per_call_usd": 0.00834
+    },
+    "anthropic/claude-haiku-4.5": {
+      "successes": 5,
+      "failures": 0,
+      "avg_real_diffs": 1.4,
+      "avg_delta_overall": -4.6,
+      "avg_elapsed_sec": 26.0,
+      "input_tokens_total": 26468,
+      "output_tokens_total": 8917,
+      "cost_usd_total_5calls": 0.0711,
+      "cost_per_call_usd": 0.01421
+    },
+    "gpt-5.4": {
+      "successes": 5,
+      "failures": 0,
+      "avg_real_diffs": 0.4,
+      "avg_delta_overall": -0.8,
+      "avg_elapsed_sec": 17.0,
+      "input_tokens_total": 20048,
+      "output_tokens_total": 7252,
+      "cost_usd_total_5calls": 0.0976,
+      "cost_per_call_usd": 0.01952
+    }
+  },
+  "results": [
+    {
+      "file_id": "127e245b-5a0e-4cfb-a952-cc407c460b55",
+      "original_name": "2026-04-29__13-55-15__Менеджер Анна__79856212657.mp3",
+      "duration_sec": 152.064,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "merged_chars": 3120,
+      "per_model": {
+        "google/gemini-3-flash-preview": {
+          "elapsed_sec": 6.54,
+          "usage": {
+            "prompt_tokens": 4615,
+            "completion_tokens": 1233
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна продемонстрировала отличное качество обслуживания, выполнив все стандарты компании. Она проактивно уточнила достаточность порций, предложила дополнительные товары и четко ответила на воп"
+        },
+        "z-ai/glm-5.1": {
+          "elapsed_sec": 51.9,
+          "usage": {
+            "prompt_tokens": 4407,
+            "completion_tokens": 1179
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна отлично провела подтверждение заказа: последовательно и полно проговорила все детали от адреса и состава до суммы и времени доставки. Были предложены дополнительные товары с пояснением, "
+        },
+        "anthropic/claude-haiku-4.5": {
+          "elapsed_sec": 12.86,
+          "usage": {
+            "prompt_tokens": 5656,
+            "completion_tokens": 1619
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна работала профессионально и внимательно. Выполнены все ключевые стандарты: представилась, назвала компанию, уточнила все детали заказа (адрес, метро, дату, время), проговорила состав и су"
+        },
+        "gpt-5.4": {
+          "elapsed_sec": 17.92,
+          "usage": {
+            "prompt_tokens": 4346,
+            "completion_tokens": 1456
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор корректно подтвердила заказ: представилась, назвала компанию, уточнила адрес, метро, дату и время доставки, состав заказа и сумму. Хорошо отработаны апсейл и вопрос клиента про акцию на день "
+        }
+      }
+    },
+    {
+      "file_id": "d194cfba-8f44-4d2e-8a46-5ac07e828eec",
+      "original_name": "2026-04-29__12-05-47__Менеджер Анна__79637878710.mp3",
+      "duration_sec": 150.48,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 80,
+        "kindness": 100,
+        "overall": 94
+      },
+      "merged_chars": 3179,
+      "per_model": {
+        "google/gemini-3-flash-preview": {
+          "elapsed_sec": 6.69,
+          "usage": {
+            "prompt_tokens": 4529,
+            "completion_tokens": 1218
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 93
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": -1,
+          "summary_preview": "Оператор Анна отлично справилась со всеми стандартами подтверждения заказа: уточнила все детали адреса, времени, состава и предложила дополнительные товары. Единственный минус — отсутствие обращения к"
+        },
+        "z-ai/glm-5.1": {
+          "elapsed_sec": 14.62,
+          "usage": {
+            "prompt_tokens": 4340,
+            "completion_tokens": 1189
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 93
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": -1,
+          "summary_preview": "Оператор отлично провела подтверждение заказа: проговорила все ключевые детали, предложила апсейл и уточнила важные нюансы. Основное упущение — обращение к клиенту по имени. Также прощание могло быть "
+        },
+        "anthropic/claude-haiku-4.5": {
+          "elapsed_sec": 78.44,
+          "usage": {
+            "prompt_tokens": 5636,
+            "completion_tokens": 2145
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 80,
+            "kindness": 33,
+            "overall": 71
+          },
+          "diff_count": 2,
+          "diffs": [
+            {
+              "criterion": "kindness.no_profanity_filler_words",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Использование слова-паразита «ну» (хотя и редкое): «Ну, я могу как пожелание написать» [0:59]"
+            },
+            {
+              "criterion": "kindness.polite_goodbye",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "«До свидания» — формальное, но не тепло. Отсутствует благодарность за заказ или пожелание хорошего дня"
+            }
+          ],
+          "delta_overall": -23,
+          "summary_preview": "Оператор Анна профессионально провела подтверждение заказа: представилась, назвала компанию, уточнила все детали (адрес, метро, время, содержимое заказа), предложила апсейлы с описанием выгод, правиль"
+        },
+        "gpt-5.4": {
+          "elapsed_sec": 16.61,
+          "usage": {
+            "prompt_tokens": 4294,
+            "completion_tokens": 1475
+          },
+          "scores": {
+            "standard": 92,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 91
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор предложил доп. товары, но не озвучил выгоду или преимущества: «Может быть, к чаю какую-нибудь маленькую версию "
+            }
+          ],
+          "delta_overall": -3,
+          "summary_preview": "Оператор хорошо провела подтверждение заказа: представилась, назвала компанию, уточнила адрес, метро, комментарии для курьера, дату и интервал доставки, а также проговорила состав и сумму заказа. Для "
+        }
+      }
+    },
+    {
+      "file_id": "9ec6a76f-d12d-48f8-8c35-3e5306dbdede",
+      "original_name": "2026-04-29__12-53-54__Менеджер Анна__79603933999.mp3",
+      "duration_sec": 79.56,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 64,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 86
+      },
+      "merged_chars": 1405,
+      "per_model": {
+        "google/gemini-3-flash-preview": {
+          "elapsed_sec": 37.26,
+          "usage": {
+            "prompt_tokens": 3740,
+            "completion_tokens": 1110
+          },
+          "scores": {
+            "standard": 70,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 90
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.named_metro",
+              "prod_value": false,
+              "test_value": null,
+              "prod_reason": "",
+              "test_reason": "Метро не упоминалось клиентом и оператором"
+            }
+          ],
+          "delta_overall": 4,
+          "summary_preview": "Оператор отлично справилась с объединением заказов и проявила заботу о клиенте, предложив сэкономить на доставке. Все ключевые данные (дата, время, адрес, сумма) были проговорены, однако не были предл"
+        },
+        "z-ai/glm-5.1": {
+          "elapsed_sec": 13.72,
+          "usage": {
+            "prompt_tokens": 3594,
+            "completion_tokens": 1113
+          },
+          "scores": {
+            "standard": 91,
+            "loyalty": 100,
+            "kindness": 67,
+            "overall": 86
+          },
+          "diff_count": 5,
+          "diffs": [
+            {
+              "criterion": "kindness.no_profanity_filler_words",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Слово-паразит «значит» использовано дважды: «Так, значит...»"
+            },
+            {
+              "criterion": "standard.clarified_portion_sufficiency",
+              "prod_value": false,
+              "test_value": null,
+              "prod_reason": "",
+              "test_reason": "Количество человек не обсуждалось"
+            },
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": null,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«Чтобы вам два раза за доставку не платить»"
+            },
+            {
+              "criterion": "standard.named_metro",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "Место доставки — бизнес-центр в Москве, но метро не названо"
+            },
+            {
+              "criterion": "standard.offered_upsell",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "Предложила добавить пироги из нового заказа к старому"
+            }
+          ],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна отлично провела подтверждение заказа: представилась, назвала компанию, озвучила все ключевые детали (адрес, дату, время, состав, сумму) и проактивно предложила объединить заказы, объясни"
+        },
+        "anthropic/claude-haiku-4.5": {
+          "elapsed_sec": 10.47,
+          "usage": {
+            "prompt_tokens": 4704,
+            "completion_tokens": 1491
+          },
+          "scores": {
+            "standard": 90,
+            "loyalty": 100,
+            "kindness": 67,
+            "overall": 86
+          },
+          "diff_count": 5,
+          "diffs": [
+            {
+              "criterion": "kindness.no_profanity_filler_words",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Многократное использование слова-паразита «значит»: «значит, капусту добавили», «значит, сыр добавили» (два раза подряд "
+            },
+            {
+              "criterion": "standard.clarified_portion_sufficiency",
+              "prod_value": false,
+              "test_value": null,
+              "prod_reason": "",
+              "test_reason": "Клиент уже имел существующий заказ, обсуждение шло о добавлении позиций к имеющемуся"
+            },
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": null,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«Чтобы вам два раза за доставку не платить»"
+            },
+            {
+              "criterion": "standard.named_metro",
+              "prod_value": false,
+              "test_value": null,
+              "prod_reason": "",
+              "test_reason": "Станция метро не упоминалась"
+            },
+            {
+              "criterion": "standard.offered_upsell",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«Если нам с вами разумно, эти пироги добавить к вашему заказу?»"
+            }
+          ],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна качественно провёл подтверждение заказа: представилась, назвала компанию, уточнила все детали (дату, время, адрес, состав). Хорошо предложила апсейл с объяснением выгоды (избежать двойно"
+        },
+        "gpt-5.4": {
+          "elapsed_sec": 18.4,
+          "usage": {
+            "prompt_tokens": 3548,
+            "completion_tokens": 1359
+          },
+          "scores": {
+            "standard": 64,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 88
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 2,
+          "summary_preview": "Оператор корректно представилась, назвала компанию, подтвердила заказ, озвучила состав, сумму, дату, время и адрес доставки. Для улучшения стоит уточнять метро, комментарий для курьера и достаточно ли"
+        }
+      }
+    },
+    {
+      "file_id": "da0534f2-35bd-446c-9f34-90d73e30a3a3",
+      "original_name": "2026-04-29__10-20-39__Менеджер Анна__79169809557.mp3",
+      "duration_sec": 167.76,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "merged_chars": 2848,
+      "per_model": {
+        "google/gemini-3-flash-preview": {
+          "elapsed_sec": 6.78,
+          "usage": {
+            "prompt_tokens": 4254,
+            "completion_tokens": 1245
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Жанна продемонстрировала высокий уровень профессионализма, выполнив все стандарты обслуживания. Особенно стоит отметить качественную отработку уточнения адреса, предложение апсейла с объяснен"
+        },
+        "z-ai/glm-5.1": {
+          "elapsed_sec": 23.42,
+          "usage": {
+            "prompt_tokens": 4102,
+            "completion_tokens": 1218
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Жанна отлично провела подтверждение заказа: поздоровалась по имени, уточнила все ключевые детали и предложила апсейл. Из небольших недочётов — оператор два раза повторила фразу про сокращённы"
+        },
+        "anthropic/claude-haiku-4.5": {
+          "elapsed_sec": 17.4,
+          "usage": {
+            "prompt_tokens": 5397,
+            "completion_tokens": 2093
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Жанна проделала отличную работу: представилась, назвала компанию, подтвердила все детали заказа (адрес, метро, время доставки), уточнила комментарии курьеру, предложила дополнительный продукт"
+        },
+        "gpt-5.4": {
+          "elapsed_sec": 16.34,
+          "usage": {
+            "prompt_tokens": 4052,
+            "completion_tokens": 1504
+          },
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала имя «Жанна», но по правилу засчитываются только имена из списка: Галина, Александра, Анна, Анастасия"
+            }
+          ],
+          "delta_overall": -3,
+          "summary_preview": "Оператор хорошо провела подтверждение заказа: представила компанию, уточнила адрес, метро, комментарии для курьера, дату и интервал доставки, состав заказа и сумму, а также сделала апсейл с пояснением"
+        }
+      }
+    },
+    {
+      "file_id": "dc6222c2-925b-41c7-81f8-64f3d0b8f2ca",
+      "original_name": "2026-04-29__15-58-35__Менеджер Анна__79056426841.mp3",
+      "duration_sec": 107.928,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "merged_chars": 2139,
+      "per_model": {
+        "google/gemini-3-flash-preview": {
+          "elapsed_sec": 6.47,
+          "usage": {
+            "prompt_tokens": 4003,
+            "completion_tokens": 1188
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор Анна продемонстрировала отличную работу, выполнив все стандарты обслуживания. Она проактивно уточнила достаточность заказа, предложила доп. товары с описанием их преимуществ и была очень вежл"
+        },
+        "z-ai/glm-5.1": {
+          "elapsed_sec": 31.55,
+          "usage": {
+            "prompt_tokens": 3860,
+            "completion_tokens": 1127
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор отлично провела звонок: выполнила все ключевые стандарты, уточнила важные детали и предложила апсейл. Общение прошло вежливо и доброжелательно. Можно отметить как позитивный пример работы."
+        },
+        "anthropic/claude-haiku-4.5": {
+          "elapsed_sec": 10.76,
+          "usage": {
+            "prompt_tokens": 5075,
+            "completion_tokens": 1569
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Отличная работа оператора. Анна профессионально провела подтверждение заказа, уточнила все необходимые детали (адрес, время, состав), предложила апсейл, вежливо обращалась по имени клиента. Речь чиста"
+        },
+        "gpt-5.4": {
+          "elapsed_sec": 15.68,
+          "usage": {
+            "prompt_tokens": 3808,
+            "completion_tokens": 1458
+          },
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0,
+          "summary_preview": "Оператор качественно подтвердил заказ: представился, назвал компанию, уточнил адрес, метро, дату, время, комментарий для курьера и состав заказа. Также был апсейл с пояснением пользы; улучшать здесь п"
+        }
+      }
+    }
+  ],
+  "models": [
+    "google/gemini-3-flash-preview",
+    "z-ai/glm-5.1",
+    "anthropic/claude-haiku-4.5",
+    "gpt-5.4"
+  ]
+}

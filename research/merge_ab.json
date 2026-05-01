@@ -1,0 +1,1110 @@
+{
+  "summary": {
+    "moonshotai/kimi-k2.6": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 0.8,
+      "avg_delta_overall": -2.0,
+      "avg_merge_elapsed_sec": 33.8,
+      "avg_merge_chars": 2263,
+      "total_merge_input_tokens": 18590,
+      "total_merge_output_tokens": 6134
+    },
+    "qwen/qwen3.6-27b": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 0.4,
+      "avg_delta_overall": -1.0,
+      "avg_merge_elapsed_sec": 16.8,
+      "avg_merge_chars": 2348,
+      "total_merge_input_tokens": 14000,
+      "total_merge_output_tokens": 5072
+    },
+    "z-ai/glm-5.1": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 0.8,
+      "avg_delta_overall": -0.2,
+      "avg_merge_elapsed_sec": 10.0,
+      "avg_merge_chars": 2479,
+      "total_merge_input_tokens": 13906,
+      "total_merge_output_tokens": 5343
+    },
+    "google/gemini-3-flash-preview": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 0.4,
+      "avg_delta_overall": 1.0,
+      "avg_merge_elapsed_sec": 8.4,
+      "avg_merge_chars": 2375,
+      "total_merge_input_tokens": 14173,
+      "total_merge_output_tokens": 5381
+    },
+    "anthropic/claude-haiku-4.5": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 1.0,
+      "avg_delta_overall": -0.6,
+      "avg_merge_elapsed_sec": 8.0,
+      "avg_merge_chars": 2294,
+      "total_merge_input_tokens": 18284,
+      "total_merge_output_tokens": 6078
+    },
+    "google/gemma-4-26b-a4b-it": {
+      "successes": 5,
+      "failures": 0,
+      "failure_reasons": [],
+      "avg_real_diffs": 1.2,
+      "avg_delta_overall": -2.8,
+      "avg_merge_elapsed_sec": 30.9,
+      "avg_merge_chars": 2421,
+      "total_merge_input_tokens": 15321,
+      "total_merge_output_tokens": 5773
+    }
+  },
+  "results": [
+    {
+      "file_id": "127e245b-5a0e-4cfb-a952-cc407c460b55",
+      "original_name": "2026-04-29__13-55-15__Менеджер Анна__79856212657.mp3",
+      "duration_sec": 152.064,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "per_model": {
+        "moonshotai/kimi-k2.6": {
+          "merge_usage": {
+            "prompt_tokens": 4284,
+            "completion_tokens": 1317,
+            "total_tokens": 5601,
+            "model": "moonshotai/kimi-k2.6-20260420"
+          },
+          "merge_elapsed_sec": 42.03,
+          "merge_chars": 2480,
+          "merge_lines": 34,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Жанна, компания Пироги номер один. Позвонила для подтверждения вашего заказа.\n[0:10] ОПЕРАТОР: Вы указали адрес Каширское шоссе, дом 3, корпус 2, строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет Нагатинское, как вы считаете?\n[0:20] КЛИЕНТ: Нагатинское, да.\n[0:22] ОПЕРАТОР: Б",
+          "analysis_usage": {
+            "prompt_tokens": 3905,
+            "completion_tokens": 1483
+          },
+          "analysis_elapsed_sec": 16.28,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор представился как «Меня зовут Жанна», но по правилу засчитываются только имена из списка: Галина, Александра, Ан"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "qwen/qwen3.6-27b": {
+          "merge_usage": {
+            "prompt_tokens": 3265,
+            "completion_tokens": 1157,
+            "total_tokens": 4422,
+            "model": "qwen/qwen3.6-27b-20260422"
+          },
+          "merge_elapsed_sec": 18.27,
+          "merge_chars": 2692,
+          "merge_lines": 45,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Анна, компания \"Пироги №1\". Звоню по поводу подтверждения вашего заказа.\n[0:10] КЛИЕНТ: Вы указали адрес:\n[0:11] ОПЕРАТОР: Каширское шоссе, дом 3, корпус 2, строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет Нагатинская, как вы считаете?\n[0:20] КЛИЕНТ: Нагатинская, да.\n[0:22] ",
+          "analysis_usage": {
+            "prompt_tokens": 4043,
+            "completion_tokens": 1435
+          },
+          "analysis_elapsed_sec": 17.55,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "z-ai/glm-5.1": {
+          "merge_usage": {
+            "prompt_tokens": 3232,
+            "completion_tokens": 1414,
+            "total_tokens": 4646,
+            "model": "z-ai/glm-5.1-20260406"
+          },
+          "merge_elapsed_sec": 9.24,
+          "merge_chars": 3081,
+          "merge_lines": 70,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Жанна, компания «Пироги номер один».\n[0:07] ОПЕРАТОР: Позвонила на подтверждение вашего заказа.\n[0:10] ОПЕРАТОР: Вы указали адрес Каширское шоссе, дом 3, корпус 2,\n[0:14] ОПЕРАТОР: строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет Нагатинское, как вы считаете?\n[0:20] КЛИЕНТ: ",
+          "analysis_usage": {
+            "prompt_tokens": 4311,
+            "completion_tokens": 1460
+          },
+          "analysis_elapsed_sec": 15.58,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "google/gemini-3-flash-preview": {
+          "merge_usage": {
+            "prompt_tokens": 3326,
+            "completion_tokens": 1111,
+            "total_tokens": 4437,
+            "model": "google/gemini-3-flash-preview-20251217"
+          },
+          "merge_elapsed_sec": 5.62,
+          "merge_chars": 2569,
+          "merge_lines": 38,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Анна, компания «Пироги №1».\n[0:07] ОПЕРАТОР: Позвонила для подтверждения вашего заказа.\n[0:10] ОПЕРАТОР: Вы указали адрес: Каширское шоссе, дом 3, корпус 2, строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет «Нагатинская», как вы считаете?\n[0:20] КЛИЕНТ: «Нагатинская», да.\n[0:",
+          "analysis_usage": {
+            "prompt_tokens": 3961,
+            "completion_tokens": 1431
+          },
+          "analysis_elapsed_sec": 14.49,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "anthropic/claude-haiku-4.5": {
+          "merge_usage": {
+            "prompt_tokens": 4170,
+            "completion_tokens": 1384,
+            "total_tokens": 5554,
+            "model": "anthropic/claude-4.5-haiku-20251001"
+          },
+          "merge_elapsed_sec": 9.24,
+          "merge_chars": 2595,
+          "merge_lines": 42,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Анна, компания «Пироги номер один».\n[0:07] ОПЕРАТОР: Позвонила на подтверждение вашего заказа.\n[0:10] ОПЕРАТОР: Вы указали адрес Каширское шоссе, дом 3, корпус 2, строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет Нагатинское, как вы считаете?\n[0:20] КЛИЕНТ: Нагатинское, да.\n[",
+          "analysis_usage": {
+            "prompt_tokens": 3987,
+            "completion_tokens": 1386
+          },
+          "analysis_elapsed_sec": 15.11,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "google/gemma-4-26b-a4b-it": {
+          "merge_usage": {
+            "prompt_tokens": 3402,
+            "completion_tokens": 1585,
+            "total_tokens": 4987,
+            "model": "google/gemma-4-26b-a4b-it-20260403"
+          },
+          "merge_elapsed_sec": 28.31,
+          "merge_chars": 3138,
+          "merge_lines": 74,
+          "merge_preview": "[0:01] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Ольга.\n[0:04] ОПЕРАТОР: Меня зовут Анна, компания «Пироги №1».\n[0:07] ОПЕРАТОР: Позвонила для подтверждения\n[0:08] ОПЕРАТОР: вашего заказа.\n[0:10] ОПЕРАТОР: Вы указали адрес:\n[0:11] ОПЕРАТОР: Каширское шоссе, дом 3, корпус 2,\n[0:14] ОПЕРАТОР: строение 16.\n[0:16] КЛИЕНТ: Да, всё верно.\n[0:17] ОПЕРАТОР: Ближайшее метро к вам будет Нагатинская, как в",
+          "analysis_usage": {
+            "prompt_tokens": 4355,
+            "completion_tokens": 1474
+          },
+          "analysis_elapsed_sec": 15.56,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        }
+      }
+    },
+    {
+      "file_id": "d194cfba-8f44-4d2e-8a46-5ac07e828eec",
+      "original_name": "2026-04-29__12-05-47__Менеджер Анна__79637878710.mp3",
+      "duration_sec": 150.48,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 80,
+        "kindness": 100,
+        "overall": 94
+      },
+      "per_model": {
+        "moonshotai/kimi-k2.6": {
+          "merge_usage": {
+            "prompt_tokens": 4241,
+            "completion_tokens": 1631,
+            "total_tokens": 5872,
+            "model": "moonshotai/kimi-k2.6-20260420"
+          },
+          "merge_elapsed_sec": 39.58,
+          "merge_chars": 2939,
+          "merge_lines": 51,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло.\n[0:01] ОПЕРАТОР: Добрый день. Меня зовут Анна, компания «Пироги номер один».\n[0:04] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.\n[0:07] ОПЕРАТОР: Вы указали адрес Кронштадтский бульвар, 20А, корпус 1.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, ближайшее метро к вам будет Водный стадион?\n[0:19] КЛИЕНТ: Метро «Водный стадион», либо МЦК Коптево.\n[0:23] ОПЕРАТОР: Поняла вас.\n",
+          "analysis_usage": {
+            "prompt_tokens": 4142,
+            "completion_tokens": 1482
+          },
+          "analysis_elapsed_sec": 17.14,
+          "scores": {
+            "standard": 92,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 91
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор предложил доп. товары, но не объяснил выгоду или особенности предложения"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "qwen/qwen3.6-27b": {
+          "merge_usage": {
+            "prompt_tokens": 3205,
+            "completion_tokens": 1256,
+            "total_tokens": 4461,
+            "model": "qwen/qwen3.6-27b-20260422"
+          },
+          "merge_elapsed_sec": 13.77,
+          "merge_chars": 2888,
+          "merge_lines": 48,
+          "merge_preview": "[0:00] ОПЕРАТОР: Алло.\n[0:01] ОПЕРАТОР: Добрый день. Меня зовут Анна, компания «Пироги №1».\n[0:07] ОПЕРАТОР: Я звоню для подтверждения вашего заказа.\n[0:11] ОПЕРАТОР: Вы указали адрес: Кронштадтский бульвар, 20-А, корпус 1.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, ближайшее метро к вам будет «Водный стадион»?\n[0:19] КЛИЕНТ: Метро «Водный стадион» либо МЦК «Коптево».\n[0:23] ОПЕРАТОР: Поняла вас.\n[0:24",
+          "analysis_usage": {
+            "prompt_tokens": 4119,
+            "completion_tokens": 1527
+          },
+          "analysis_elapsed_sec": 16.89,
+          "scores": {
+            "standard": 100,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 93
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": -1
+        },
+        "z-ai/glm-5.1": {
+          "merge_usage": {
+            "prompt_tokens": 3161,
+            "completion_tokens": 1388,
+            "total_tokens": 4549,
+            "model": "z-ai/glm-5.1-20260406"
+          },
+          "merge_elapsed_sec": 8.7,
+          "merge_chars": 3191,
+          "merge_lines": 60,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло.\n[0:01] ОПЕРАТОР: Добрый день, Любовь.\n[0:03] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Любовь.\n[0:04] ОПЕРАТОР: Меня зовут Анна, компания «Пироги номер один».\n[0:07] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.\n[0:11] ОПЕРАТОР: Вы указали адрес Кронштадтский бульвар, 20А, корпус 1.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, ближайшее метро к вам будет Водный стадион?\n[0",
+          "analysis_usage": {
+            "prompt_tokens": 4285,
+            "completion_tokens": 1497
+          },
+          "analysis_elapsed_sec": 16.11,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 2,
+          "diffs": [
+            {
+              "criterion": "loyalty.addressed_by_name",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "Оператор обращается к клиенту по имени: «Добрый день, Любовь»"
+            },
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "«Может быть, к чаю какую-нибудь маленькую версию сладенького?» — выгода или состав доп. продукта не объяснены"
+            }
+          ],
+          "delta_overall": 3
+        },
+        "google/gemini-3-flash-preview": {
+          "merge_usage": {
+            "prompt_tokens": 3230,
+            "completion_tokens": 1444,
+            "total_tokens": 4674,
+            "model": "google/gemini-3-flash-preview-20251217"
+          },
+          "merge_elapsed_sec": 6.83,
+          "merge_chars": 3089,
+          "merge_lines": 58,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло.\n[0:01] ОПЕРАТОР: Добрый день, Любовь.\n[0:03] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Добрый день, Любовь. Меня зовут Анна, компания «Пироги номер один».\n[0:07] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.\n[0:11] ОПЕРАТОР: Вы указали адрес: Кронштадтский бульвар, 20-А, корпус 1.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, ближайшее метро к вам будет «Водный стадион»?\n[0:19] КЛИЕНТ: ",
+          "analysis_usage": {
+            "prompt_tokens": 4243,
+            "completion_tokens": 1429
+          },
+          "analysis_elapsed_sec": 17.03,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "loyalty.addressed_by_name",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "Оператор обратилась по имени: «Добрый день, Любовь»"
+            }
+          ],
+          "delta_overall": 6
+        },
+        "anthropic/claude-haiku-4.5": {
+          "merge_usage": {
+            "prompt_tokens": 4180,
+            "completion_tokens": 1614,
+            "total_tokens": 5794,
+            "model": "anthropic/claude-4.5-haiku-20251001"
+          },
+          "merge_elapsed_sec": 10.39,
+          "merge_chars": 3022,
+          "merge_lines": 56,
+          "merge_preview": "[0:00] ОПЕРАТОР: Добрый день.\n[0:01] ОПЕРАТОР: Меня зовут Анна, компания «Пироги номер один».\n[0:04] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.\n[0:07] ОПЕРАТОР: Вы указали адрес Кронштадтский бульвар 20-А, корпус 1.\n[0:11] ОПЕРАТОР: Скажите, пожалуйста, ближайшее метро к вам будет «Водный стадион»?\n[0:15] КЛИЕНТ: Метро «Водный стадион» либо МЦК «Коптева».\n[0:19] ОПЕРАТОР: Поняла вас.\n[",
+          "analysis_usage": {
+            "prompt_tokens": 4197,
+            "completion_tokens": 1478
+          },
+          "analysis_elapsed_sec": 15.35,
+          "scores": {
+            "standard": 92,
+            "loyalty": 80,
+            "kindness": 100,
+            "overall": 91
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Апсейл предложен без объяснения выгоды или состава: «Может быть, к чаю какую-нибудь маленькую версию сладенького?»"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "google/gemma-4-26b-a4b-it": {
+          "merge_usage": {
+            "prompt_tokens": 3306,
+            "completion_tokens": 1407,
+            "total_tokens": 4713,
+            "model": "google/gemma-4-26b-a4b-it-20260403"
+          },
+          "merge_elapsed_sec": 26.99,
+          "merge_chars": 3019,
+          "merge_lines": 57,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло.\n[0:01] ОПЕРАТОР: Добрый день.\n[0:03] КЛИЕНТ: Алло.\n[0:03] ОПЕРАТОР: Меня зовут Анна, компания «Пироги №1».\n[0:07] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.\n[0:11] ОПЕРАТОР: Вы указали адрес: Кронштадтский бульвар, 20-А, корпус 1.\n[0:15] КЛИЕНТ: Скажите, пожалуйста, ближайшее метро к вам будет Водный стадион?\n[0:19] КЛИЕНТ: Метро «Водный стадион» либо МЦК «Коптево»",
+          "analysis_usage": {
+            "prompt_tokens": 4214,
+            "completion_tokens": 1497
+          },
+          "analysis_elapsed_sec": 17.21,
+          "scores": {
+            "standard": 92,
+            "loyalty": 80,
+            "kindness": 67,
+            "overall": 80
+          },
+          "diff_count": 2,
+          "diffs": [
+            {
+              "criterion": "kindness.polite_goodbye",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "После слов клиента «Всего вам доброго. До свидания» вежливого прощания оператора не зафиксировано"
+            },
+            {
+              "criterion": "standard.named_metro",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Станцию метро назвал клиент: «Метро „Водный стадион“ либо МЦК „Коптево“», оператор сама метро не проговорила"
+            }
+          ],
+          "delta_overall": -14
+        }
+      }
+    },
+    {
+      "file_id": "9ec6a76f-d12d-48f8-8c35-3e5306dbdede",
+      "original_name": "2026-04-29__12-53-54__Менеджер Анна__79603933999.mp3",
+      "duration_sec": 79.56,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 64,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 86
+      },
+      "per_model": {
+        "moonshotai/kimi-k2.6": {
+          "merge_usage": {
+            "prompt_tokens": 2699,
+            "completion_tokens": 762,
+            "total_tokens": 3461,
+            "model": "moonshotai/kimi-k2.6-20260420"
+          },
+          "merge_elapsed_sec": 10.24,
+          "merge_chars": 1328,
+          "merge_lines": 27,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна. Компания «Пироги №1».\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.\n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ на завтра на Даниловской набережной, 12, в бизнес-центр Тауэр.\n[0:16] ОПЕРАТОР: И сейчас пришёл ещё один, и там лежит капуста и сыр.\n[0:20] ОПЕРАТОР: Капуста килограмм, сыр 600 грамм.\n[0:24] КЛИЕНТ: Да.\n[0:25] ОПЕР",
+          "analysis_usage": {
+            "prompt_tokens": 3499,
+            "completion_tokens": 1378
+          },
+          "analysis_elapsed_sec": 18.96,
+          "scores": {
+            "standard": 55,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 85
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.stated_full_address",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала адрес неполностью: «На Даниловской набережной, 12», без повторного уточнения бизнес-центра/доп. деталей"
+            }
+          ],
+          "delta_overall": -1
+        },
+        "qwen/qwen3.6-27b": {
+          "merge_usage": {
+            "prompt_tokens": 2062,
+            "completion_tokens": 620,
+            "total_tokens": 2682,
+            "model": "qwen/qwen3.6-27b-20260422"
+          },
+          "merge_elapsed_sec": 8.66,
+          "merge_chars": 1346,
+          "merge_lines": 28,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна. Компания Пироги номер один.\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.\n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ на завтра на Даниловская набережная, 12, в бизнес-центр Тауэр.\n[0:12] КЛИЕНТ: Да.\n[0:16] ОПЕРАТОР: И сейчас пришел еще один.\n[0:18] КЛИЕНТ: Да.\n[0:19] ОПЕРАТОР: И там у нас лежит капуста и сыр.\n[0:20] ОПЕРАТО",
+          "analysis_usage": {
+            "prompt_tokens": 3509,
+            "completion_tokens": 1449
+          },
+          "analysis_elapsed_sec": 15.53,
+          "scores": {
+            "standard": 64,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 88
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 2
+        },
+        "z-ai/glm-5.1": {
+          "merge_usage": {
+            "prompt_tokens": 2039,
+            "completion_tokens": 606,
+            "total_tokens": 2645,
+            "model": "z-ai/glm-5.1-20260406"
+          },
+          "merge_elapsed_sec": 5.16,
+          "merge_chars": 1370,
+          "merge_lines": 29,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна, компания «Пироги номер один».\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.\n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ на завтра на Даниловской набережной, 12, в бизнес-центр Тауэр.\n[0:11] КЛИЕНТ: Уже есть заказ, да.\n[0:12] ОПЕРАТОР: И сейчас пришел еще один.\n[0:18] КЛИЕНТ: Да.\n[0:19] ОПЕРАТОР: И там у нас лежит капуста и с",
+          "analysis_usage": {
+            "prompt_tokens": 3523,
+            "completion_tokens": 1416
+          },
+          "analysis_elapsed_sec": 16.52,
+          "scores": {
+            "standard": 55,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 85
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.stated_full_address",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала адрес неполностью: «на Даниловской набережной, 12», без полного уточнения из ранее упомянутого «в бизне"
+            }
+          ],
+          "delta_overall": -1
+        },
+        "google/gemini-3-flash-preview": {
+          "merge_usage": {
+            "prompt_tokens": 2077,
+            "completion_tokens": 686,
+            "total_tokens": 2763,
+            "model": "google/gemini-3-flash-preview-20251217"
+          },
+          "merge_elapsed_sec": 4.2,
+          "merge_chars": 1391,
+          "merge_lines": 30,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна. Компания «Пироги №1».\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа. \n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ.\n[0:11] КЛИЕНТ: Уже есть заказ, да.\n[0:12] ОПЕРАТОР: На Даниловскую набережную, 12, в бизнес-центр «Тауэр», на завтра.\n[0:16] ОПЕРАТОР: И сейчас пришел еще один. \n[0:18] КЛИЕНТ: Да.\n[0:19] ОПЕРАТОР: И там у нас ле",
+          "analysis_usage": {
+            "prompt_tokens": 3539,
+            "completion_tokens": 1384
+          },
+          "analysis_elapsed_sec": 17.18,
+          "scores": {
+            "standard": 64,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 88
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 2
+        },
+        "anthropic/claude-haiku-4.5": {
+          "merge_usage": {
+            "prompt_tokens": 2653,
+            "completion_tokens": 634,
+            "total_tokens": 3287,
+            "model": "anthropic/claude-4.5-haiku-20251001"
+          },
+          "merge_elapsed_sec": 3.11,
+          "merge_chars": 1194,
+          "merge_lines": 21,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна. Компания «Пироги номер один».\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.\n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ на завтра на Даниловской набережной, 12, в бизнес-центр Тауэр.\n[0:16] ОПЕРАТОР: И сейчас пришел еще один, и там лежит капуста и сыр.\n[0:20] ОПЕРАТОР: Капуста килограмм, сыр 600 грамм.\n[0:25] ОПЕРАТОР: А мож",
+          "analysis_usage": {
+            "prompt_tokens": 3415,
+            "completion_tokens": 1381
+          },
+          "analysis_elapsed_sec": 18.24,
+          "scores": {
+            "standard": 75,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 92
+          },
+          "diff_count": 2,
+          "diffs": [
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": null,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«Чтобы вам два раза за доставку не платить»"
+            },
+            {
+              "criterion": "standard.offered_upsell",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«А может быть, нам с вами разумно эти пироги добавить к следующему заказу?»"
+            }
+          ],
+          "delta_overall": 6
+        },
+        "google/gemma-4-26b-a4b-it": {
+          "merge_usage": {
+            "prompt_tokens": 2923,
+            "completion_tokens": 720,
+            "total_tokens": 3643,
+            "model": "google/gemma-4-26b-a4b-it-20260403"
+          },
+          "merge_elapsed_sec": 66.05,
+          "merge_chars": 1220,
+          "merge_lines": 22,
+          "merge_preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна, компания «Пироги №1».\n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.\n[0:09] ОПЕРАТОР: Я вижу, что у вас уже есть заказ на завтра на Даниловской набережной, 12, в бизнес-центр Тауэр.\n[0:16] ОПЕРАТОР: И сейчас пришел еще один, и там лежит капуста и сыр.\n[0:19] ОПЕРАТОР: Капуста килограмм, сыр 600 грамм.\n[0:20] ОПЕРАТОР: А может ли на",
+          "analysis_usage": {
+            "prompt_tokens": 3431,
+            "completion_tokens": 1393
+          },
+          "analysis_elapsed_sec": 16.23,
+          "scores": {
+            "standard": 75,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 92
+          },
+          "diff_count": 2,
+          "diffs": [
+            {
+              "criterion": "standard.explained_upsell_benefit",
+              "prod_value": null,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«Чтобы вам два раза за доставку не платить»"
+            },
+            {
+              "criterion": "standard.offered_upsell",
+              "prod_value": false,
+              "test_value": true,
+              "prod_reason": "",
+              "test_reason": "«А может ли нам с вами разумно эти пироги добавить к следующему заказу?»"
+            }
+          ],
+          "delta_overall": 6
+        }
+      }
+    },
+    {
+      "file_id": "da0534f2-35bd-446c-9f34-90d73e30a3a3",
+      "original_name": "2026-04-29__10-20-39__Менеджер Анна__79169809557.mp3",
+      "duration_sec": 167.76,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "per_model": {
+        "moonshotai/kimi-k2.6": {
+          "merge_usage": {
+            "prompt_tokens": 3919,
+            "completion_tokens": 1426,
+            "total_tokens": 5345,
+            "model": "moonshotai/kimi-k2.6-20260420"
+          },
+          "merge_elapsed_sec": 38.75,
+          "merge_chars": 2695,
+          "merge_lines": 37,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания Пироги номер один. Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: А вы указали адрес улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки?\n[0:27] КЛИЕН",
+          "analysis_usage": {
+            "prompt_tokens": 3989,
+            "completion_tokens": 1459
+          },
+          "analysis_elapsed_sec": 15.98,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "qwen/qwen3.6-27b": {
+          "merge_usage": {
+            "prompt_tokens": 2935,
+            "completion_tokens": 1110,
+            "total_tokens": 4045,
+            "model": "qwen/qwen3.6-27b-20260422"
+          },
+          "merge_elapsed_sec": 17.68,
+          "merge_chars": 2664,
+          "merge_lines": 38,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания «Пироги №1». Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: А Вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к Вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки? Скажите, пожалуйс",
+          "analysis_usage": {
+            "prompt_tokens": 3985,
+            "completion_tokens": 1470
+          },
+          "analysis_elapsed_sec": 15.76,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала имя «Жанна», но по правилу засчитываются только имена из списка: Галина, Александра, Анна, Анастасия"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "z-ai/glm-5.1": {
+          "merge_usage": {
+            "prompt_tokens": 2926,
+            "completion_tokens": 1062,
+            "total_tokens": 3988,
+            "model": "z-ai/glm-5.1-20260406"
+          },
+          "merge_elapsed_sec": 17.43,
+          "merge_chars": 2653,
+          "merge_lines": 36,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания «Пироги номер один». Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: Вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к Вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки? Скажите, по",
+          "analysis_usage": {
+            "prompt_tokens": 3970,
+            "completion_tokens": 1489
+          },
+          "analysis_elapsed_sec": 16.28,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала имя «Жанна», но по правилу засчитываются только имена из списка: Галина, Александра, Анна, Анастасия"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "google/gemini-3-flash-preview": {
+          "merge_usage": {
+            "prompt_tokens": 2970,
+            "completion_tokens": 1159,
+            "total_tokens": 4129,
+            "model": "google/gemini-3-flash-preview-20251217"
+          },
+          "merge_elapsed_sec": 5.58,
+          "merge_chars": 2679,
+          "merge_lines": 38,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания «Пироги №1». Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: Вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки? Скажите, пожалуйста",
+          "analysis_usage": {
+            "prompt_tokens": 3993,
+            "completion_tokens": 1467
+          },
+          "analysis_elapsed_sec": 16.5,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор назвала имя «Жанна», но по инструкции засчитываются только имена из списка: Галина, Александра, Анна, Анастасия"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "anthropic/claude-haiku-4.5": {
+          "merge_usage": {
+            "prompt_tokens": 3889,
+            "completion_tokens": 1353,
+            "total_tokens": 5242,
+            "model": "anthropic/claude-4.5-haiku-20251001"
+          },
+          "merge_elapsed_sec": 9.41,
+          "merge_chars": 2624,
+          "merge_lines": 35,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания «Пироги номер один». Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: А вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки? Скажите, ",
+          "analysis_usage": {
+            "prompt_tokens": 3953,
+            "completion_tokens": 1497
+          },
+          "analysis_elapsed_sec": 15.68,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор представилась как «Меня зовут Жанна», имя не входит в список допустимых имён операторов для зачёта критерия"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "google/gemma-4-26b-a4b-it": {
+          "merge_usage": {
+            "prompt_tokens": 3046,
+            "completion_tokens": 1106,
+            "total_tokens": 4152,
+            "model": "google/gemma-4-26b-a4b-it-20260403"
+          },
+          "merge_elapsed_sec": 13.38,
+          "merge_chars": 2611,
+          "merge_lines": 34,
+          "merge_preview": "[0:04] ОПЕРАТОР: Доброе утро, Даниил. Меня зовут Жанна, компания «Пироги №1». Я позвонила для подтверждения вашего заказа.\n[0:12] ОПЕРАТОР: А вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?\n[0:20] КЛИЕНТ: Да, всё верно.\n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки? Скажите, пожалуйс",
+          "analysis_usage": {
+            "prompt_tokens": 3943,
+            "completion_tokens": 1476
+          },
+          "analysis_elapsed_sec": 15.86,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.introduced_self",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Оператор представилась как «Меня зовут Жанна», имя не входит в список допустимых имён операторов для зачёта (Галина, Але"
+            }
+          ],
+          "delta_overall": -3
+        }
+      }
+    },
+    {
+      "file_id": "dc6222c2-925b-41c7-81f8-64f3d0b8f2ca",
+      "original_name": "2026-04-29__15-58-35__Менеджер Анна__79056426841.mp3",
+      "duration_sec": 107.928,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "per_model": {
+        "moonshotai/kimi-k2.6": {
+          "merge_usage": {
+            "prompt_tokens": 3447,
+            "completion_tokens": 998,
+            "total_tokens": 4445,
+            "model": "moonshotai/kimi-k2.6-20260420"
+          },
+          "merge_elapsed_sec": 38.51,
+          "merge_chars": 1873,
+          "merge_lines": 23,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да?\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна. Я звоню для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо. Как бы я знала, давайте я сломаю.\n[0:13] КЛИЕНТ: Не понимаю, ещё раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила. Вы ук",
+          "analysis_usage": {
+            "prompt_tokens": 3637,
+            "completion_tokens": 1533
+          },
+          "analysis_elapsed_sec": 20.98,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.named_company",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "Название компании не прозвучало в приветствии или далее по разговору"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "qwen/qwen3.6-27b": {
+          "merge_usage": {
+            "prompt_tokens": 2533,
+            "completion_tokens": 929,
+            "total_tokens": 3462,
+            "model": "qwen/qwen3.6-27b-20260422"
+          },
+          "merge_elapsed_sec": 25.65,
+          "merge_chars": 2150,
+          "merge_lines": 39,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да.\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна. Я звоню для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо. Как можно обратиться?\n[0:13] ОПЕРАТОР: Не могла услышать, ещё раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила.\n[0:22] О",
+          "analysis_usage": {
+            "prompt_tokens": 3813,
+            "completion_tokens": 1517
+          },
+          "analysis_elapsed_sec": 17.18,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.named_company",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "В приветствии оператор не назвал компанию: «Здравствуйте, меня зовут Анна. Я звоню для подтверждения вашего заказа.»"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "z-ai/glm-5.1": {
+          "merge_usage": {
+            "prompt_tokens": 2548,
+            "completion_tokens": 873,
+            "total_tokens": 3421,
+            "model": "z-ai/glm-5.1-20260406"
+          },
+          "merge_elapsed_sec": 9.49,
+          "merge_chars": 2098,
+          "merge_lines": 36,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да?\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна, компания «Пироги №1», звоню для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо. Как можно обратиться?\n[0:13] КЛИЕНТ: Не поняла, ещё раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила",
+          "analysis_usage": {
+            "prompt_tokens": 3778,
+            "completion_tokens": 1438
+          },
+          "analysis_elapsed_sec": 16.61,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "google/gemini-3-flash-preview": {
+          "merge_usage": {
+            "prompt_tokens": 2570,
+            "completion_tokens": 981,
+            "total_tokens": 3551,
+            "model": "google/gemini-3-flash-preview-20251217"
+          },
+          "merge_elapsed_sec": 19.94,
+          "merge_chars": 2149,
+          "merge_lines": 39,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да?\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна, «Пироги №1». Звоню для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо. Как можно обратиться?\n[0:13] КЛИЕНТ: Не поняла, еще раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила.\n[0:22] ",
+          "analysis_usage": {
+            "prompt_tokens": 3819,
+            "completion_tokens": 1477
+          },
+          "analysis_elapsed_sec": 16.61,
+          "scores": {
+            "standard": 100,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 100
+          },
+          "diff_count": 0,
+          "diffs": [],
+          "delta_overall": 0
+        },
+        "anthropic/claude-haiku-4.5": {
+          "merge_usage": {
+            "prompt_tokens": 3392,
+            "completion_tokens": 1093,
+            "total_tokens": 4485,
+            "model": "anthropic/claude-4.5-haiku-20251001"
+          },
+          "merge_elapsed_sec": 7.65,
+          "merge_chars": 2035,
+          "merge_lines": 34,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да?\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна. Я звонила для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо. Как можно обратиться?\n[0:13] КЛИЕНТ: Не понимаю, ещё раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила.\n[0:22] ОПЕРАТОР",
+          "analysis_usage": {
+            "prompt_tokens": 3748,
+            "completion_tokens": 1474
+          },
+          "analysis_elapsed_sec": 16.41,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.named_company",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "В приветствии оператор не назвала компанию"
+            }
+          ],
+          "delta_overall": -3
+        },
+        "google/gemma-4-26b-a4b-it": {
+          "merge_usage": {
+            "prompt_tokens": 2644,
+            "completion_tokens": 955,
+            "total_tokens": 3599,
+            "model": "google/gemma-4-26b-a4b-it-20260403"
+          },
+          "merge_elapsed_sec": 19.68,
+          "merge_chars": 2118,
+          "merge_lines": 38,
+          "merge_preview": "[0:00] КЛИЕНТ: Алло, да?\n[0:02] ОПЕРАТОР: Здравствуйте, меня зовут Анна. Я звоню для подтверждения вашего заказа.\n[0:08] ОПЕРАТОР: Извините, к сожалению, не отобразилось контактное лицо, как можно к вам обратиться?\n[0:13] КЛИЕНТ: Я поняла... ещё раз.\n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?\n[0:19] КЛИЕНТ: Людмила.\n[0:20] ОПЕРАТОР: Благодарю, Людмила.\n[0:22] ОПЕР",
+          "analysis_usage": {
+            "prompt_tokens": 3796,
+            "completion_tokens": 1545
+          },
+          "analysis_elapsed_sec": 18.62,
+          "scores": {
+            "standard": 92,
+            "loyalty": 100,
+            "kindness": 100,
+            "overall": 97
+          },
+          "diff_count": 1,
+          "diffs": [
+            {
+              "criterion": "standard.named_company",
+              "prod_value": true,
+              "test_value": false,
+              "prod_reason": "",
+              "test_reason": "В приветствии оператор не назвала компанию: «Здравствуйте, меня зовут Анна. Я звоню для подтверждения вашего заказа.»"
+            }
+          ],
+          "delta_overall": -3
+        }
+      }
+    }
+  ],
+  "models": [
+    "moonshotai/kimi-k2.6",
+    "qwen/qwen3.6-27b",
+    "z-ai/glm-5.1",
+    "google/gemini-3-flash-preview",
+    "anthropic/claude-haiku-4.5",
+    "google/gemma-4-26b-a4b-it"
+  ]
+}

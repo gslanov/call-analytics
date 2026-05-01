@@ -1,0 +1,1729 @@
+{
+  "summary": {
+    "tested_calls": 5,
+    "merge_model": "gpt-4o-mini",
+    "analysis_model": "gpt-5-mini",
+    "total_criteria_diffs": 57,
+    "avg_diffs_per_call": 11.4,
+    "analysis_input_tokens": 19547,
+    "analysis_output_tokens": 21715,
+    "analysis_cost_usd_total": 0.0483,
+    "analysis_cost_per_call_usd": 0.0097,
+    "merge_input_tokens": 13756,
+    "merge_output_tokens": 4921,
+    "merge_cost_usd_total": 0.005,
+    "merge_cost_per_call_usd": 0.001,
+    "total_cost_per_call_usd": 0.0107
+  },
+  "results": [
+    {
+      "file_id": "127e245b-5a0e-4cfb-a952-cc407c460b55",
+      "original_name": "2026-04-29__13-55-15__Менеджер Анна__79856212657.mp3",
+      "duration_sec": 152.064,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "details_flat": {
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": ""
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": ""
+          },
+          "reasons.loyalty": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.loyalty_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.introduced_self": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": ""
+          }
+        },
+        "summary": "Оператор качественно подтвердил заказ: представился, назвал компанию, уточнил адрес, метро, дату и время доставки, проговорил состав и сумму заказа. Дополнительно был предложен апсейл и дан ответ на вопрос клиента по акции; общение оставалось спокойным и вежливым."
+      },
+      "merge": {
+        "model": "gpt-4o-mini",
+        "elapsed_sec": 33.89,
+        "lines": 31,
+        "chars": 2432,
+        "preview": "[0:01] КЛИЕНТ: Алло.  \n[0:03] ОПЕРАТОР: Добрый день, Ольга. Меня зовут Анна, компания «Пироги №1». Позвонила для подтверждения вашего заказа.  \n[0:10] КЛИЕНТ: Вы указали адрес Каширское шоссе, дом 3, корпус 2, строение 16.  \n[0:16] ОПЕРАТОР: Да, всё верно. Ближайшее метро к вам будет Нагатинское, как вы считаете?  \n[0:20] КЛИЕНТ: Нагатинское, да.  \n[0:22] ОПЕРАТОР: Будут ли дополнительные комментарии курьеру касаемо адреса доставки?  \n[0:27] КЛИЕНТ: Ну, это офис, подойдёт звонок, я спущусь, забе",
+        "usage": {
+          "prompt_tokens": 3200,
+          "completion_tokens": 963,
+          "total_tokens": 4163
+        }
+      },
+      "test": {
+        "merge_model": "gpt-4o-mini",
+        "analysis_model": "gpt-5-mini",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97,
+        "details_flat": {
+          "standard.introduced_self": {
+            "value": true,
+            "reason": "«Меня зовут Анна, компания «Пироги №1»»"
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": "«компания «Пироги №1»»"
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": "«Заказ на завтра, 30 апреля»"
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": "«с 14 до 15»"
+          },
+          "standard.stated_full_address": {
+            "value": false,
+            "reason": "«Да, всё верно.» — оператор не проговорил полный адрес доставки"
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": "«Ближайшее метро к вам будет Нагатинское»"
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": "«У вас в заказе сет из 3 пирогов ... и дополнительно вы добавили пирог с курицей барбекю, килограмм»"
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": "«Нужен ли вам комплект посуды? Может быть, тарелки, стаканчики, вилки?»"
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": "«Тогда напитки, морсики у нас есть, клюква, брусника, ягоды, напитки полезные?»"
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": "«Общая сумма заказа у вас составляет 3569»"
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": "«Будут ли дополнительные комментарии курьеру касаемо адреса доставки?»"
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": "«Исходя из размера пирогов, будет достаточно продукции на всех запланированных людей?»"
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": "Оплата картой, уточнение сдачи при оплате наличными неприменимо"
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": "«Добрый день, Ольга»"
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": "Ровный спокойный тон в речи"
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": "Дружелюбное и уверенное общение"
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": "Не перебивал клиента, давал ответ после реплик клиента"
+          },
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": "Конфликта не было"
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": "Ответил на все вопросы клиента (адрес, метро, комментарии, порции, оплата, акция)"
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": "Нет ненормативной лексики или навязчивых слова-паразитов"
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": "«Всего доброго.»"
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": "Без сарказма, насмешек или агрессии"
+          }
+        },
+        "summary": "Оператор представился, вежливо подтвердил заказ, проговорил состав и сумму, уточнил метро, комментарии для курьера и хватит ли порций. Следует проговаривать полный адрес доставки вслух, а не только подтверждать «Да, всё верно». В целом тон дружелюбный и клиентоориентированный, предложения доп.товаров были корректны.",
+        "usage": {
+          "prompt_tokens": 3889,
+          "completion_tokens": 3938,
+          "total_tokens": 7827,
+          "elapsed_sec": 55.17
+        }
+      },
+      "diff": {
+        "scores": {
+          "standard": -8,
+          "loyalty": 0,
+          "kindness": 0,
+          "overall": -3
+        },
+        "criteria_changed": [
+          {
+            "criterion": "reasons.kindness",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.kindness_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "standard.stated_full_address",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "«Да, всё верно.» — оператор не проговорил полный адрес доставки"
+          }
+        ]
+      }
+    },
+    {
+      "file_id": "d194cfba-8f44-4d2e-8a46-5ac07e828eec",
+      "original_name": "2026-04-29__12-05-47__Менеджер Анна__79637878710.mp3",
+      "duration_sec": 150.48,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 80,
+        "kindness": 100,
+        "overall": 94,
+        "details_flat": {
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": ""
+          },
+          "loyalty.addressed_by_name": {
+            "value": false,
+            "reason": ""
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": ""
+          },
+          "reasons.loyalty": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.loyalty_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.introduced_self": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": ""
+          }
+        },
+        "summary": "Оператор четко подтвердил заказ: представился, назвал компанию, адрес, дату, интервал доставки, состав заказа и итоговую сумму, а также уточнил комментарии для курьера и предложил допродажи. Для улучшения сервиса можно обращаться к клиенту по имени, если оно известно в заказе."
+      },
+      "merge": {
+        "model": "gpt-4o-mini",
+        "elapsed_sec": 39.27,
+        "lines": 52,
+        "chars": 3059,
+        "preview": "[0:00] КЛИЕНТ: Алло.  \n[0:01] ОПЕРАТОР: Добрый день, Любовь. Меня зовут Анна, компания «Пироги номер один».  \n[0:07] ОПЕРАТОР: Я позвонила для подтверждения вашего заказа.  \n[0:11] ОПЕРАТОР: Вы указали адрес Краснодарский бульвар 20-A, корпус 1.  \n[0:15] КЛИЕНТ: Скажите, пожалуйста, в ближайшее метро к вам будет «Водный стадион»?  \n[0:19] КЛИЕНТ: Метро «Водный стадион» либо МЦК «Коптева».  \n[0:23] ОПЕРАТОР: Поняла вас.  \n[0:24] ОПЕРАТОР: Скажите, пожалуйста, потребуются ли дополнительные коммент",
+        "usage": {
+          "prompt_tokens": 3140,
+          "completion_tokens": 1283,
+          "total_tokens": 4423
+        }
+      },
+      "test": {
+        "merge_model": "gpt-4o-mini",
+        "analysis_model": "gpt-5-mini",
+        "standard": 83,
+        "loyalty": 80,
+        "kindness": 67,
+        "overall": 77,
+        "details_flat": {
+          "standard.introduced_self": {
+            "value": true,
+            "reason": "«Меня зовут Анна»"
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": "«компания «Пироги номер один»»"
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": "«Доставочка на завтра, 30 апреля»"
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": "«с 9:30 до 10:30»"
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": "«Вы указали адрес Краснодарский бульвар 20-A, корпус 1»"
+          },
+          "standard.named_metro": {
+            "value": false,
+            "reason": "Оператор не назвала ближайшую станцию метро; вместо ответа сказала «Поняла вас»"
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": "«У вас в заказе пироги сыр «Свекольные листья», «Жульен» и «Ветчина-сыр»»"
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": "Предложила дополнительную продукцию: сладкое и одноразовую посуду"
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": "Описание комплекта и расчёт на 5 человек: «Один комплект на пять человек рассчитан...»"
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": "«Тогда общая сумма вашего заказа 6,250»"
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": "«Скажите, пожалуйста, потребуются ли дополнительные комментарии к курьеру касаемо адреса доставки?»"
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": false,
+            "reason": "Оператор не уточнил количество человек и не подтвердил хватит ли пирогов, когда клиент спросил «Исходя из размера, всем "
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": "Оплата картой — уточнение сдачи при оплате наличными неприменимо"
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": "«Добрый день, Любовь»"
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": "Ровный спокойный тон, без повышения голоса"
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": "Дружелюбный, спокойный и уверенный стиль общения"
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": "Не перебивал клиента, давал высказаться"
+          },
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": "Конфликта не было"
+          },
+          "loyalty.answered_all_questions": {
+            "value": false,
+            "reason": "Не ответил на вопрос о ближайшем метро; вместо ответа сказала «Поняла вас»"
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": "Без ненормативной лексики и навязчивых слов-паразитов"
+          },
+          "kindness.polite_goodbye": {
+            "value": false,
+            "reason": "Оператор не попрощался в конце звонка (после прощания клиента ответ отсутствует)"
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": "Без сарказма, насмешки или агрессивных высказываний"
+          }
+        },
+        "summary": "Оператор представилась, вежливо подтвердила адрес, дату и время, подробно проговорила состав заказа и оформила доп. комплект посуды. Нужно ответить на уточняющие вопросы клиента (не указала ближайшее метро) и попрощаться в конце звонка.",
+        "usage": {
+          "prompt_tokens": 4208,
+          "completion_tokens": 4476,
+          "total_tokens": 8684,
+          "elapsed_sec": 64.06
+        }
+      },
+      "diff": {
+        "scores": {
+          "standard": -17,
+          "loyalty": 0,
+          "kindness": -33,
+          "overall": -17
+        },
+        "criteria_changed": [
+          {
+            "criterion": "kindness.polite_goodbye",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не попрощался в конце звонка (после прощания клиента ответ отсутствует)"
+          },
+          {
+            "criterion": "loyalty.addressed_by_name",
+            "prod_value": false,
+            "test_value": true,
+            "prod_reason": "",
+            "test_reason": "«Добрый день, Любовь»"
+          },
+          {
+            "criterion": "loyalty.answered_all_questions",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Не ответил на вопрос о ближайшем метро; вместо ответа сказала «Поняла вас»"
+          },
+          {
+            "criterion": "reasons.kindness",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.kindness_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "standard.clarified_portion_sufficiency",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не уточнил количество человек и не подтвердил хватит ли пирогов, когда клиент спросил «Исходя из размера, всем "
+          },
+          {
+            "criterion": "standard.named_metro",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не назвала ближайшую станцию метро; вместо ответа сказала «Поняла вас»"
+          }
+        ]
+      }
+    },
+    {
+      "file_id": "9ec6a76f-d12d-48f8-8c35-3e5306dbdede",
+      "original_name": "2026-04-29__12-53-54__Менеджер Анна__79603933999.mp3",
+      "duration_sec": 79.56,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 64,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 86,
+        "details_flat": {
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": ""
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": ""
+          },
+          "reasons.loyalty": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.loyalty_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_metro": {
+            "value": false,
+            "reason": ""
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.offered_upsell": {
+            "value": false,
+            "reason": ""
+          },
+          "standard.introduced_self": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.explained_upsell_benefit": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.clarified_courier_comment": {
+            "value": false,
+            "reason": ""
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": false,
+            "reason": ""
+          }
+        },
+        "summary": "Оператор вежливо представилась, назвала компанию, подтвердила заказ, проговорила состав, дату, время, адрес и итоговую сумму. Для улучшения стоит уточнять метро, комментарий для курьера и достаточность заказа по количеству человек, а также предлагать дополнительный продукт как апсейл."
+      },
+      "merge": {
+        "model": "gpt-4o-mini",
+        "elapsed_sec": 21.22,
+        "lines": 30,
+        "chars": 1432,
+        "preview": "[0:01] ОПЕРАТОР: Здравствуйте, Александр. Меня зовут Анна, компания \"Пироги номер один\".  \n[0:06] ОПЕРАТОР: Я позвонила для подтверждения заказа.  \n[0:09] КЛИЕНТ: И я вижу, что у вас уже есть заказ.  \n[0:11] КЛИЕНТ: Уже есть заказ, да.  \n[0:12] ОПЕРАТОР: На Даниловской набережной, 12, в бизнес-центр Тауэр.  \n[0:16] ОПЕРАТОР: И сейчас пришел еще один.  \n[0:18] КЛИЕНТ: Да.  \n[0:19] ОПЕРАТОР: И там у нас лежит капуста и сыр.  \n[0:20] ОПЕРАТОР: Капуста килограмм, сыр 600 грамм.  \n[0:24] КЛИЕНТ: Да. ",
+        "usage": {
+          "prompt_tokens": 2020,
+          "completion_tokens": 637,
+          "total_tokens": 2657
+        }
+      },
+      "test": {
+        "merge_model": "gpt-4o-mini",
+        "analysis_model": "gpt-5-mini",
+        "standard": 67,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 89,
+        "details_flat": {
+          "standard.introduced_self": {
+            "value": true,
+            "reason": "«Меня зовут Анна»"
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": "«компания \"Пироги номер один\"»"
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": "«Заказ на завтра, 30 апреля»"
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": "«с 11 до 12»"
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": "«На Даниловской набережной, 12, в бизнес-центр Тауэр»"
+          },
+          "standard.named_metro": {
+            "value": false,
+            "reason": "Станция метро не была названа оператором"
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": "«Капуста килограмм, сыр 600 грамм»"
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": "«Если нам с вами разумно, эти пироги добавить в бюджетный заказ?»"
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": "«Чтобы вам два раза за доставку не платить?»"
+          },
+          "standard.named_order_total": {
+            "value": false,
+            "reason": "Итоговая сумма («13 029») озвучена клиентом, оператор итоговую сумму не проговорила"
+          },
+          "standard.clarified_courier_comment": {
+            "value": false,
+            "reason": "Комментарий для курьера не уточнялся оператором"
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": false,
+            "reason": "Не уточнилaсь достаточность порций и количество человек"
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": "Оплата не обсуждалась"
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": "«Здравствуйте, Александр»"
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": "Ровный, спокойный тон в репликах"
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": "Доброжелательные и уверенные формулировки"
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": "Не видно перебиваний, даёт клиенту отвечать"
+          },
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": "Конфликта не было"
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": "Уточнил и подтвердил детали заказа и доставки"
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": "Ненормативная лексика и навязчивые слова‑паразиты отсутствуют"
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": "«Все, хорошего вам дня.» / «Всего доброго.»"
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": "Реплики без сарказма, агрессии или насмешек"
+          }
+        },
+        "summary": "Оператор вежливо представилась, подтвердила заказ, адрес и время доставки, ясно проговорила состав. Следует озвучивать итоговую сумму самой оператору, уточнять комментарий для курьера и достаточность порций/количество человек.",
+        "usage": {
+          "prompt_tokens": 3562,
+          "completion_tokens": 3890,
+          "total_tokens": 7452,
+          "elapsed_sec": 51.19
+        }
+      },
+      "diff": {
+        "scores": {
+          "standard": 3,
+          "loyalty": 0,
+          "kindness": 0,
+          "overall": 3
+        },
+        "criteria_changed": [
+          {
+            "criterion": "reasons.kindness",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.kindness_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "standard.explained_upsell_benefit",
+            "prod_value": null,
+            "test_value": true,
+            "prod_reason": "",
+            "test_reason": "«Чтобы вам два раза за доставку не платить?»"
+          },
+          {
+            "criterion": "standard.named_order_total",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Итоговая сумма («13 029») озвучена клиентом, оператор итоговую сумму не проговорила"
+          },
+          {
+            "criterion": "standard.offered_upsell",
+            "prod_value": false,
+            "test_value": true,
+            "prod_reason": "",
+            "test_reason": "«Если нам с вами разумно, эти пироги добавить в бюджетный заказ?»"
+          }
+        ]
+      }
+    },
+    {
+      "file_id": "da0534f2-35bd-446c-9f34-90d73e30a3a3",
+      "original_name": "2026-04-29__10-20-39__Менеджер Анна__79169809557.mp3",
+      "duration_sec": 167.76,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "details_flat": {
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": ""
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": ""
+          },
+          "reasons.loyalty": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.loyalty_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.introduced_self": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": ""
+          }
+        },
+        "summary": "Оператор хорошо провёл подтверждение заказа: уточнил адрес, метро, комментарии для курьера, дату и интервал доставки, состав заказа и итоговую сумму, а также сделал апсейл напитков. Из недочётов — по формальному правилу не засчитывается представление, так как названо имя вне списка допустимых операторских имён."
+      },
+      "merge": {
+        "model": "gpt-4o-mini",
+        "elapsed_sec": 36.75,
+        "lines": 38,
+        "chars": 2789,
+        "preview": "[0:04] КЛИЕНТ: Доброе утро, Даниил. Меня зовут Жанна, компания \"Пироги №1\". Я позвонила для подтверждения вашего заказа.  \n[0:12] ОПЕРАТОР: А вы указали адрес: улица Складочная, дом 3, строение 1. Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?  \n[0:20] КЛИЕНТ: Да, всё верно.  \n[0:22] ОПЕРАТОР: А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки?  \n[0:27] КЛИЕНТ: Вход АВ.  \n[0:30] ОПЕРАТОР: Вход АВ английскими буквами, да?  \n[0:32] КЛИЕНТ: Да.  \n[0:35] КЛИЕН",
+        "usage": {
+          "prompt_tokens": 2886,
+          "completion_tokens": 1114,
+          "total_tokens": 4000
+        }
+      },
+      "test": {
+        "merge_model": "gpt-4o-mini",
+        "analysis_model": "gpt-5-mini",
+        "standard": 83,
+        "loyalty": 80,
+        "kindness": 67,
+        "overall": 77,
+        "details_flat": {
+          "standard.introduced_self": {
+            "value": false,
+            "reason": "Оператор не представился"
+          },
+          "standard.named_company": {
+            "value": false,
+            "reason": "Оператор не произнёс название компании"
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": "«Доставочка на сегодня, 29 апреля»"
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": "«с 12:30 до 13:30»"
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": "«А вы указали адрес: улица Складочная, дом 3, строение 1.»"
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": "«Скажите, пожалуйста, ближайшее метро к вам будет Дмитровская?»"
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": "«Также в заказе пироги: мясо, гриль-тейсти, курица-барбекю, курица-сыр-укроп по килограмму, вишня-капуста-жульен по 600 "
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": "«Нужен ли вам комплект одноразовой посуды?»"
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": "«И к пирогам также всегда предлагаем напитки: морсики, клюквы, облепихи, ягоды. По литру, это наше производство, мы сами"
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": "«Общая сумма заказа 11 069»"
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": "«А потребуются ли дополнительные комментарии курьеру касаемо адреса доставки?»"
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": "«Скажите, пожалуйста, исходя из размера пирогов, достаточно будет продукции?»"
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": "Оплата картой"
+          },
+          "loyalty.addressed_by_name": {
+            "value": false,
+            "reason": "Оператор не обратился к клиенту по имени"
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": "Ровный спокойный тон в репликах оператора"
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": "Дружелюбный, спокойный и уверенный тон"
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": "Оператор не перебивал клиента, задавал уточняющие вопросы после реплик клиента"
+          },
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": "Конфликта не было"
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": "Оператор подтвердил адрес, вход, время, состав заказа и способ оплаты"
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": "Ненормативной лексики и навязчивых слов-паразитов не замечено"
+          },
+          "kindness.polite_goodbye": {
+            "value": false,
+            "reason": "Оператор не попрощался в конце звонка"
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": "Без явного сарказма, иронии или агрессии"
+          }
+        },
+        "summary": "Оператор подробно подтвердил адрес, время, состав заказа, сумму и уточнил комментарий для курьера; корректно предложил доп. товары и описал их преимущества. Нужно улучшить представление в начале звонка (назвать своё имя/компанию) и попрощаться в конце.",
+        "usage": {
+          "prompt_tokens": 4039,
+          "completion_tokens": 4396,
+          "total_tokens": 8435,
+          "elapsed_sec": 56.75
+        }
+      },
+      "diff": {
+        "scores": {
+          "standard": -17,
+          "loyalty": -20,
+          "kindness": -33,
+          "overall": -23
+        },
+        "criteria_changed": [
+          {
+            "criterion": "kindness.polite_goodbye",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не попрощался в конце звонка"
+          },
+          {
+            "criterion": "loyalty.addressed_by_name",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не обратился к клиенту по имени"
+          },
+          {
+            "criterion": "reasons.kindness",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.kindness_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "standard.introduced_self",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не представился"
+          },
+          {
+            "criterion": "standard.named_company",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не произнёс название компании"
+          }
+        ]
+      }
+    },
+    {
+      "file_id": "dc6222c2-925b-41c7-81f8-64f3d0b8f2ca",
+      "original_name": "2026-04-29__15-58-35__Менеджер Анна__79056426841.mp3",
+      "duration_sec": 107.928,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "details_flat": {
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": ""
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": ""
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": ""
+          },
+          "reasons.loyalty": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.loyalty_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.markers_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.kindness_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "reasons.standard_timestamps": {
+            "value": null,
+            "reason": ""
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": ""
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_company": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.introduced_self": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.stated_delivery_time": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": ""
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_delivery_date": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": ""
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": ""
+          }
+        },
+        "summary": "Оператор вежливо и спокойно подтвердил заказ, уточнил адрес, комментарий для курьера, дату и интервал доставки, а также проговорил состав заказа и предложил допродажу. Из улучшений — в начале разговора не было названия компании; также можно точнее формулировать итоговую сумму, чтобы не возникало сомнений."
+      },
+      "merge": {
+        "model": "gpt-4o-mini",
+        "elapsed_sec": 26.1,
+        "lines": 39,
+        "chars": 2197,
+        "preview": "[0:00] КЛИЕНТ: Алло, да?  \n[0:02] КЛИЕНТ: Здравствуйте, меня зовут Анна Сергеевна, я звонила для подтверждения вашего заказа.  \n[0:08] КЛИЕНТ: Извините, к сожалению, не отобразилось контактное лицо, как можно обратиться?  \n[0:13] КЛИЕНТ: Не поняла, ещё раз.  \n[0:15] ОПЕРАТОР: Скажите, пожалуйста, как можно обратиться? Контактное лицо?  \n[0:19] КЛИЕНТ: Людмила.  \n[0:20] ОПЕРАТОР: Благодарю, Людмила.  \n[0:22] ОПЕРАТОР: Вы указали адрес: Ломоносовский проспект, дом 2, строение 8, подъезд 11, ближай",
+        "usage": {
+          "prompt_tokens": 2510,
+          "completion_tokens": 924,
+          "total_tokens": 3434
+        }
+      },
+      "test": {
+        "merge_model": "gpt-4o-mini",
+        "analysis_model": "gpt-5-mini",
+        "standard": 67,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 89,
+        "details_flat": {
+          "standard.introduced_self": {
+            "value": false,
+            "reason": "«Скажите, пожалуйста, как можно обратиться? Контактное лицо?» — оператор не представился"
+          },
+          "standard.named_company": {
+            "value": false,
+            "reason": "Компания не была названа оператором"
+          },
+          "standard.clarified_delivery_date": {
+            "value": false,
+            "reason": "Оператор не уточнял дату доставки; клиент озвучил: «Доставочка на сегодня, 29 апреля»"
+          },
+          "standard.stated_delivery_time": {
+            "value": false,
+            "reason": "Оператор не проговорил или не подтвердил время доставки"
+          },
+          "standard.stated_full_address": {
+            "value": true,
+            "reason": "«Вы указали адрес: Ломоносовский проспект, дом 2, строение 8, подъезд 11, ближайшее метро — Профсоюзная, всё верно?»"
+          },
+          "standard.named_metro": {
+            "value": true,
+            "reason": "Оператор назвал «Профсоюзная» как ближайшее метро"
+          },
+          "standard.stated_order_contents": {
+            "value": true,
+            "reason": "«У вас в заказе пироги, чизбургер и черника.»"
+          },
+          "standard.offered_upsell": {
+            "value": true,
+            "reason": "Оператор предложил увеличить чизбургер и дополнительные товары: «Или, может быть, хотя бы чизбургер килограммчик сделать"
+          },
+          "standard.explained_upsell_benefit": {
+            "value": true,
+            "reason": "Оператор указал выгоду/назначение: «Нужен ли комплект одноразовой посуды для удобства?»"
+          },
+          "standard.named_order_total": {
+            "value": true,
+            "reason": "«Общая сумма 390.»"
+          },
+          "standard.clarified_courier_comment": {
+            "value": true,
+            "reason": "Оператор уточнил комментарии для курьера: «уточните, пожалуйста, комментарии касаемо адреса доставки, что-то дополнитель"
+          },
+          "standard.clarified_portion_sufficiency": {
+            "value": true,
+            "reason": "Оператор обсудил достаточность порций и предложил вариант увеличения: «Или, может быть, хотя бы чизбургер килограммчик с"
+          },
+          "standard.clarified_cash_change": {
+            "value": null,
+            "reason": "Оплата была онлайн — «Оплата поступила онлайн при оформлении заказа на сайте.»"
+          },
+          "loyalty.addressed_by_name": {
+            "value": true,
+            "reason": "Оператор обратился по имени: «Благодарю, Людмила.»"
+          },
+          "loyalty.did_not_raise_voice": {
+            "value": true,
+            "reason": "Речь ровная, без повышенных тонов"
+          },
+          "loyalty.friendly_calm_confident_tone": {
+            "value": true,
+            "reason": "Дружелюбный и спокойный стиль общения"
+          },
+          "loyalty.did_not_interrupt": {
+            "value": true,
+            "reason": "Оператор вежливо спросил контакты и дождался ответа клиента: «Скажите, пожалуйста, как можно обратиться?»"
+          },
+          "loyalty.calm_in_conflict": {
+            "value": null,
+            "reason": "Конфликта не было"
+          },
+          "loyalty.answered_all_questions": {
+            "value": true,
+            "reason": "Оператор подтвердил адрес, ответил по комментарию курьера и оплате (онлайн), уточнил детали заказа"
+          },
+          "kindness.no_profanity_filler_words": {
+            "value": true,
+            "reason": "Без мата и заметных слов-паразитов"
+          },
+          "kindness.polite_goodbye": {
+            "value": true,
+            "reason": "Вежливое прощание: «Хорошего дня, всего доброго.»"
+          },
+          "kindness.no_sarcasm_irony_aggression": {
+            "value": true,
+            "reason": "Нет явного сарказма, насмешек или агрессии"
+          }
+        },
+        "summary": "Оператор вежливо подтвердил адрес, содержимое заказа и оплату, предложил доп. товары и уточнил комментарий для курьера. Нужно улучшить стандарт приветствия — оператор не представился и не проговорил/подтвердил время и дату доставки вслух.",
+        "usage": {
+          "prompt_tokens": 3849,
+          "completion_tokens": 5015,
+          "total_tokens": 8864,
+          "elapsed_sec": 83.16
+        }
+      },
+      "diff": {
+        "scores": {
+          "standard": -33,
+          "loyalty": 0,
+          "kindness": 0,
+          "overall": -11
+        },
+        "criteria_changed": [
+          {
+            "criterion": "reasons.kindness",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.kindness_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.loyalty_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.markers_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "reasons.standard_timestamps",
+            "prod_value": null,
+            "test_value": "missing",
+            "prod_reason": "",
+            "test_reason": ""
+          },
+          {
+            "criterion": "standard.clarified_delivery_date",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не уточнял дату доставки; клиент озвучил: «Доставочка на сегодня, 29 апреля»"
+          },
+          {
+            "criterion": "standard.introduced_self",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "«Скажите, пожалуйста, как можно обратиться? Контактное лицо?» — оператор не представился"
+          },
+          {
+            "criterion": "standard.named_company",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Компания не была названа оператором"
+          },
+          {
+            "criterion": "standard.stated_delivery_time",
+            "prod_value": true,
+            "test_value": false,
+            "prod_reason": "",
+            "test_reason": "Оператор не проговорил или не подтвердил время доставки"
+          }
+        ]
+      }
+    }
+  ]
+}

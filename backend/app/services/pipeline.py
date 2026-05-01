@@ -475,15 +475,22 @@ class PipelineOrchestrator:
 
         def _run_merge():
             from app.config import settings as _settings
-            response = llm_client.chat.completions.create(
-                model=_settings.llm_model,
-                temperature=0,
+            model = _settings.llm_model
+            kwargs: dict[str, Any] = dict(
+                model=model,
                 messages=[
                     {"role": "system", "content": self._MERGE_PROMPT},
                     {"role": "user", "content": user_msg},
                 ],
                 timeout=120,
             )
+            # gpt-5-* (reasoning) не принимает temperature
+            if not model.startswith("gpt-5"):
+                kwargs["temperature"] = 0
+            # OpenRouter — выключаем reasoning, иначе модели уходят в думанье на 100-300сек
+            if _settings.openrouter_api_key:
+                kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+            response = llm_client.chat.completions.create(**kwargs)
             return response.choices[0].message.content or ""
 
         merged_text = await loop.run_in_executor(None, _run_merge)

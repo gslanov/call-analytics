@@ -12,8 +12,12 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://callanalytics:password@localhost:5432/callanalytics"
 
-    # OpenAI
+    # OpenAI / OpenRouter
+    # Если openrouter_api_key задан — primary LLM-клиент идёт через OpenRouter.
+    # openai_api_key всё равно нужен для whisper-1 + gpt-4o-transcribe (STT).
     openai_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     llm_model: str = "gpt-5.4"
 
     # Whisper

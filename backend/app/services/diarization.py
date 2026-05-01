@@ -636,14 +636,21 @@ class DiarizationService:
         )
 
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=settings.openai_api_key)
-            response = client.chat.completions.create(
-                model=settings.llm_model,
-                temperature=0,
+            from app.services.llm_service import LLMService
+            client = LLMService.get_instance()._get_client()
+            if client is None:
+                raise RuntimeError("LLM client not configured")
+            model = settings.llm_model
+            kwargs: dict[str, Any] = dict(
+                model=model,
                 messages=[{"role": "user", "content": prompt}],
                 timeout=30,
             )
+            if not model.startswith("gpt-5"):
+                kwargs["temperature"] = 0
+            if settings.openrouter_api_key:
+                kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+            response = client.chat.completions.create(**kwargs)
             raw = (response.choices[0].message.content or "").strip()
             # Убираем markdown fence если есть
             if raw.startswith("```"):

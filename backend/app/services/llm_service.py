@@ -291,13 +291,22 @@ class LLMService:
         return cls._instance
 
     def _get_client(self) -> Any:
-        """Lazy-init OpenAI client. Returns None if API key not set."""
+        """Lazy-init LLM client. Если задан OPENROUTER_API_KEY — primary через
+        OpenRouter (для gemini/claude/qwen и т.п.). Иначе — OpenAI direct."""
         if self._client is not None:
             return self._client
-        if not settings.openai_api_key:
-            return None
         from openai import OpenAI
-        self._client = OpenAI(api_key=settings.openai_api_key)
+        if settings.openrouter_api_key:
+            self._client = OpenAI(
+                api_key=settings.openrouter_api_key,
+                base_url=settings.openrouter_base_url,
+            )
+            logger.info("LLM client: OpenRouter (%s)", settings.openrouter_base_url)
+        elif settings.openai_api_key:
+            self._client = OpenAI(api_key=settings.openai_api_key)
+            logger.info("LLM client: OpenAI direct")
+        else:
+            return None
         return self._client
 
     # ------------------------------------------------------------------
@@ -411,16 +420,25 @@ class LLMService:
         return None  # graceful degradation
 
     def _call_api(self, client: Any, system_prompt: str, user_message: str) -> str:
-        """Single GPT-4 API call. Returns raw response text."""
-        response = client.chat.completions.create(
-            model=settings.llm_model,
-            temperature=0,
+        """Single chat-completion call. Параметры адаптируются под семейство модели:
+        - gpt-5-* (reasoning) не принимает temperature — параметр пропускается.
+        - OpenRouter-модели — выключаем reasoning через extra_body, иначе они
+          уходят в долгие thinking-цепочки и тратят 100-300сек на запрос.
+        """
+        model = settings.llm_model
+        kwargs: dict[str, Any] = dict(
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_message},
             ],
-            timeout=60,
+            timeout=120,
         )
+        if not model.startswith("gpt-5"):
+            kwargs["temperature"] = 0
+        if settings.openrouter_api_key:
+            kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+        response = client.chat.completions.create(**kwargs)
         return response.choices[0].message.content or ""
 
     def _parse_and_validate(self, raw: str) -> AnalysisResult | None:

@@ -1,0 +1,849 @@
+{
+  "summary": {
+    "tested_calls": 20,
+    "failures": 0,
+    "merge_model": "google/gemini-3-flash-preview",
+    "analysis_model": "google/gemini-3-flash-preview",
+    "avg_real_diffs": 0.75,
+    "avg_delta_overall": 2.15,
+    "avg_merge_elapsed_sec": 12.5,
+    "avg_analysis_elapsed_sec": 9.8,
+    "avg_total_per_call_sec": 22.4,
+    "merge_input_tokens": 58713,
+    "merge_output_tokens": 22271,
+    "analysis_input_tokens": 82998,
+    "analysis_output_tokens": 23573,
+    "cost_total_usd": 0.2084,
+    "cost_per_call_usd": 0.01042,
+    "diffs_distribution": {
+      "0_diffs": 10,
+      "1_diff": 5,
+      "2_diffs": 5,
+      "3_diffs": 0,
+      "4plus_diffs": 0
+    },
+    "delta_distribution": {
+      "perfect (Δ=0)": 12,
+      "minor (|Δ|≤3)": 2,
+      "medium (3<|Δ|≤10)": 6,
+      "major (|Δ|>10)": 0
+    }
+  },
+  "results": [
+    {
+      "file_id": "127e245b-5a0e-4cfb-a952-cc407c460b55",
+      "original_name": "2026-04-29__13-55-15__Менеджер Анна__79856212657.mp3",
+      "duration_sec": 152.064,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 5.72,
+        "analysis_elapsed_sec": 6.3,
+        "merge_usage": {
+          "prompt_tokens": 3323,
+          "completion_tokens": 1057
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4093,
+          "completion_tokens": 1206
+        },
+        "merge_chars": 2507,
+        "summary_preview": "Оператор Анна продемонстрировала высокий уровень профессионализма, выполнив все стандарты обслуживания и лояльности. Она проактивно уточнила вопросы по достаточности заказа, предложила доп. товары и ч"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "d194cfba-8f44-4d2e-8a46-5ac07e828eec",
+      "original_name": "2026-04-29__12-05-47__Менеджер Анна__79637878710.mp3",
+      "duration_sec": 150.48,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 80,
+        "kindness": 100,
+        "overall": 94
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 7.53,
+        "analysis_elapsed_sec": 7.63,
+        "merge_usage": {
+          "prompt_tokens": 3286,
+          "completion_tokens": 1430
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4467,
+          "completion_tokens": 1152
+        },
+        "merge_chars": 3112,
+        "summary_preview": "Оператор Анна отлично провела консультацию, выполнив все обязательные стандарты. Особенно стоит отметить проактивность: уточнение метро, предложение доп. товаров и посуды, а также фиксацию комментарие"
+      },
+      "delta_overall": 6,
+      "diff_count": 1,
+      "diffs": [
+        {
+          "criterion": "loyalty.addressed_by_name",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "«Добрый день, Любовь»"
+        }
+      ]
+    },
+    {
+      "file_id": "9ec6a76f-d12d-48f8-8c35-3e5306dbdede",
+      "original_name": "2026-04-29__12-53-54__Менеджер Анна__79603933999.mp3",
+      "duration_sec": 79.56,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 64,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 86
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 78,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 93,
+        "merge_elapsed_sec": 3.76,
+        "analysis_elapsed_sec": 5.87,
+        "merge_usage": {
+          "prompt_tokens": 2077,
+          "completion_tokens": 651
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3687,
+          "completion_tokens": 1121
+        },
+        "merge_chars": 1318,
+        "summary_preview": "Оператор отлично справилась с объединением двух заказов, проявив инициативу для экономии средств клиента на доставке. Все ключевые параметры заказа (состав, адрес, дата, время) были четко проговорены,"
+      },
+      "delta_overall": 7,
+      "diff_count": 2,
+      "diffs": [
+        {
+          "criterion": "standard.clarified_portion_sufficiency",
+          "prod_value": false,
+          "test_value": null,
+          "prod_reason": "",
+          "test_reason": "Клиент оформлял дозаказ к уже существующему, количество было определено"
+        },
+        {
+          "criterion": "standard.named_metro",
+          "prod_value": false,
+          "test_value": null,
+          "prod_reason": "",
+          "test_reason": "Адрес не предполагает обязательного указания метро оператором"
+        }
+      ]
+    },
+    {
+      "file_id": "da0534f2-35bd-446c-9f34-90d73e30a3a3",
+      "original_name": "2026-04-29__10-20-39__Менеджер Анна__79169809557.mp3",
+      "duration_sec": 167.76,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 6.06,
+        "analysis_elapsed_sec": 6.07,
+        "merge_usage": {
+          "prompt_tokens": 2970,
+          "completion_tokens": 1153
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4189,
+          "completion_tokens": 1205
+        },
+        "merge_chars": 2668,
+        "summary_preview": "Образцовая работа оператора: выполнены все стандарты, включая апсейл и уточнение достаточности заказа. Оператор проявила гибкость, изменив интервал доставки по просьбе клиента, и вежливо предупредила "
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "dc6222c2-925b-41c7-81f8-64f3d0b8f2ca",
+      "original_name": "2026-04-29__15-58-35__Менеджер Анна__79056426841.mp3",
+      "duration_sec": 107.928,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 35.45,
+        "analysis_elapsed_sec": 5.8,
+        "merge_usage": {
+          "prompt_tokens": 2568,
+          "completion_tokens": 897
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3933,
+          "completion_tokens": 1150
+        },
+        "merge_chars": 2043,
+        "summary_preview": "Оператор Анна отлично провела звонок, выполнив все стандарты обслуживания. Она профессионально предложила дополнительные товары и уточнила достаточность порций, сохранив при этом очень дружелюбный и в"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "856ac8e3-3d26-4c92-b498-594bedd1c963",
+      "original_name": "2026-04-29__13-18-45__Менеджер Анна__79917351500.mp3",
+      "duration_sec": 160.776,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 67,
+        "overall": 90
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97,
+        "merge_elapsed_sec": 6.01,
+        "analysis_elapsed_sec": 24.34,
+        "merge_usage": {
+          "prompt_tokens": 3023,
+          "completion_tokens": 1217
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4255,
+          "completion_tokens": 1264
+        },
+        "merge_chars": 2665,
+        "summary_preview": "Оператор Анна продемонстрировала высокий уровень профессионализма, выполнив почти все стандарты качества. Она была вежлива, обратилась к клиенту по имени, подробно проговорила состав заказа и уточнила"
+      },
+      "delta_overall": 7,
+      "diff_count": 2,
+      "diffs": [
+        {
+          "criterion": "kindness.polite_goodbye",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "«Всего вам доброго. До свидания»"
+        },
+        {
+          "criterion": "standard.explained_upsell_benefit",
+          "prod_value": true,
+          "test_value": false,
+          "prod_reason": "",
+          "test_reason": "Оператор просто перечислила вкусы, не указав на выгоду (популярность, состав или сочетаемость)"
+        }
+      ]
+    },
+    {
+      "file_id": "3bcfb629-9b66-4ad6-a023-08b2336c985e",
+      "original_name": "2026-04-29__12-00-46__Менеджер Анна__79175907064.mp3",
+      "duration_sec": 102.744,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97,
+        "merge_elapsed_sec": 4.79,
+        "analysis_elapsed_sec": 7.47,
+        "merge_usage": {
+          "prompt_tokens": 2461,
+          "completion_tokens": 915
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3951,
+          "completion_tokens": 1232
+        },
+        "merge_chars": 1872,
+        "summary_preview": "Оператор Анна отлично справилась с подтверждением заказа, соблюдая стандарты приветствия и детализации. Особенно стоит отметить успешный апсейл (продажа дополнительного пирога) и вежливое обращение по"
+      },
+      "delta_overall": 0,
+      "diff_count": 2,
+      "diffs": [
+        {
+          "criterion": "standard.clarified_courier_comment",
+          "prod_value": true,
+          "test_value": false,
+          "prod_reason": "",
+          "test_reason": "Оператор не уточнил наличие дополнительных комментариев для курьера"
+        },
+        {
+          "criterion": "standard.clarified_portion_sufficiency",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "Оператор уточнил размер пирогов и предложил добавить сытный пирог"
+        }
+      ]
+    },
+    {
+      "file_id": "19c72f1a-2eb3-48f0-9f86-2818e830155d",
+      "original_name": "2026-04-29__11-58-28__Менеджер Анна__79037291534.mp3",
+      "duration_sec": 94.968,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 4.72,
+        "analysis_elapsed_sec": 23.29,
+        "merge_usage": {
+          "prompt_tokens": 2248,
+          "completion_tokens": 760
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3798,
+          "completion_tokens": 1159
+        },
+        "merge_chars": 1810,
+        "summary_preview": "Оператор Анна продемонстрировала эталонное выполнение стандартов: четко представилась, подтвердила все детали заказа (адрес, время, состав) и профессионально предложила дополнительный товар. Общение б"
+      },
+      "delta_overall": 3,
+      "diff_count": 1,
+      "diffs": [
+        {
+          "criterion": "standard.explained_upsell_benefit",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "«Один комплект рассчитан на 5 человек. Там каждого наименования по 5 штук»"
+        }
+      ]
+    },
+    {
+      "file_id": "e0a91ce7-4cbf-468c-a6c9-b848e5b83843",
+      "original_name": "2026-04-29__12-23-49__Менеджер Анна__79067782829.mp3",
+      "duration_sec": 118.656,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 91,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97,
+        "merge_elapsed_sec": 4.56,
+        "analysis_elapsed_sec": 5.92,
+        "merge_usage": {
+          "prompt_tokens": 2901,
+          "completion_tokens": 884
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3920,
+          "completion_tokens": 1123
+        },
+        "merge_chars": 1999,
+        "summary_preview": "Оператор Светлана отлично справилась с подтверждением заказа: была вежлива, уточнила все важные детали, включая метро и комментарий для курьера. Единственным замечанием является отсутствие предложения"
+      },
+      "delta_overall": 0,
+      "diff_count": 2,
+      "diffs": [
+        {
+          "criterion": "standard.explained_upsell_benefit",
+          "prod_value": false,
+          "test_value": null,
+          "prod_reason": "",
+          "test_reason": "Апсейл не предлагался"
+        },
+        {
+          "criterion": "standard.offered_upsell",
+          "prod_value": true,
+          "test_value": false,
+          "prod_reason": "",
+          "test_reason": "Оператор не предложила приобрести дополнительные позиции к заказу"
+        }
+      ]
+    },
+    {
+      "file_id": "0b290eec-82c3-4beb-9f31-ef706791b666",
+      "original_name": "2026-04-29__13-39-27__Менеджер Анна__79162393906.mp3",
+      "duration_sec": 191.736,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 7.02,
+        "analysis_elapsed_sec": 18.61,
+        "merge_usage": {
+          "prompt_tokens": 3200,
+          "completion_tokens": 1413
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4449,
+          "completion_tokens": 1231
+        },
+        "merge_chars": 3046,
+        "summary_preview": "Работа оператора Анны выполнена на высоком уровне: соблюдены все стандарты приветствия, проверки адреса и времени. Оператор проявила проактивность, предложив соусы и напитки, а также уточнила достаточ"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "e047304f-987b-4ca6-bf30-15514a4cdbbb",
+      "original_name": "2026-04-29__11-45-56__Менеджер Анна__79262874781.mp3",
+      "duration_sec": 123.696,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 92,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 4.48,
+        "analysis_elapsed_sec": 5.98,
+        "merge_usage": {
+          "prompt_tokens": 2463,
+          "completion_tokens": 821
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3857,
+          "completion_tokens": 1167
+        },
+        "merge_chars": 1880,
+        "summary_preview": "Оператор Анна продемонстрировала идеальное соблюдение стандартов обслуживания. Были выполнены все обязательные пункты, включая апсейл, уточнение сытности заказа и проверку метро, при этом сохранялся о"
+      },
+      "delta_overall": 3,
+      "diff_count": 1,
+      "diffs": [
+        {
+          "criterion": "standard.explained_upsell_benefit",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "Описала состав (черничка с кремом) и формат (мини-версии к чаю)"
+        }
+      ]
+    },
+    {
+      "file_id": "fe43cae6-2cee-49a9-ae52-980632545dd3",
+      "original_name": "2026-04-29__11-42-23__Менеджер Анна__79164272184.mp3",
+      "duration_sec": 136.944,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 21.26,
+        "analysis_elapsed_sec": 7.04,
+        "merge_usage": {
+          "prompt_tokens": 3127,
+          "completion_tokens": 1072
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4108,
+          "completion_tokens": 1115
+        },
+        "merge_chars": 2530,
+        "summary_preview": "Оператор отлично провела диалог, выполнив все стандарты компании. Она проявила проактивность, уточнив достаточность порций и предложив доп. товары (посуду и напитки), а также четко зафиксировала услов"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "7bed6a19-4172-484c-9409-57a33c6e688e",
+      "original_name": "2026-04-29__11-31-30__Менеджер Анна__79806762449.mp3",
+      "duration_sec": 112.032,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 4.29,
+        "analysis_elapsed_sec": 10.19,
+        "merge_usage": {
+          "prompt_tokens": 2418,
+          "completion_tokens": 823
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3859,
+          "completion_tokens": 1177
+        },
+        "merge_chars": 1830,
+        "summary_preview": "Оператор Анна продемонстрировала идеальное соблюдение стандартов качества. Все обязательные пункты озвучены, включая уточнение достаточности заказа на компанию и актуализацию данных для курьера (домоф"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "5039775c-ff96-4616-9603-312a2df64635",
+      "original_name": "2026-04-29__11-27-19__Менеджер Анна__79165331995.mp3",
+      "duration_sec": 118.296,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 5.13,
+        "analysis_elapsed_sec": 23.74,
+        "merge_usage": {
+          "prompt_tokens": 2584,
+          "completion_tokens": 973
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4011,
+          "completion_tokens": 1125
+        },
+        "merge_chars": 2107,
+        "summary_preview": "Образцовая работа оператора. Выполнены все стандарты: от приветствия и апсейла до уточнения достаточности порций и вежливого прощания. Речь грамотная, тон очень приятный."
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "d490b8be-0c5d-4651-9aec-0967c12759f7",
+      "original_name": "2026-04-29__10-36-21__Менеджер Анна__79161630005.mp3",
+      "duration_sec": 316.656,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 75,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 90
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 83,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 94,
+        "merge_elapsed_sec": 28.83,
+        "analysis_elapsed_sec": 6.52,
+        "merge_usage": {
+          "prompt_tokens": 5319,
+          "completion_tokens": 2099
+        },
+        "analysis_usage": {
+          "prompt_tokens": 5135,
+          "completion_tokens": 1250
+        },
+        "merge_chars": 5181,
+        "summary_preview": "Оператор отлично справилась с изменением сложного заказа, гибко подбирая время и объединяя товары. Проактивно предложила напитки и посуду, а также выявила ошибку в дате. Рекомендуется не забывать уточ"
+      },
+      "delta_overall": 4,
+      "diff_count": 1,
+      "diffs": [
+        {
+          "criterion": "standard.stated_full_address",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "«Научный проезд, 17»"
+        }
+      ]
+    },
+    {
+      "file_id": "d04f1a43-cbff-424a-b70a-b8214a8e10d8",
+      "original_name": "2026-04-29__11-08-44__Менеджер Анна__79521580246.mp3",
+      "duration_sec": 243.216,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 80,
+        "kindness": 100,
+        "overall": 94
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 8.21,
+        "analysis_elapsed_sec": 6.6,
+        "merge_usage": {
+          "prompt_tokens": 3637,
+          "completion_tokens": 1679
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4715,
+          "completion_tokens": 1248
+        },
+        "merge_chars": 3791,
+        "summary_preview": "Оператор продемонстрировал отличный уровень сервиса, выполнив все стандарты компании. Особенно стоит отметить проактивность в уточнении сложного адреса и качественную работу с допродажами (предложен п"
+      },
+      "delta_overall": 6,
+      "diff_count": 1,
+      "diffs": [
+        {
+          "criterion": "loyalty.addressed_by_name",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "«Добрый день, Светлана»"
+        }
+      ]
+    },
+    {
+      "file_id": "6a4174d3-1e40-4212-8ccc-495824e43f01",
+      "original_name": "2026-04-29__11-23-42__Менеджер Анна__79154293811.mp3",
+      "duration_sec": 135.072,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 75,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 90
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 91,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 97,
+        "merge_elapsed_sec": 60.45,
+        "analysis_elapsed_sec": 6.41,
+        "merge_usage": {
+          "prompt_tokens": 2441,
+          "completion_tokens": 919
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3955,
+          "completion_tokens": 1130
+        },
+        "merge_chars": 1929,
+        "summary_preview": "Оператор хорошо справляется с идентификацией заказа, уточнением деталей доставки на сложный адрес (вокзал) и кросс-продажами. Из критических недочетов — не была озвучена итоговая сумма заказа к оплате"
+      },
+      "delta_overall": 7,
+      "diff_count": 2,
+      "diffs": [
+        {
+          "criterion": "standard.clarified_courier_comment",
+          "prod_value": false,
+          "test_value": true,
+          "prod_reason": "",
+          "test_reason": "Уточняла информацию по вокзалу и дополнительному номеру телефона"
+        },
+        {
+          "criterion": "standard.named_metro",
+          "prod_value": false,
+          "test_value": null,
+          "prod_reason": "",
+          "test_reason": "Адрес — вокзальная площадь, оператор уточнял конкретный вокзал вместо метро"
+        }
+      ]
+    },
+    {
+      "file_id": "8359f1e4-5d1f-4757-ba59-fe3f83853fbb",
+      "original_name": "2026-04-29__10-43-14__Менеджер Анна__79151392032.mp3",
+      "duration_sec": 131.616,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 19.51,
+        "analysis_elapsed_sec": 6.26,
+        "merge_usage": {
+          "prompt_tokens": 2491,
+          "completion_tokens": 877
+        },
+        "analysis_usage": {
+          "prompt_tokens": 3913,
+          "completion_tokens": 1209
+        },
+        "merge_chars": 1998,
+        "summary_preview": "Образцовая работа оператора. Все стандарты соблюдены, оператор проявила высокую эмпатию, успешно предложила дополнительный товар и уточнила все детали адреса и состава заказа в дружелюбной манере."
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "ec320972-c631-41f2-8c93-d3d54a17a3a1",
+      "original_name": "2026-04-29__10-32-51__Менеджер Анна__79623651995.mp3",
+      "duration_sec": 156.24,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 6.67,
+        "analysis_elapsed_sec": 5.89,
+        "merge_usage": {
+          "prompt_tokens": 3215,
+          "completion_tokens": 1400
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4436,
+          "completion_tokens": 1158
+        },
+        "merge_chars": 2909,
+        "summary_preview": "Оператор Анна продемонстрировала отличную работу, выполнив все стандарты компании. Она проактивно предложила дополнительные товары (морсы) и подробно объяснила клиенту технические нюансы (почему нельз"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "file_id": "9abf6903-da12-44aa-b385-54ab15320ddd",
+      "original_name": "2026-04-29__10-24-36__Менеджер Анна__79153118388.mp3",
+      "duration_sec": 158.688,
+      "prod": {
+        "model": "gpt-5.4",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100
+      },
+      "test": {
+        "merge_model": "google/gemini-3-flash-preview",
+        "analysis_model": "google/gemini-3-flash-preview",
+        "standard": 100,
+        "loyalty": 100,
+        "kindness": 100,
+        "overall": 100,
+        "merge_elapsed_sec": 5.96,
+        "analysis_elapsed_sec": 6.68,
+        "merge_usage": {
+          "prompt_tokens": 2961,
+          "completion_tokens": 1231
+        },
+        "analysis_usage": {
+          "prompt_tokens": 4267,
+          "completion_tokens": 1151
+        },
+        "merge_chars": 2871,
+        "summary_preview": "Оператор Анна продемонстрировала отличный уровень сервиса, выполнив все стандарты компании. Особенно стоит отметить проактивность в уточнении адреса и количества порций, а также вежливое предложение д"
+      },
+      "delta_overall": 0,
+      "diff_count": 0,
+      "diffs": []
+    }
+  ]
+}

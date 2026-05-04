@@ -1,6 +1,6 @@
-"""POST /api/v1/upload — batch audio file upload with streaming I/O and dedup."""
+"""POST /api/v1/upload — batch audio file upload with validation and deduplication."""
 
-import hashlib
+import shutil
 import uuid
 from pathlib import Path
 
@@ -12,14 +12,14 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import File as FileModel, Operator
-from app.schemas import AcceptedFile, UploadResponse, ValidationError
-from app.services.audio_validator import validate_audio_file_path
+from app.schemas import UploadResponse, ValidationError
+from app.services.audio_validator import validate_audio_file
 from app.services.queue import QueueManager
 from app.utils import sanitize_filename, fix_encoding, parse_call_filename, parse_call_started_at
 
 router = APIRouter(tags=["upload"])
 
-CHUNK_SIZE = 1 << 20  # 1 MB
+MAX_READ_SIZE = settings.max_file_size_mb * 1024 * 1024 + 1  # +1 to detect over-limit
 
 
 def _get_or_create_operator(db: Session, name: str) -> Operator:
@@ -31,48 +31,12 @@ def _get_or_create_operator(db: Session, name: str) -> Operator:
     return op
 
 
-async def _stream_upload_to_disk(
-    upload: UploadFile,
-    file_id: uuid.UUID,
-    ext: str,
-) -> tuple[Path, str, int, str | None]:
-    """Stream UploadFile to disk in chunks, computing SHA-256 incrementally.
-
-    Returns:
-        (final_path, sha256_hex, total_bytes, error_or_None)
-
-    final_path is the temp `.tmp` path until validation passes — caller must
-    rename to final after successful validation, or unlink on failure.
-    """
+def _save_file_to_disk(file_id: uuid.UUID, ext: str, content: bytes) -> Path:
     dest_dir = Path(settings.uploads_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    tmp_path = dest_dir / f".{file_id}{ext}.tmp"
-
-    hasher = hashlib.sha256()
-    total = 0
-    max_bytes = settings.max_file_size_bytes
-
-    try:
-        with open(tmp_path, "wb") as f:
-            while True:
-                chunk = await upload.read(CHUNK_SIZE)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > max_bytes:
-                    f.close()
-                    tmp_path.unlink(missing_ok=True)
-                    return tmp_path, "", total, (
-                        f"Размер файла превышает лимит {settings.max_file_size_mb} MB"
-                    )
-                f.write(chunk)
-                hasher.update(chunk)
-            f.flush()
-    except Exception as exc:
-        tmp_path.unlink(missing_ok=True)
-        return tmp_path, "", total, f"Ошибка записи: {exc}"
-
-    return tmp_path, hasher.hexdigest(), total, None
+    dest = dest_dir / f"{file_id}{ext}"
+    dest.write_bytes(content)
+    return dest
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -83,8 +47,11 @@ async def upload_files(
 ) -> UploadResponse:
     """Загрузить аудиофайлы для анализа качества звонка.
 
-    Пишет файлы потоково (chunks по 1 MB), хеш SHA-256 считается на лету.
-    Дедуплицирует по хешу. Atomic rename .tmp → final после успешной валидации.
+    - Валидирует формат, размер, целостность (ffprobe) и длительность
+    - Дедуплицирует по SHA-256 (возвращает существующий file_id)
+    - Сохраняет файлы в data/uploads/
+    - Создаёт записи в БД со статусом 'queued'
+    - Имя оператора: из поля operator_name, или из имени файла
     """
     operator_name = fix_encoding(operator_name).strip()
     if len(files) > settings.max_batch_size:
@@ -93,6 +60,7 @@ async def upload_files(
             detail=f"Слишком много файлов. Максимум {settings.max_batch_size} за раз",
         )
 
+    # Pre-load existing hashes for dedup (single query)
     existing_rows = db.execute(
         select(FileModel.file_hash, FileModel.id).where(
             FileModel.status != "failed"
@@ -102,14 +70,11 @@ async def upload_files(
 
     validation_errors: list[ValidationError] = []
     accepted_file_ids: list[str] = []
-    accepted: list[AcceptedFile] = []
 
     for upload in files:
         filename = sanitize_filename(upload.filename or "unknown")
-        ext = Path(filename).suffix.lower()
-        file_id = uuid.uuid4()
 
-        # Determine operator
+        # Determine operator: from form field, or from filename
         file_operator_name = operator_name
         if not file_operator_name:
             parsed = parse_call_filename(filename)
@@ -118,51 +83,49 @@ async def upload_files(
             file_operator_name = "Неизвестный оператор"
         operator = _get_or_create_operator(db, file_operator_name)
 
-        # Stream to disk (.tmp file) with incremental SHA-256
-        tmp_path, file_hash, total_bytes, stream_err = await _stream_upload_to_disk(
-            upload, file_id, ext,
-        )
-        if stream_err:
-            validation_errors.append(ValidationError(file=filename, error=stream_err))
+        # Read with size guard
+        content = await upload.read(MAX_READ_SIZE)
+        if len(content) >= MAX_READ_SIZE:
+            validation_errors.append(
+                ValidationError(
+                    file=filename,
+                    error=f"Размер файла превышает лимит {settings.max_file_size_mb} MB",
+                )
+            )
             continue
 
-        # Validate on disk
-        result = validate_audio_file_path(
+        result = validate_audio_file(
             filename,
-            tmp_path,
-            file_hash,
-            total_bytes,
+            content,
             existing_hashes=set(hash_to_file_id.keys()),
         )
 
         if not result.valid:
-            tmp_path.unlink(missing_ok=True)
+            # Deduplication: return existing file_id instead of error
             if result.error and result.error.startswith("duplicate:"):
-                fh = result.error.split(":", 1)[1]
-                existing_id = hash_to_file_id.get(fh)
+                file_hash = result.error.split(":", 1)[1]
+                existing_id = hash_to_file_id.get(file_hash)
                 if existing_id:
                     accepted_file_ids.append(str(existing_id))
-                    accepted.append(AcceptedFile(
-                        file_id=str(existing_id),
-                        original_name=filename,
-                        is_duplicate=True,
-                    ))
                     continue
+
             validation_errors.append(ValidationError(file=filename, error=result.error or "Неизвестная ошибка"))
             continue
 
-        # Atomic rename .tmp → final
-        final_path = tmp_path.parent / f"{file_id}{ext}"
-        tmp_path.rename(final_path)
+        # Save to disk
+        ext = Path(filename).suffix.lower()
+        file_id = uuid.uuid4()
+        audio_path = _save_file_to_disk(file_id, ext, content)
 
+        # Create DB record (SAVEPOINT защищает от race condition дедупликации)
         db_file = FileModel(
             id=file_id,
             operator_id=operator.id,
             original_name=filename,
             file_hash=result.file_hash,
-            file_size=total_bytes,
+            file_size=len(content),
             duration_sec=result.duration_sec,
-            audio_path=str(final_path),
+            audio_path=str(audio_path),
             status="queued",
             stage=0,
             call_started_at=parse_call_started_at(filename),
@@ -172,7 +135,8 @@ async def upload_files(
                 db.add(db_file)
                 db.flush()
         except IntegrityError:
-            final_path.unlink(missing_ok=True)
+            # Race condition: другой запрос уже вставил этот хэш
+            audio_path.unlink(missing_ok=True)  # убираем дубль с диска
             existing = db.scalar(
                 select(FileModel.id).where(
                     FileModel.file_hash == result.file_hash,
@@ -181,21 +145,11 @@ async def upload_files(
             )
             if existing:
                 accepted_file_ids.append(str(existing))
-                accepted.append(AcceptedFile(
-                    file_id=str(existing),
-                    original_name=filename,
-                    is_duplicate=True,
-                ))
             continue
         hash_to_file_id[result.file_hash] = file_id
         accepted_file_ids.append(str(file_id))
-        accepted.append(AcceptedFile(
-            file_id=str(file_id),
-            original_name=filename,
-            is_duplicate=False,
-        ))
 
-    # Если ВСЕ файлы упали валидацией — откат и 400 (frontend поймёт ошибку)
+    # If ALL files failed validation → 400
     if validation_errors and not accepted_file_ids:
         db.rollback()
         raise HTTPException(
@@ -205,30 +159,18 @@ async def upload_files(
 
     db.commit()
 
+    # Enqueue new (non-duplicate) files for processing
     q = QueueManager.get_instance()
     for fid_str in accepted_file_ids:
         fid = uuid.UUID(fid_str)
+        # Skip duplicates — they already have results
         row = db.get(FileModel, fid)
         if row and row.status == "queued":
-            try:
-                q.enqueue_sync(fid)
-            except Exception as exc:
-                # Если очередь упала — помечаем файл failed, чтобы пользователь
-                # увидел ошибку, а не висящий "queued" навсегда
-                row.status = "failed"
-                row.error_message = f"Не удалось поставить в очередь: {exc}"
-                db.commit()
-                validation_errors.append(ValidationError(
-                    file=row.original_name,
-                    error="Сервис очереди недоступен — попробуй позже",
-                ))
+            q.enqueue_sync(fid)
 
-    # Частичный успех: 200 с принятыми ids + список ошибок per-file
     return UploadResponse(
-        accepted=accepted,
         file_ids=accepted_file_ids,
         operator=operator_name.strip(),
         status="queued",
         total_files=len(accepted_file_ids),
-        validation_errors=validation_errors,
     )

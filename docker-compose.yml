@@ -37,6 +37,13 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${DB_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      KIE_API_KEY: ${KIE_API_KEY:-}
+      KIE_PRIMARY_BASE_URL: ${KIE_PRIMARY_BASE_URL:-https://api.kie.ai/gemini-3-flash/v1}
+      KIE_FALLBACK_BASE_URL: ${KIE_FALLBACK_BASE_URL:-https://api.kie.ai/gemini-3-pro/v1}
+      LLM_MODEL: ${LLM_MODEL:-gemini-3-flash}
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-gemini-3-pro}
       MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-50000}
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-2000}
       AUDIO_RETENTION_DAYS: ${AUDIO_RETENTION_DAYS:-0}

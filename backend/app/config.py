@@ -12,13 +12,21 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://callanalytics:password@localhost:5432/callanalytics"
 
-    # OpenAI / OpenRouter
-    # Если openrouter_api_key задан — primary LLM-клиент идёт через OpenRouter.
+    # OpenAI / kie.ai / OpenRouter
+    # Приоритет primary LLM-провайдера: kie_api_key > openrouter_api_key > openai_api_key.
     # openai_api_key всё равно нужен для whisper-1 + gpt-4o-transcribe (STT).
+    # У kie.ai endpoint нестандартный: модель зашита в URL пути
+    # (https://api.kie.ai/<model>/v1/chat/completions). Поэтому primary/fallback —
+    # это разные base_url. Каждый запрос сначала идёт на primary (дешёвый flash),
+    # при 5xx/timeout/невалидном JSON-ответе автоматически ретраит на fallback (pro).
     openai_api_key: str = ""
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    llm_model: str = "gpt-5.4"
+    kie_api_key: str = ""
+    kie_primary_base_url: str = "https://api.kie.ai/gemini-3-flash/v1"
+    kie_fallback_base_url: str = "https://api.kie.ai/gemini-3-pro/v1"
+    llm_model: str = "gemini-3-flash"
+    llm_fallback_model: str = "gemini-3-pro"
 
     # Whisper
     whisper_model: str = "large-v3"

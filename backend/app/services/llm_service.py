@@ -283,6 +283,7 @@ class LLMService:
 
     _instance: "LLMService | None" = None
     _client: Any = None
+    _client_fallback: Any = None
 
     @classmethod
     def get_instance(cls) -> "LLMService":
@@ -291,23 +292,106 @@ class LLMService:
         return cls._instance
 
     def _get_client(self) -> Any:
-        """Lazy-init LLM client. Если задан OPENROUTER_API_KEY — primary через
-        OpenRouter (для gemini/claude/qwen и т.п.). Иначе — OpenAI direct."""
+        """Lazy-init primary LLM client. Приоритет: kie > openrouter > openai_direct.
+        У kie.ai модель зашита в base_url пути (/<model>/v1/...).
+        Для kie primary указывает на kie_primary_base_url (обычно flash)."""
         if self._client is not None:
             return self._client
         from openai import OpenAI
-        if settings.openrouter_api_key:
+        if settings.kie_api_key:
+            self._client = OpenAI(
+                api_key=settings.kie_api_key,
+                base_url=settings.kie_primary_base_url,
+            )
+            logger.info("LLM client (primary): kie.ai (%s)", settings.kie_primary_base_url)
+        elif settings.openrouter_api_key:
             self._client = OpenAI(
                 api_key=settings.openrouter_api_key,
                 base_url=settings.openrouter_base_url,
             )
-            logger.info("LLM client: OpenRouter (%s)", settings.openrouter_base_url)
+            logger.info("LLM client (primary): OpenRouter (%s)", settings.openrouter_base_url)
         elif settings.openai_api_key:
             self._client = OpenAI(api_key=settings.openai_api_key)
-            logger.info("LLM client: OpenAI direct")
+            logger.info("LLM client (primary): OpenAI direct")
         else:
             return None
         return self._client
+
+    def _get_fallback_client(self) -> Any:
+        """Lazy-init fallback LLM client (kie pro). Используется только если kie_api_key
+        задан и fallback URL отличается от primary. Для openrouter/openai фолбэка нет."""
+        if self._client_fallback is not None:
+            return self._client_fallback
+        if not settings.kie_api_key:
+            return None
+        if settings.kie_fallback_base_url == settings.kie_primary_base_url:
+            return None
+        from openai import OpenAI
+        self._client_fallback = OpenAI(
+            api_key=settings.kie_api_key,
+            base_url=settings.kie_fallback_base_url,
+        )
+        logger.info("LLM client (fallback): kie.ai (%s)", settings.kie_fallback_base_url)
+        return self._client_fallback
+
+    def chat_completion(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        timeout: int = 120,
+    ) -> tuple[str, str]:
+        """Универсальный вызов chat-completion с автоматическим fallback.
+
+        Сначала идёт на primary (обычно kie flash). При исключении (5xx, timeout,
+        невалидный JSON-ответ kie вида {"code":500,"msg":"..."}) — повторяет на
+        fallback (kie pro). Если оба упали — поднимает исключение последнего.
+
+        Возвращает кортеж (content, model_used), где model_used — ИМЯ ФАКТИЧЕСКИ
+        ОТВЕТИВШЕЙ модели (primary или fallback). Используется для аудита в БД.
+        """
+        primary = self._get_client()
+        fallback = self._get_fallback_client()
+
+        attempts: list[tuple[Any, str, str]] = []
+        if primary is not None:
+            attempts.append((primary, settings.llm_model, "primary"))
+        if fallback is not None:
+            attempts.append((fallback, settings.llm_fallback_model, "fallback"))
+
+        if not attempts:
+            raise RuntimeError("No LLM client configured (kie/openrouter/openai keys all empty)")
+
+        last_exc: Exception | None = None
+        for client, model, label in attempts:
+            try:
+                kwargs: dict[str, Any] = dict(
+                    model=model,
+                    messages=messages,
+                    timeout=timeout,
+                )
+                if not model.startswith("gpt-5"):
+                    kwargs["temperature"] = 0
+                if settings.kie_api_key:
+                    kwargs["extra_body"] = {"include_thoughts": False, "reasoning_effort": "low"}
+                elif settings.openrouter_api_key:
+                    kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+                response = client.chat.completions.create(**kwargs)
+                content = response.choices[0].message.content or ""
+                if label == "fallback":
+                    logger.warning(
+                        "LLM primary failed, served via fallback (%s)", model
+                    )
+                return content, model
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "LLM %s (%s) failed: %s: %s",
+                    label, model, type(exc).__name__, exc,
+                )
+                continue
+
+        assert last_exc is not None
+        raise last_exc
 
     # ------------------------------------------------------------------
     # Public API
@@ -376,10 +460,10 @@ class LLMService:
         for attempt in range(1, MAX_RETRIES + 1):
             sys_prompt = STRICT_SYSTEM_PROMPT if (strict or attempt > 1) else SYSTEM_PROMPT
             try:
-                raw = self._call_api(client, sys_prompt, user_message)
-                result = self._parse_and_validate(raw)
+                raw, model_used = self._call_api(client, sys_prompt, user_message)
+                result = self._parse_and_validate(raw, model_used=model_used)
                 if result is not None:
-                    logger.info("LLM analysis done on attempt %d", attempt)
+                    logger.info("LLM analysis done on attempt %d (model=%s)", attempt, model_used)
                     return result
                 logger.warning(
                     "LLM attempt %d: invalid JSON response, retrying…", attempt
@@ -419,30 +503,28 @@ class LLMService:
 
         return None  # graceful degradation
 
-    def _call_api(self, client: Any, system_prompt: str, user_message: str) -> str:
-        """Single chat-completion call. Параметры адаптируются под семейство модели:
-        - gpt-5-* (reasoning) не принимает temperature — параметр пропускается.
-        - OpenRouter-модели — выключаем reasoning через extra_body, иначе они
-          уходят в долгие thinking-цепочки и тратят 100-300сек на запрос.
-        """
-        model = settings.llm_model
-        kwargs: dict[str, Any] = dict(
-            model=model,
+    def _call_api(self, client: Any, system_prompt: str, user_message: str) -> tuple[str, str]:
+        """Wrapper над chat_completion. Возвращает (raw_text, model_used)."""
+        return self.chat_completion(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_message},
             ],
             timeout=120,
         )
-        if not model.startswith("gpt-5"):
-            kwargs["temperature"] = 0
-        if settings.openrouter_api_key:
-            kwargs["extra_body"] = {"reasoning": {"enabled": False}}
-        response = client.chat.completions.create(**kwargs)
-        return response.choices[0].message.content or ""
 
-    def _parse_and_validate(self, raw: str) -> AnalysisResult | None:
+    def _parse_and_validate(
+        self,
+        raw: str,
+        *,
+        model_used: str | None = None,
+    ) -> AnalysisResult | None:
         """Parse GPT-4 response and validate all required fields.
+
+        Args:
+            raw: raw LLM response text
+            model_used: имя фактически ответившей модели (primary/fallback) — пишется
+                в AnalysisResult.llm_model. Если не передано, fallback на settings.llm_model.
 
         Returns AnalysisResult or None if JSON is invalid / unparseable.
         """
@@ -579,6 +661,6 @@ class LLMService:
             details=full_details,
             criteria_version=CRITERIA_VERSION,
             quotes=valid_quotes,
-            llm_model=settings.llm_model,
+            llm_model=model_used or settings.llm_model,
             partial=partial,
         )

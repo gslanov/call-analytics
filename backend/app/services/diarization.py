@@ -637,21 +637,14 @@ class DiarizationService:
 
         try:
             from app.services.llm_service import LLMService
-            client = LLMService.get_instance()._get_client()
-            if client is None:
+            llm_service = LLMService.get_instance()
+            if llm_service._get_client() is None:
                 raise RuntimeError("LLM client not configured")
-            model = settings.llm_model
-            kwargs: dict[str, Any] = dict(
-                model=model,
+            raw_text, _diar_model = llm_service.chat_completion(
                 messages=[{"role": "user", "content": prompt}],
                 timeout=30,
             )
-            if not model.startswith("gpt-5"):
-                kwargs["temperature"] = 0
-            if settings.openrouter_api_key:
-                kwargs["extra_body"] = {"reasoning": {"enabled": False}}
-            response = client.chat.completions.create(**kwargs)
-            raw = (response.choices[0].message.content or "").strip()
+            raw = raw_text.strip()
             # Убираем markdown fence если есть
             if raw.startswith("```"):
                 raw = "\n".join(

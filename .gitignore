@@ -63,3 +63,15 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local working artefacts (PII calls, research notes, ad-hoc dumps, Claude config)
+callsrec/
+research/
+.claude/
+*_backup.json
+before_*.json
+gpt54_results_backup.json
+BASELINE_REPORT.md
+OpenAI
+tone_result.txt
+test_tone.py

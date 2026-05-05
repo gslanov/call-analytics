@@ -1,0 +1,126 @@
+# Паспорт прод-окружения для skill safe-deploy
+# Используется при /safe-deploy pre|post|triage
+
+project: call-analytics
+
+prod:
+  host: 193.42.125.171
+  ssh_user: root
+  path: /root/call-analytics
+  branch: fix/frontend-backend-contracts
+  url: https://calls.thepirogi.ru/
+  containers:
+    - name: call-analytics-backend
+      source_in_image: /app/app
+      source_on_host: backend/app
+      restart_cmd: "docker restart call-analytics-backend"
+      rebuild_cmd: "docker compose build --no-cache backend && docker compose up -d --force-recreate backend"
+    - name: call-analytics-frontend
+      source_in_image: /usr/share/nginx/html
+      source_on_host: frontend/dist
+      restart_cmd: "docker restart call-analytics-frontend"
+    - name: call-analytics-db
+      type: postgres
+    - name: call-analytics-mango-sync
+  db:
+    container: call-analytics-db
+    user: callanalytics
+    name: callanalytics
+
+# Тест-сервер (не использовать для смок-тестов deploy в прод!)
+test:
+  host: 45.152.87.62
+  ssh_user: root
+  path: /root/call-analytics
+  status_check: "ssh root@45.152.87.62 'docker ps --filter name=call-analytics'"
+
+env_required:
+  # Без этих переменных backend не работает
+  - DATABASE_URL
+  - OPENAI_API_KEY
+  - KIE_API_KEY
+  - KIE_PRIMARY_BASE_URL
+  - KIE_FALLBACK_BASE_URL
+  - LLM_MODEL
+  - LLM_FALLBACK_MODEL
+  - BASIC_AUTH_USER
+  - BASIC_AUTH_PASSWORD
+  - PIPELINE_CONCURRENCY
+
+invariants:
+  # Должны возвращать 0 на здоровом проде. >0 = регрессия.
+
+  - name: no_files_with_null_call_date_for_mango_names
+    desc: "Все файлы с именем формата Манго должны иметь call_started_at"
+    query: |
+      SELECT COUNT(*) FROM files
+      WHERE call_started_at IS NULL
+        AND original_name ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}__[0-9]{2}-[0-9]{2}-[0-9]{2}__';
+    severity: critical
+    why: "В апреле много раз ловили: РОП ставит фильтр по дате, видит 0 — потому что upload.py не заполнил call_started_at"
+
+  - name: no_long_running_files
+    desc: "Файлы не должны висеть в processing больше часа"
+    query: |
+      SELECT COUNT(*) FROM files
+      WHERE status IN ('transcribing','diarizing','analyzing')
+        AND updated_at < NOW() - INTERVAL '1 hour';
+    severity: warning
+
+  - name: domain_prompt_empty_in_whisper
+    desc: "DOMAIN_PROMPT не должен возвращаться в whisper-вызовы (корень массовых правок РОП)"
+    cmd: "ssh root@193.42.125.171 \"docker exec call-analytics-backend grep -n 'DOMAIN_PROMPT' /app/app/services/whisper_service.py\""
+    expect_pattern: "DOMAIN_PROMPT\\s*=\\s*['\"]['\"]"
+    severity: critical
+
+smoke:
+  - name: api_health_via_basic_auth
+    cmd: |
+      ssh root@193.42.125.171 "curl -fs -u 'pirogi-rop:yX2ITi2dSTwj6lyrq7RkLh' http://127.0.0.1:8001/api/v1/health"
+    expect: 200
+
+  - name: reports_today
+    desc: "Отчёт за сегодня возвращает корректную структуру"
+    cmd: |
+      ssh root@193.42.125.171 "curl -fs -u 'pirogi-rop:yX2ITi2dSTwj6lyrq7RkLh' 'http://127.0.0.1:8001/api/v1/reports?date_from=$(date +%Y-%m-%d)&date_to=$(date +%Y-%m-%d)'"
+    expect_json_keys: ["operators", "overall", "filters"]
+
+  - name: container_source_matches_host
+    desc: "Файлы в образе должны совпадать с исходниками на хосте (иначе compose up -d откатит правки)"
+    cmd: |
+      ssh root@193.42.125.171 "diff <(docker exec call-analytics-backend cat /app/app/routers/upload.py) /root/call-analytics/backend/app/routers/upload.py"
+    expect_exit: 0
+    severity: critical
+
+# Известные грабли проекта — учитывать при любом деплое
+known_pitfalls:
+  - id: docker_cp_volatility
+    desc: "docker cp правки выживают restart но НЕ выживают compose up -d (даже без --build)"
+    mitigation: "Любая правка через git, не через docker cp. Если все же через docker cp — сразу же commit+push."
+
+  - id: env_in_compose
+    desc: "Простого .env + docker restart не хватает — нужен environment блок в docker-compose.yml + force-recreate"
+    mitigation: "При добавлении новой env-переменной править docker-compose.yml И .env, потом force-recreate"
+
+  - id: alembic_drift
+    desc: "БД на ревизии a7b8c9d0e1f2, миграции применять вручную через psql IF NOT EXISTS — alembic upgrade head падает"
+    mitigation: "Не запускать alembic upgrade head. Применять SQL вручную."
+
+  - id: prod_git_drift
+    desc: "По состоянию на 04.05.2026 на проде HEAD c934657 (07.04), а origin/HEAD 47fa0a0. 76 файлов разъехались."
+    mitigation: "НЕ делать git reset --hard на проде без полного аудита расхождений (см. plan_full_prod_sync.md)"
+
+  - id: kie_flash_maintenance
+    desc: "kie.ai периодически кладёт gemini-3-flash в maintenance — fallback автоматом на gemini-3-pro"
+    mitigation: "Не алармить если LLM_MODEL=flash а в логах pro — это нормально"
+
+# Команды отката
+rollback:
+  backups_dir: /root/backups/
+  last_known_good_image: "tar в /root/backups/sync-*/backend_container_app.tar.gz"
+  procedure: |
+    1. docker compose stop backend
+    2. distro tar xzf /root/backups/sync-LATEST/backend_container_app.tar.gz -C /tmp/restore
+    3. docker compose up -d --no-build backend  # на текущем образе
+    4. docker cp /tmp/restore/app call-analytics-backend:/app/  # вернуть рабочее состояние
+    5. docker restart call-analytics-backend

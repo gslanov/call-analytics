@@ -282,8 +282,7 @@ class LLMService:
     """GPT-4 analysis service (singleton)."""
 
     _instance: "LLMService | None" = None
-    _client: Any = None
-    _client_fallback: Any = None
+    _clients_cache: list[dict[str, Any]] | None = None
 
     @classmethod
     def get_instance(cls) -> "LLMService":
@@ -292,47 +291,82 @@ class LLMService:
         return cls._instance
 
     def _get_client(self) -> Any:
-        """Lazy-init primary LLM client. Приоритет: kie > openrouter > openai_direct.
-        У kie.ai модель зашита в base_url пути (/<model>/v1/...).
-        Для kie primary указывает на kie_primary_base_url (обычно flash)."""
-        if self._client is not None:
-            return self._client
-        from openai import OpenAI
-        if settings.kie_api_key:
-            self._client = OpenAI(
-                api_key=settings.kie_api_key,
-                base_url=settings.kie_primary_base_url,
-            )
-            logger.info("LLM client (primary): kie.ai (%s)", settings.kie_primary_base_url)
-        elif settings.openrouter_api_key:
-            self._client = OpenAI(
-                api_key=settings.openrouter_api_key,
-                base_url=settings.openrouter_base_url,
-            )
-            logger.info("LLM client (primary): OpenRouter (%s)", settings.openrouter_base_url)
-        elif settings.openai_api_key:
-            self._client = OpenAI(api_key=settings.openai_api_key)
-            logger.info("LLM client (primary): OpenAI direct")
-        else:
-            return None
-        return self._client
+        """Возвращает первый доступный клиент из fallback-цепочки или None.
 
-    def _get_fallback_client(self) -> Any:
-        """Lazy-init fallback LLM client (kie pro). Используется только если kie_api_key
-        задан и fallback URL отличается от primary. Для openrouter/openai фолбэка нет."""
-        if self._client_fallback is not None:
-            return self._client_fallback
-        if not settings.kie_api_key:
-            return None
-        if settings.kie_fallback_base_url == settings.kie_primary_base_url:
-            return None
+        Используется внешним кодом (health, pipeline, diarization) чтобы понять
+        «настроен ли вообще LLM» — точно такая же семантика, как до 06.05.
+        """
+        attempts = self._build_attempts()
+        return attempts[0]["client"] if attempts else None
+
+    @property
+    def _client(self) -> Any:
+        """Backward-compat для health.py:31 (svc._client is not None)."""
+        return self._get_client()
+
+    def _build_attempts(self) -> list[dict[str, Any]]:
+        """Строит цепочку LLM-кандидатов в порядке fallback.
+
+        Цепочка (06.05.2026 — после массового лежания kie.ai gemini):
+          1. kie + gemini-3-flash   (primary, дешёвый)
+          2. kie + gemini-3-pro     (fallback 1)
+          3. kie + gpt-5-2          (fallback 2)
+          4. OpenAI direct + gpt-5.4 (fallback 3 — последняя надежда)
+
+        Каждый клиент — отдельный OpenAI() с своим api_key/base_url. Кэшируется
+        в self._clients_cache на первом вызове.
+
+        Если kie_api_key не задан — kie-уровни пропускаются.
+        Если openai_api_key не задан — OpenAI direct пропускается.
+        """
+        if self._clients_cache is not None:
+            return self._clients_cache
+
         from openai import OpenAI
-        self._client_fallback = OpenAI(
-            api_key=settings.kie_api_key,
-            base_url=settings.kie_fallback_base_url,
-        )
-        logger.info("LLM client (fallback): kie.ai (%s)", settings.kie_fallback_base_url)
-        return self._client_fallback
+        attempts: list[dict[str, Any]] = []
+
+        if settings.kie_api_key:
+            kie_levels = [
+                ("kie/flash", settings.kie_primary_base_url, settings.llm_model),
+                ("kie/pro", settings.kie_fallback_base_url, settings.llm_fallback_model),
+                ("kie/gpt5-2", settings.kie_fallback2_base_url, settings.llm_fallback2_model),
+            ]
+            seen_urls: set[str] = set()
+            for label, base_url, model in kie_levels:
+                if not base_url or base_url in seen_urls:
+                    continue
+                seen_urls.add(base_url)
+                attempts.append({
+                    "label": label,
+                    "client": OpenAI(api_key=settings.kie_api_key, base_url=base_url),
+                    "model": model,
+                    "provider": "kie",
+                })
+
+        if settings.openrouter_api_key:
+            attempts.append({
+                "label": "openrouter",
+                "client": OpenAI(
+                    api_key=settings.openrouter_api_key,
+                    base_url=settings.openrouter_base_url,
+                ),
+                "model": settings.llm_model,
+                "provider": "openrouter",
+            })
+
+        if settings.openai_api_key:
+            attempts.append({
+                "label": "openai-direct",
+                "client": OpenAI(api_key=settings.openai_api_key),
+                "model": settings.openai_direct_model,
+                "provider": "openai",
+            })
+
+        for a in attempts:
+            logger.info("LLM chain: %s → %s", a["label"], a["model"])
+
+        self._clients_cache = attempts
+        return attempts
 
     def chat_completion(
         self,
@@ -340,29 +374,25 @@ class LLMService:
         *,
         timeout: int = 120,
     ) -> tuple[str, str]:
-        """Универсальный вызов chat-completion с автоматическим fallback.
+        """Универсальный вызов chat-completion с цепочкой fallback из 4 уровней.
 
-        Сначала идёт на primary (обычно kie flash). При исключении (5xx, timeout,
-        невалидный JSON-ответ kie вида {"code":500,"msg":"..."}) — повторяет на
-        fallback (kie pro). Если оба упали — поднимает исключение последнего.
+        Цепочка: kie/flash → kie/pro → kie/gpt5-2 → openai-direct/gpt-5.4.
+        На каждом уровне ловим:
+          - HTTP исключения (5xx, timeout, etc.) — идём на следующий уровень
+          - kie {"code":..., "msg":...} в теле 200-OK ответа (choices=None) —
+            на следующий уровень
+          - Пустой content — на следующий уровень
 
-        Возвращает кортеж (content, model_used), где model_used — ИМЯ ФАКТИЧЕСКИ
-        ОТВЕТИВШЕЙ модели (primary или fallback). Используется для аудита в БД.
+        Возвращает (content, model_used). model_used — ИМЯ ФАКТИЧЕСКИ ОТВЕТИВШЕЙ
+        модели, пишется в AnalysisResult.llm_model для аудита.
         """
-        primary = self._get_client()
-        fallback = self._get_fallback_client()
-
-        attempts: list[tuple[Any, str, str]] = []
-        if primary is not None:
-            attempts.append((primary, settings.llm_model, "primary"))
-        if fallback is not None:
-            attempts.append((fallback, settings.llm_fallback_model, "fallback"))
-
+        attempts = self._build_attempts()
         if not attempts:
             raise RuntimeError("No LLM client configured (kie/openrouter/openai keys all empty)")
 
         last_exc: Exception | None = None
-        for client, model, label in attempts:
+        for idx, a in enumerate(attempts):
+            label, client, model, provider = a["label"], a["client"], a["model"], a["provider"]
             try:
                 kwargs: dict[str, Any] = dict(
                     model=model,
@@ -371,17 +401,30 @@ class LLMService:
                 )
                 if not model.startswith("gpt-5"):
                     kwargs["temperature"] = 0
-                if settings.kie_api_key:
+                if provider == "kie":
                     kwargs["extra_body"] = {"include_thoughts": False, "reasoning_effort": "low"}
-                elif settings.openrouter_api_key:
+                elif provider == "openrouter":
                     kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+
                 response = client.chat.completions.create(**kwargs)
-                content = response.choices[0].message.content or ""
-                if label == "fallback":
+
+                # kie.ai отдаёт HTTP 200 с body {"code":400,"msg":"maintenance"} когда
+                # модель лежит. SDK строит ChatCompletion с choices=None — пробуем дальше.
+                if not response.choices:
+                    raise RuntimeError(
+                        f"{label}: empty/null choices (likely kie maintenance) — full response: {response}"
+                    )
+                msg = response.choices[0].message
+                content = (msg.content or "").strip() if msg else ""
+                if not content:
+                    raise RuntimeError(f"{label}: empty content")
+
+                if idx > 0:
                     logger.warning(
-                        "LLM primary failed, served via fallback (%s)", model
+                        "LLM served via fallback level %d (%s/%s)", idx, label, model
                     )
                 return content, model
+
             except Exception as exc:
                 last_exc = exc
                 logger.warning(

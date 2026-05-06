@@ -25,8 +25,13 @@ class Settings(BaseSettings):
     kie_api_key: str = ""
     kie_primary_base_url: str = "https://api.kie.ai/gemini-3-flash/v1"
     kie_fallback_base_url: str = "https://api.kie.ai/gemini-3-pro/v1"
+    kie_fallback2_base_url: str = "https://api.kie.ai/gpt-5-2/v1"
     llm_model: str = "gemini-3-flash"
     llm_fallback_model: str = "gemini-3-pro"
+    llm_fallback2_model: str = "gpt-5-2"
+    # 4-й уровень — прямой OpenAI на тот же openai_api_key (последняя надежда,
+    # когда вся kie-цепочка лежит). Модель gpt-5.4 — как было до 01.05.
+    openai_direct_model: str = "gpt-5.4"
 
     # Whisper
     whisper_model: str = "large-v3"

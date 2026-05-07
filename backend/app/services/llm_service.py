@@ -307,17 +307,17 @@ class LLMService:
     def _build_attempts(self) -> list[dict[str, Any]]:
         """Строит цепочку LLM-кандидатов в порядке fallback.
 
-        Цепочка (06.05.2026 — после массового лежания kie.ai gemini):
-          1. kie + gemini-3-flash   (primary, дешёвый)
-          2. kie + gemini-3-pro     (fallback 1)
-          3. kie + gpt-5-2          (fallback 2)
-          4. OpenAI direct + gpt-5.4 (fallback 3 — последняя надежда)
+        Цепочка (07.05.2026 — kie скрыта, gemini напрямую):
+          1. gemini-direct + gemini-3-flash-preview (Google AI Studio, OpenAI-compat)
+          2. openai-fallback + gpt-5-mini           (промежуточный)
+          3. openai-direct + gpt-5.4                (последняя надежда)
+
+        kie-цепочка временно скрыта флагом settings.kie_disabled — код оставлен,
+        включить обратно одним env: KIE_DISABLED=0. Если флаг снят и kie_api_key
+        задан — kie-уровни добавляются МЕЖДУ gemini и openai-fallback.
 
         Каждый клиент — отдельный OpenAI() с своим api_key/base_url. Кэшируется
         в self._clients_cache на первом вызове.
-
-        Если kie_api_key не задан — kie-уровни пропускаются.
-        Если openai_api_key не задан — OpenAI direct пропускается.
         """
         if self._clients_cache is not None:
             return self._clients_cache
@@ -325,7 +325,18 @@ class LLMService:
         from openai import OpenAI
         attempts: list[dict[str, Any]] = []
 
-        if settings.kie_api_key:
+        if settings.gemini_api_key:
+            attempts.append({
+                "label": "gemini-direct",
+                "client": OpenAI(
+                    api_key=settings.gemini_api_key,
+                    base_url=settings.gemini_base_url,
+                ),
+                "model": settings.gemini_direct_model,
+                "provider": "gemini",
+            })
+
+        if settings.kie_api_key and not settings.kie_disabled:
             kie_levels = [
                 ("kie/flash", settings.kie_primary_base_url, settings.llm_model),
                 ("kie/pro", settings.kie_fallback_base_url, settings.llm_fallback_model),
@@ -352,6 +363,14 @@ class LLMService:
                 ),
                 "model": settings.llm_model,
                 "provider": "openrouter",
+            })
+
+        if settings.openai_api_key and settings.openai_fallback_model:
+            attempts.append({
+                "label": "openai-fallback",
+                "client": OpenAI(api_key=settings.openai_api_key),
+                "model": settings.openai_fallback_model,
+                "provider": "openai",
             })
 
         if settings.openai_api_key:
@@ -405,6 +424,12 @@ class LLMService:
                     kwargs["extra_body"] = {"include_thoughts": False, "reasoning_effort": "low"}
                 elif provider == "openrouter":
                     kwargs["extra_body"] = {"reasoning": {"enabled": False}}
+                elif provider == "gemini":
+                    # Gemini 3 Flash — thinking-модель. Без этого reasoning-токены
+                    # тарифицируются как output ($3/M) и легко удваивают-утраивают
+                    # цену на ровном месте. "low" вместо "none" — чтобы качество
+                    # не просело на сложных диалогах.
+                    kwargs["reasoning_effort"] = "low"
 
                 response = client.chat.completions.create(**kwargs)
 

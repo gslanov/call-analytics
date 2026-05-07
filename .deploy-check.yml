@@ -38,11 +38,10 @@ env_required:
   # Без этих переменных backend не работает
   - DATABASE_URL
   - OPENAI_API_KEY
-  - KIE_API_KEY
-  - KIE_PRIMARY_BASE_URL
-  - KIE_FALLBACK_BASE_URL
-  - LLM_MODEL
-  - LLM_FALLBACK_MODEL
+  - OPENAI_FALLBACK_MODEL
+  - OPENAI_DIRECT_MODEL
+  - GEMINI_API_KEY
+  - GEMINI_DIRECT_MODEL
   - BASIC_AUTH_USER
   - BASIC_AUTH_PASSWORD
   - PIPELINE_CONCURRENCY
@@ -112,7 +111,15 @@ known_pitfalls:
 
   - id: kie_flash_maintenance
     desc: "kie.ai периодически кладёт gemini-3-flash в maintenance — fallback автоматом на gemini-3-pro"
-    mitigation: "Не алармить если LLM_MODEL=flash а в логах pro — это нормально"
+    mitigation: "Не алармить если LLM_MODEL=flash а в логах pro — это нормально (kie сейчас отключена)"
+
+  - id: kie_disabled_07_05
+    desc: "kie скрыта флагом KIE_DISABLED=1 (07.05.2026). Прод гоняет gemini напрямую через Google AI Studio."
+    mitigation: "Включить kie обратно: KIE_DISABLED=0 + force-recreate backend"
+
+  - id: gemini_thinking_overhead
+    desc: "Gemini 3 Flash — thinking-модель. Без reasoning_effort=low съедает 3-5x output-токенов (тарифицируются как $3/M)"
+    mitigation: "В llm_service.py:chat_completion для provider=='gemini' передаём reasoning_effort='low' — НЕ убирать"
 
 # Команды отката
 rollback:

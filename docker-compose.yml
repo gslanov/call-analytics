@@ -37,8 +37,14 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${DB_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_FALLBACK_MODEL: ${OPENAI_FALLBACK_MODEL:-gpt-5-mini}
+      OPENAI_DIRECT_MODEL: ${OPENAI_DIRECT_MODEL:-gpt-5.4}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}
+      GEMINI_DIRECT_MODEL: ${GEMINI_DIRECT_MODEL:-gemini-3-flash-preview}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      KIE_DISABLED: ${KIE_DISABLED:-1}
       KIE_API_KEY: ${KIE_API_KEY:-}
       KIE_PRIMARY_BASE_URL: ${KIE_PRIMARY_BASE_URL:-https://api.kie.ai/gemini-3-flash/v1}
       KIE_FALLBACK_BASE_URL: ${KIE_FALLBACK_BASE_URL:-https://api.kie.ai/gemini-3-pro/v1}

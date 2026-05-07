@@ -12,16 +12,33 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://callanalytics:password@localhost:5432/callanalytics"
 
-    # OpenAI / kie.ai / OpenRouter
-    # Приоритет primary LLM-провайдера: kie_api_key > openrouter_api_key > openai_api_key.
+    # OpenAI / Gemini / kie.ai / OpenRouter
+    # Цепочка LLM-fallback (07.05.2026):
+    #   1. gemini-direct (Google AI Studio, OpenAI-compat endpoint)
+    #   2. openai-fallback (gpt-5-mini)
+    #   3. openai-direct (gpt-5.4 — последняя надежда)
+    # Старая kie-цепочка временно скрыта флагом kie_disabled — код оставлен,
+    # включить обратно одним env: KIE_DISABLED=0.
     # openai_api_key всё равно нужен для whisper-1 + gpt-4o-transcribe (STT).
-    # У kie.ai endpoint нестандартный: модель зашита в URL пути
-    # (https://api.kie.ai/<model>/v1/chat/completions). Поэтому primary/fallback —
-    # это разные base_url. Каждый запрос сначала идёт на primary (дешёвый flash),
-    # при 5xx/timeout/невалидном JSON-ответе автоматически ретраит на fallback (pro).
     openai_api_key: str = ""
+
+    # Gemini direct (Google AI Studio, OpenAI-compat endpoint).
+    # Получение ключа: https://aistudio.google.com/apikey
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    gemini_direct_model: str = "gemini-3-flash-preview"
+
+    # OpenAI промежуточный fallback (между gemini и gpt-5.4)
+    openai_fallback_model: str = "gpt-5-mini"
+
+    # OpenRouter — оставлен на случай если когда-нибудь понадобится
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    # kie.ai — временно скрыта (код сохранён, включить обратно: KIE_DISABLED=0)
+    # У kie.ai endpoint нестандартный: модель зашита в URL пути
+    # (https://api.kie.ai/<model>/v1/chat/completions).
+    kie_disabled: bool = True
     kie_api_key: str = ""
     kie_primary_base_url: str = "https://api.kie.ai/gemini-3-flash/v1"
     kie_fallback_base_url: str = "https://api.kie.ai/gemini-3-pro/v1"
@@ -29,8 +46,8 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-3-flash"
     llm_fallback_model: str = "gemini-3-pro"
     llm_fallback2_model: str = "gpt-5-2"
-    # 4-й уровень — прямой OpenAI на тот же openai_api_key (последняя надежда,
-    # когда вся kie-цепочка лежит). Модель gpt-5.4 — как было до 01.05.
+
+    # Последний уровень — прямой OpenAI gpt-5.4 (как было до 01.05).
     openai_direct_model: str = "gpt-5.4"
 
     # Whisper

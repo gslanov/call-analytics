@@ -430,6 +430,12 @@ class LLMService:
                     # цену на ровном месте. "low" вместо "none" — чтобы качество
                     # не просело на сложных диалогах.
                     kwargs["reasoning_effort"] = "low"
+                elif provider == "openai" and model.startswith("gpt-5"):
+                    # gpt-5* семейство OpenAI — все thinking. По умолчанию reasoning
+                    # medium → 30+ сек на 22-критериальный анализ → APITimeoutError
+                    # при 120s timeout (07.05 в логах было 5 таймаутов за 6 часов).
+                    # "minimal" отключает thinking-overhead, ответ за 3-5 сек.
+                    kwargs["reasoning_effort"] = "minimal"
 
                 response = client.chat.completions.create(**kwargs)
 

@@ -28,8 +28,11 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     gemini_direct_model: str = "gemini-3-flash-preview"
 
-    # OpenAI промежуточный fallback (между gemini и gpt-5.4)
-    openai_fallback_model: str = "gpt-5-mini"
+    # OpenAI промежуточный fallback (между gemini и gpt-5.4).
+    # gpt-4o-mini — non-thinking, быстрая (2-3 сек), дешёвая ($0.15/M in, $0.60/M out).
+    # Раньше был gpt-5-mini, но он thinking-модель и таймаутил на 22-критериальном
+    # анализе при 120s timeout (см. логи 07.05 — APITimeoutError).
+    openai_fallback_model: str = "gpt-4o-mini"
 
     # OpenRouter — оставлен на случай если когда-нибудь понадобится
     openrouter_api_key: str = ""

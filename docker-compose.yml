@@ -37,7 +37,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${DB_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_FALLBACK_MODEL: ${OPENAI_FALLBACK_MODEL:-gpt-5-mini}
+      OPENAI_FALLBACK_MODEL: ${OPENAI_FALLBACK_MODEL:-gpt-4o-mini}
       OPENAI_DIRECT_MODEL: ${OPENAI_DIRECT_MODEL:-gpt-5.4}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}

@@ -66,14 +66,17 @@ def fetch_calls(reference_model: str, limit: int) -> list[dict[str, Any]]:
         return [dict(r) for r in rows]
 
 
-def call_candidate(client: OpenAI, model: str, transcript: str, reasoning: str = "low") -> tuple[dict, float]:
+def call_candidate(client: OpenAI, model: str, transcript: str, reasoning: str = "low", provider: str = "openai") -> tuple[dict, float]:
     t0 = time.time()
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user",   "content": f"=== Полный диалог (с таймстемпами и спикерами) ===\n{transcript.strip()}"},
     ]
     kwargs: dict[str, Any] = dict(model=model, messages=messages, timeout=300)
-    if model.startswith("gpt-5"):
+    if provider == "gemini":
+        kwargs["reasoning_effort"] = reasoning
+        kwargs["temperature"] = 0
+    elif model.startswith("gpt-5"):
         kwargs["reasoning_effort"] = reasoning
     else:
         kwargs["temperature"] = 0
@@ -127,7 +130,8 @@ def main():
     ap.add_argument("--reference", default="gpt-4o-mini", help="model to compare against")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--dump", default=None, help="path to save raw JSON dump")
-    ap.add_argument("--reasoning", default="low", help="reasoning_effort for gpt-5* (minimal/low/medium/high)")
+    ap.add_argument("--reasoning", default="low", help="reasoning_effort for gpt-5*/gemini (minimal/low/medium/high)")
+    ap.add_argument("--provider", default="openai", choices=("openai", "gemini"), help="OpenAI direct or Gemini via base_url")
     args = ap.parse_args()
 
     calls = fetch_calls(args.reference, args.limit)
@@ -139,7 +143,13 @@ def main():
 
     print(f"Comparing {args.candidate} vs {args.reference} on {len(calls)} calls\n")
 
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    if args.provider == "gemini":
+        client = OpenAI(
+            api_key=os.environ["GEMINI_API_KEY"],
+            base_url=os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"),
+        )
+    else:
+        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     rows = []
     times: list[float] = []
@@ -162,7 +172,7 @@ def main():
             },
         }
         try:
-            data, elapsed = call_candidate(client, args.candidate, c["transcript"], reasoning=args.reasoning)
+            data, elapsed = call_candidate(client, args.candidate, c["transcript"], reasoning=args.reasoning, provider=args.provider)
             new = parse_scores(data)
             times.append(elapsed)
             record["candidate"] = {

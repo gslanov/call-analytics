@@ -479,7 +479,7 @@ class PipelineOrchestrator:
                     {"role": "system", "content": self._MERGE_PROMPT},
                     {"role": "user", "content": user_msg},
                 ],
-                timeout=120,
+                timeout=300,
             )
             logger.info("Triple merge served by model=%s", model_used)
             return text

@@ -29,10 +29,10 @@ class Settings(BaseSettings):
     gemini_direct_model: str = "gemini-3-flash-preview"
 
     # OpenAI промежуточный fallback (между gemini и gpt-5.4).
-    # gpt-4o-mini — non-thinking, быстрая (2-3 сек), дешёвая ($0.15/M in, $0.60/M out).
-    # Раньше был gpt-5-mini, но он thinking-модель и таймаутил на 22-критериальном
-    # анализе при 120s timeout (см. логи 07.05 — APITimeoutError).
-    openai_fallback_model: str = "gpt-4o-mini"
+    # gpt-5-mini с reasoning_effort=low и timeout=300 — качество ~75% точности
+    # (тестили 08.05 на 5 звонках Лады, gpt-4o-mini давала 37% точности с
+    # пропусками очевидных позитивов, gpt-5-nano 23% + галлюцинации).
+    openai_fallback_model: str = "gpt-5-mini"
 
     # OpenRouter — оставлен на случай если когда-нибудь понадобится
     openrouter_api_key: str = ""

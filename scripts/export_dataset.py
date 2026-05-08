@@ -74,12 +74,16 @@ def _infer_criteria_version(row: dict[str, Any]) -> str | None:
     return "v4" if analyzed >= cutoff else "v3"
 
 
-def fetch_all_calls(only_classical: bool = False) -> list[dict[str, Any]]:
-    """Тянет ВСЕ звонки со статусом done и связанными analyses/transcriptions/diarizations."""
+def fetch_all_calls(only_classical: bool = False, require_analysis: bool = True) -> list[dict[str, Any]]:
+    """Тянет звонки со статусом done и связанными analyses/transcriptions/diarizations.
+    require_analysis=True (default) — только звонки С анализом (готовые пары для дообучения).
+    """
     engine = create_engine(os.environ["DATABASE_URL"])
     where = "f.status = 'done'"
     if only_classical:
         where += " AND f.call_type = 'classical'"
+    if require_analysis:
+        where += " AND a.id IS NOT NULL AND t.full_text IS NOT NULL AND f.audio_path IS NOT NULL"
 
     sql = f"""
         SELECT
@@ -162,6 +166,7 @@ def main():
     ap.add_argument("--output", required=True, help="Output dir (will contain dataset.jsonl + audio/)")
     ap.add_argument("--only-classical", action="store_true", help="Только classical звонки (default: все типы)")
     ap.add_argument("--no-audio", action="store_true", help="Пропустить копирование аудио (только метаданные)")
+    ap.add_argument("--include-without-analysis", action="store_true", help="Включить звонки без analysis (по умолчанию выкидываются)")
     ap.add_argument("--limit", type=int, default=0, help="Ограничить N записями для теста (0 = все)")
     args = ap.parse_args()
 
@@ -170,8 +175,8 @@ def main():
     audio_dir = out / "audio"
     audio_dir.mkdir(exist_ok=True)
 
-    log.info("Fetching calls from DB (only_classical=%s)…", args.only_classical)
-    calls = fetch_all_calls(only_classical=args.only_classical)
+    log.info("Fetching calls from DB (only_classical=%s, require_analysis=%s)…", args.only_classical, not args.include_without_analysis)
+    calls = fetch_all_calls(only_classical=args.only_classical, require_analysis=not args.include_without_analysis)
     if args.limit:
         calls = calls[:args.limit]
     log.info("Got %d calls", len(calls))

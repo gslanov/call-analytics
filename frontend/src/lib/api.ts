@@ -77,6 +77,129 @@ export async function uploadFiles(
   })
 }
 
+// Чанковый upload: режет большой батч на пачки по chunkSize, шлёт их
+// последовательно. При сетевой ошибке ретраит чанк (не весь батч).
+// Уже залитые чанки сохраняются в БД на сервере (дедуп по SHA-256 не пустит
+// дубли при повторной загрузке тех же файлов).
+
+export interface ChunkedUploadOptions {
+  chunkSize?: number          // default 20
+  maxRetries?: number         // default 2 — только при сетевых ошибках, не при HTTP 4xx
+  retryDelayMs?: number       // default 1000 — стартовая задержка, удваивается на каждый ретрай
+  onOverallProgress?: (percent: number) => void
+  onChunkComplete?: (chunkIdx: number, totalChunks: number, result: UploadResponse) => void
+  signal?: AbortSignal
+}
+
+// Сетевая ошибка: ApiError без status (см. networkError() в errors.ts).
+// Abort: ApiError с message === 'Загрузка отменена'.
+// HTTP 4xx/5xx: ApiError с status — не ретраим.
+function isRetryableNetworkError(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false
+  if (err.parsed.status !== undefined) return false
+  if (err.parsed.message === 'Загрузка отменена') return false
+  return true
+}
+
+function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new ApiError({ message: 'Загрузка отменена' }))
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(new ApiError({ message: 'Загрузка отменена' }))
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+export async function uploadFilesChunked(
+  files: File[],
+  operatorName: string,
+  opts: ChunkedUploadOptions = {},
+): Promise<UploadResponse> {
+  const chunkSize = opts.chunkSize ?? 20
+  const maxRetries = opts.maxRetries ?? 2
+  const baseDelay = opts.retryDelayMs ?? 1000
+  const signal = opts.signal
+
+  const chunks: File[][] = []
+  for (let i = 0; i < files.length; i += chunkSize) {
+    chunks.push(files.slice(i, i + chunkSize))
+  }
+
+  // Если пачка одна — нет смысла в чанкинге, используем uploadFiles напрямую,
+  // прогресс будет точный как раньше.
+  if (chunks.length <= 1) {
+    return uploadFiles(files, operatorName, opts.onOverallProgress, signal)
+  }
+
+  const aggregated: UploadResponse = {
+    accepted: [],
+    file_ids: [],
+    operator: operatorName,
+    status: 'queued',
+    total_files: 0,
+    validation_errors: [],
+  }
+
+  let filesDoneBefore = 0
+
+  for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+    if (signal?.aborted) throw new ApiError({ message: 'Загрузка отменена' })
+
+    const chunk = chunks[chunkIdx]
+    let attempt = 0
+
+    while (true) {
+      try {
+        const result = await uploadFiles(
+          chunk,
+          operatorName,
+          (chunkPercent) => {
+            if (!opts.onOverallProgress) return
+            const overallFilesDone = filesDoneBefore + (chunkPercent / 100) * chunk.length
+            opts.onOverallProgress(Math.round((overallFilesDone / files.length) * 100))
+          },
+          signal,
+        )
+
+        aggregated.file_ids.push(...result.file_ids)
+        aggregated.total_files += result.total_files
+        if (result.accepted && result.accepted.length > 0) {
+          aggregated.accepted = [...(aggregated.accepted ?? []), ...result.accepted]
+        }
+        if (result.validation_errors && result.validation_errors.length > 0) {
+          aggregated.validation_errors = [
+            ...(aggregated.validation_errors ?? []),
+            ...result.validation_errors,
+          ]
+        }
+        if (result.operator) aggregated.operator = result.operator
+
+        opts.onChunkComplete?.(chunkIdx, chunks.length, result)
+        filesDoneBefore += chunk.length
+        opts.onOverallProgress?.(Math.round((filesDoneBefore / files.length) * 100))
+        break
+      } catch (err) {
+        if (signal?.aborted) throw err
+        if (!isRetryableNetworkError(err) || attempt >= maxRetries) throw err
+
+        attempt += 1
+        await sleepWithAbort(baseDelay * attempt, signal)  // 1s, 2s
+      }
+    }
+  }
+
+  return aggregated
+}
+
 export async function fetchOperators(query: string): Promise<string[]> {
   const url = `${API_BASE_URL}/operators?q=${encodeURIComponent(query)}`
   const response = await fetch(url)

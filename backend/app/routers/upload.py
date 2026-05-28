@@ -1,5 +1,6 @@
 """POST /api/v1/upload — batch audio file upload with validation and deduplication."""
 
+import asyncio
 import shutil
 import uuid
 from pathlib import Path
@@ -94,7 +95,11 @@ async def upload_files(
             )
             continue
 
-        result = validate_audio_file(
+        # ffprobe + SHA-256 + temp file write — выносим в thread pool,
+        # чтобы не блокировать event loop пока принимаем следующие чанки
+        # и крутится pipeline по уже загруженным файлам
+        result = await asyncio.to_thread(
+            validate_audio_file,
             filename,
             content,
             existing_hashes=set(hash_to_file_id.keys()),
@@ -115,7 +120,7 @@ async def upload_files(
         # Save to disk
         ext = Path(filename).suffix.lower()
         file_id = uuid.uuid4()
-        audio_path = _save_file_to_disk(file_id, ext, content)
+        audio_path = await asyncio.to_thread(_save_file_to_disk, file_id, ext, content)
 
         # Create DB record (SAVEPOINT защищает от race condition дедупликации)
         db_file = FileModel(

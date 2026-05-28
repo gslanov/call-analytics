@@ -1,7 +1,12 @@
 import { useState, useCallback, useRef } from 'react'
-import { ApiError, uploadFiles } from '../lib/api'
+import { ApiError, uploadFilesChunked } from '../lib/api'
 import type { UploadResponse } from '../lib/api'
 import type { UploadedFile } from '../types'
+
+// Размер пачки: 20 файлов. Достаточно крупно, чтобы накладные расходы
+// HTTP-handshake были незаметны, и достаточно мало, чтобы один POST
+// успевал пройти даже на нестабильном канале без таймаута.
+const CHUNK_SIZE = 20
 
 interface UseUploadReturn {
   files: UploadedFile[]
@@ -58,36 +63,52 @@ export function useUpload(): UseUploadReturn {
     abortRef.current = new AbortController()
     setFiles((prev) => prev.map((f) => ({ ...f, status: 'uploading', error: undefined })))
 
+    const totalFiles = files.length
+
     try {
-      const result = await uploadFiles(
+      const result = await uploadFilesChunked(
         files.map((f) => f.file),
         operatorName.trim(),
-        setUploadProgress,
-        abortRef.current.signal,
+        {
+          chunkSize: CHUNK_SIZE,
+          maxRetries: 2,
+          signal: abortRef.current.signal,
+          onOverallProgress: setUploadProgress,
+          // Обновляем статусы файлов сразу по приходу ответа на каждый чанк,
+          // чтобы РОП видела реальное движение и могла начать слушать
+          // уже загруженные звонки до окончания всей партии.
+          onChunkComplete: (chunkIdx, _total, chunkResult) => {
+            const start = chunkIdx * CHUNK_SIZE
+            const end = Math.min(start + CHUNK_SIZE, totalFiles)
+
+            const errorByName = new Map<string, string>()
+            for (const ve of chunkResult.validation_errors ?? []) {
+              errorByName.set(ve.file, ve.error)
+            }
+            const duplicateNames = new Set<string>()
+            for (const a of chunkResult.accepted ?? []) {
+              if (a.is_duplicate) duplicateNames.add(a.original_name)
+            }
+
+            setFiles((prev) =>
+              prev.map((f, idx) => {
+                if (idx < start || idx >= end) return f
+                const errMsg = errorByName.get(f.file.name)
+                if (errMsg) return { ...f, status: 'error', error: errMsg, progress: 0 }
+                if (duplicateNames.has(f.file.name)) return { ...f, status: 'duplicate', progress: 100 }
+                return { ...f, status: 'done', progress: 100 }
+              }),
+            )
+          },
+        },
       )
 
-      // Карта per-file ошибок (если бэк прислал validation_errors на 200)
-      const errorByName = new Map<string, string>()
-      for (const ve of result.validation_errors ?? []) {
-        errorByName.set(ve.file, ve.error)
-      }
-      // Карта дубликатов из accepted[] — бэк помечает is_duplicate=true для уже существующих хешей
-      const duplicateNames = new Set<string>()
-      for (const a of result.accepted ?? []) {
-        if (a.is_duplicate) duplicateNames.add(a.original_name)
-      }
-
+      // Финальный проход — закрываем хвост: если для какого-то файла бэк не
+      // прислал ни accepted, ни validation_errors (на практике не бывает,
+      // но подстрахуемся), помечаем как done. Уже выставленные статусы
+      // (done/duplicate/error через onChunkComplete) не трогаем.
       setFiles((prev) =>
-        prev.map((f) => {
-          const errMsg = errorByName.get(f.file.name)
-          if (errMsg) {
-            return { ...f, status: 'error', error: errMsg, progress: 0 }
-          }
-          if (duplicateNames.has(f.file.name)) {
-            return { ...f, status: 'duplicate', progress: 100 }
-          }
-          return { ...f, status: 'done', progress: 100 }
-        })
+        prev.map((f) => (f.status === 'uploading' ? { ...f, status: 'done', progress: 100 } : f)),
       )
 
       const acceptedCount = result.file_ids.length
@@ -111,13 +132,18 @@ export function useUpload(): UseUploadReturn {
       }
 
       setError(mainMessage)
+      // Важно: уже успешно загруженные чанки (status === 'done' / 'duplicate')
+      // оставляем как есть. Помечаем как error только то, что ещё в полёте.
       setFiles((prev) =>
-        prev.map((f) => ({
-          ...f,
-          status: 'error',
-          error: errorByName.get(f.file.name) ?? mainMessage,
-          progress: 0,
-        }))
+        prev.map((f) => {
+          if (f.status === 'done' || f.status === 'duplicate' || f.status === 'error') return f
+          return {
+            ...f,
+            status: 'error',
+            error: errorByName.get(f.file.name) ?? mainMessage,
+            progress: 0,
+          }
+        }),
       )
       return null
     } finally {

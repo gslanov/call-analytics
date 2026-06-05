@@ -100,6 +100,7 @@ def _make_list_item(db_file: File) -> ResultListItem:
         caller_phone=call_info["caller_phone"],
         order_confirmation=order_confirmation,
         prepayment_20k=prepayment_20k,
+        reviewed_by_rop=bool(db_file.reviewed_by_rop),
     )
 
 
@@ -112,6 +113,7 @@ def _build_results_query(
     score_min: int | None = None,
     score_max: int | None = None,
     q: str | None = None,
+    reviewed: bool | None = None,
     sort: str | None = None,
     order: str | None = "desc",
 ) -> tuple[Select, bool, bool]:
@@ -149,6 +151,8 @@ def _build_results_query(
         query = query.where(call_date <= date_to)
     if q:
         query = query.where(File.original_name.ilike(f"%{q}%"))
+    if reviewed is not None:
+        query = query.where(File.reviewed_by_rop == reviewed)
 
     # Скрываем не-классические звонки (недозвон/автоответчик/курьер/обрыв) —
     # РОП их вручную удаляла. Видимы только в одиночном fetch /results/{id}.
@@ -191,6 +195,7 @@ def list_results(
     score_min: int | None = Query(None, ge=0, le=100, description="Минимальный overall score"),
     score_max: int | None = Query(None, ge=0, le=100, description="Максимальный overall score"),
     q: str | None = Query(None, description="Поиск по имени файла"),
+    reviewed: bool | None = Query(None, description="Фильтр по метке «проверено РОП» (true/false)"),
     sort: str | None = Query(None, description="Поле сортировки: created_at, operator_name, overall, standard, loyalty, kindness"),
     order: str | None = Query("desc", description="Направление: asc или desc"),
     db: Session = Depends(get_db),
@@ -204,6 +209,7 @@ def list_results(
         score_min=score_min,
         score_max=score_max,
         q=q,
+        reviewed=reviewed,
         sort=sort,
         order=order,
     )
@@ -259,6 +265,7 @@ def export_results(
     score_min: int | None = Query(None, ge=0, le=100),
     score_max: int | None = Query(None, ge=0, le=100),
     q: str | None = Query(None),
+    reviewed: bool | None = Query(None),
     sort: str | None = Query(None),
     order: str | None = Query("desc"),
     db: Session = Depends(get_db),
@@ -278,6 +285,7 @@ def export_results(
         score_min=score_min,
         score_max=score_max,
         q=q,
+        reviewed=reviewed,
         sort=sort,
         order=order,
     )
@@ -450,6 +458,7 @@ def get_result(
         transcription=transcription_detail,
         diarization=diarization_detail,
         analysis=analysis,
+        reviewed_by_rop=bool(db_file.reviewed_by_rop),
     )
 
 
@@ -521,6 +530,36 @@ def reject_analysis(
             "kindness": analysis.kindness,
             "overall": analysis.overall,
         },
+    }
+
+
+@router.post("/results/{file_id}/review")
+def set_reviewed(
+    file_id: uuid.UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+) -> dict:
+    """РОП помечает/снимает метку «проверено РОП». body: {"reviewed": true/false}."""
+    from datetime import datetime as dt
+
+    db_file = db.get(File, file_id)
+    if db_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    raw_reviewed = body.get("reviewed", True)
+    if isinstance(raw_reviewed, str):
+        # строковый "false"/"0" не должен трактоваться как True (bool("false") == True)
+        reviewed = raw_reviewed.strip().lower() in ("true", "1", "yes")
+    else:
+        reviewed = bool(raw_reviewed)
+    db_file.reviewed_by_rop = reviewed
+    db_file.reviewed_at = dt.utcnow() if reviewed else None
+    db.commit()
+
+    return {
+        "file_id": str(file_id),
+        "reviewed_by_rop": reviewed,
+        "reviewed_at": db_file.reviewed_at.isoformat() if db_file.reviewed_at else None,
     }
 
 

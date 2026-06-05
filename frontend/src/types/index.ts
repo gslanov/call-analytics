@@ -38,6 +38,7 @@ export interface AnalysisResult {
   // Markers (informational, not scored)
   order_confirmation?: boolean | null  // звонок для подтверждения заказа
   prepayment_20k?: boolean | null      // заказ ≥20k → озвучена предоплата
+  reviewed_by_rop?: boolean            // РОП пометила звонок как проверенный
 }
 
 export type AppState = 'empty' | 'files_picked' | 'uploading' | 'processing' | 'results' | 'reports' | 'ftp_files' | 'settings'
@@ -71,6 +72,7 @@ export interface ResultFilters {
   date_to?: string
   score_min?: number
   score_max?: number
+  reviewed?: boolean
   sort?: 'created_at' | 'operator_name' | 'overall' | 'standard' | 'loyalty' | 'kindness'
   order?: 'asc' | 'desc'
 }

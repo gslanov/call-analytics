@@ -64,6 +64,10 @@ class File(Base):
     # для фильтров в /reports и /results — РОП ставит дату 24.04 и хочет звонки
     # за 24.04, даже если она их загрузила в понедельник 28.04.
     call_started_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Метка «проверено РОП» — РОП вручную помечает звонок как проверенный (просьба РОП).
+    # Чисто информационный флаг для UI/фильтра, на оценку не влияет.
+    reviewed_by_rop: Mapped[bool] = mapped_column(server_default="false", nullable=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()

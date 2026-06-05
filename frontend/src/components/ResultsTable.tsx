@@ -90,6 +90,7 @@ function ActiveFilterBadges({
   if (filters.date_to) badges.push({ label: `По ${filters.date_to}`, key: 'date_to' })
   if (filters.score_min != null) badges.push({ label: `Мин. оценка: ${filters.score_min}%`, key: 'score_min' })
   if (filters.score_max != null) badges.push({ label: `Макс. оценка: ${filters.score_max}%`, key: 'score_max' })
+  if (filters.reviewed) badges.push({ label: 'Только проверенные РОП', key: 'reviewed' })
 
   if (badges.length === 0) return null
 
@@ -139,7 +140,7 @@ export function ResultsTable({
   // Сбрасываем выбор при смене страницы/фильтров (чтобы не удалить «невидимое»).
   useEffect(() => {
     setSelected(new Set())
-  }, [page, limit, filters.operator, filters.date_from, filters.date_to, filters.score_min, filters.score_max, filters.sort, filters.order])
+  }, [page, limit, filters.operator, filters.date_from, filters.date_to, filters.score_min, filters.score_max, filters.reviewed, filters.sort, filters.order])
 
   const visibleIds = useMemo(() => results.map((r) => r.file_id), [results])
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id))
@@ -208,6 +209,20 @@ export function ResultsTable({
               {useMock && <span className="ml-2 text-yellow-500 text-xs">(demo-данные)</span>}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, reviewed: filters.reviewed ? undefined : true })}
+            title="Показать только звонки, отмеченные РОП как проверенные"
+            className={`text-sm px-4 py-1.5 rounded-lg border transition-all duration-150 active:scale-95 flex items-center gap-1.5 ${
+              filters.reviewed
+                ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400'
+            }`}
+          >
+            <span>✓</span>
+            <span>Только проверенные РОП</span>
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -227,6 +242,7 @@ export function ResultsTable({
             <span>⬇</span>
             <span>Скачать в Excel</span>
           </button>
+          </div>
         </div>
 
         {/* Active filter badges */}
@@ -339,6 +355,14 @@ export function ResultsTable({
                               title="Заказ ≥20 000 ₽ — оператор НЕ озвучил правило о предоплате"
                             >
                               ≥20k без предоплаты
+                            </span>
+                          )}
+                          {r.reviewed_by_rop && (
+                            <span
+                              className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700"
+                              title="РОП проверила этот звонок"
+                            >
+                              ✓ проверено РОП
                             </span>
                           )}
                         </div>

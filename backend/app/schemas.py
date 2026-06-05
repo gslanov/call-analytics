@@ -113,6 +113,7 @@ class ResultListItem(BaseModel):
     # Markers (informational flags, do NOT affect scores)
     order_confirmation: bool | None = None   # звонок для подтверждения заказа
     prepayment_20k: bool | None = None       # заказ ≥20k → озвучена предоплата
+    reviewed_by_rop: bool = False            # РОП пометила звонок как проверенный
 
 
 class PaginatedResults(BaseModel):
@@ -157,6 +158,8 @@ class ResultDetail(BaseModel):
     diarization: DiarizationDetail | None = None
     # Analysis
     analysis: AnalysisSchema | None = None
+    # Метка «проверено РОП»
+    reviewed_by_rop: bool = False
 
 
 # --- Health ---

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { AnalysisDetailResult, TranscriptSegment, Quote, CriteriaGroup } from '../types'
-import { fetchResultDetail, audioUrl, updateCriterion } from '../lib/api'
+import { fetchResultDetail, audioUrl, updateCriterion, setReviewed } from '../lib/api'
 import { ScoreCard } from './ScoreCard'
 import { TranscriptView } from './TranscriptView'
 import { AudioPlayer } from './AudioPlayer'
@@ -60,6 +60,7 @@ interface AnalysisDetailProps {
   onBack: () => void
   onReject?: (fileId: string, reason: string) => void
   onDelete?: (fileId: string) => void
+  onReviewed?: (fileId: string, reviewed: boolean) => void
 }
 
 // ── Mock detail data ──────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ function buildMockDetail(fileId: string): AnalysisDetailResult {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function AnalysisDetail({ fileId, onBack, onReject, onDelete }: AnalysisDetailProps) {
+export function AnalysisDetail({ fileId, onBack, onReject, onDelete, onReviewed }: AnalysisDetailProps) {
   const [detail, setDetail] = useState<AnalysisDetailResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMock, setIsMock] = useState(false)
@@ -115,6 +116,22 @@ export function AnalysisDetail({ fileId, onBack, onReject, onDelete }: AnalysisD
   const [seekTime, setSeekTime] = useState<number | undefined>()
   const [quotesOpen, setQuotesOpen] = useState(true)
   const [savingCriterion, setSavingCriterion] = useState<string | null>(null)
+  const [savingReview, setSavingReview] = useState(false)
+
+  const toggleReview = async () => {
+    if (!detail || savingReview || isMock) return
+    const next = !detail.reviewed_by_rop
+    setSavingReview(true)
+    try {
+      await setReviewed(fileId, next)
+      setDetail({ ...detail, reviewed_by_rop: next })
+      onReviewed?.(fileId, next)
+    } catch (e) {
+      alert('Ошибка: ' + (e as Error).message)
+    } finally {
+      setSavingReview(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -194,6 +211,27 @@ export function AnalysisDetail({ fileId, onBack, onReject, onDelete }: AnalysisD
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {detail.reviewed_by_rop ? (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1.5">
+                ✓ Проверено РОП
+                <button
+                  onClick={toggleReview}
+                  disabled={savingReview || isMock}
+                  className="text-green-500 hover:text-green-800 leading-none disabled:opacity-40"
+                  title="Снять отметку"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <button
+                onClick={toggleReview}
+                disabled={savingReview || isMock}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-green-300 text-green-700 hover:bg-green-50 transition-colors disabled:opacity-50"
+              >
+                {savingReview ? 'Сохраняю…' : '✓ Отметить проверено РОП'}
+              </button>
+            )}
             {onDelete && (
               <button
                 onClick={() => {

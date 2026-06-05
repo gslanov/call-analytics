@@ -241,6 +241,7 @@ function buildResultsParams(filters: ResultFilters): URLSearchParams {
   if (filters.date_to) params.set('date_to', filters.date_to)
   if (filters.score_min != null) params.set('score_min', String(filters.score_min))
   if (filters.score_max != null) params.set('score_max', String(filters.score_max))
+  if (filters.reviewed != null) params.set('reviewed', String(filters.reviewed))
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.order) params.set('order', filters.order)
   return params
@@ -303,6 +304,15 @@ export async function fetchResultDetail(fileId: string): Promise<AnalysisDetailR
 export async function deleteResult(fileId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/results/${fileId}`, { method: 'DELETE' })
   if (!response.ok) throw new Error(`Delete failed: ${response.statusText}`)
+}
+
+export async function setReviewed(fileId: string, reviewed: boolean): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/results/${fileId}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewed }),
+  })
+  if (!response.ok) throw new Error(`Review failed: ${response.statusText}`)
 }
 
 export async function rejectAnalysis(fileId: string, reason: string): Promise<void> {

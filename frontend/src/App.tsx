@@ -312,6 +312,7 @@ function App() {
                   alert('Ошибка удаления: ' + (e as Error).message)
                 }
               }}
+              onReviewed={() => refresh()}
             />
           )}
 

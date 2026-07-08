@@ -164,14 +164,21 @@ async def upload_files(
 
     db.commit()
 
-    # Enqueue new (non-duplicate) files for processing
+    # Enqueue new (non-duplicate) files for processing.
+    # accepted_file_ids может содержать один и тот же file_id несколько раз
+    # (одинаковый файл дважды в батче резолвится в тот же существующий id) —
+    # энкьюим каждый ровно один раз, иначе два task гоняют один файл параллельно.
     q = QueueManager.get_instance()
+    enqueued_ids: set[uuid.UUID] = set()
     for fid_str in accepted_file_ids:
         fid = uuid.UUID(fid_str)
+        if fid in enqueued_ids:
+            continue
         # Skip duplicates — they already have results
         row = db.get(FileModel, fid)
         if row and row.status == "queued":
             q.enqueue_sync(fid)
+            enqueued_ids.add(fid)
 
     return UploadResponse(
         file_ids=accepted_file_ids,

@@ -22,12 +22,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["websocket"])
 
-STAGE_NAMES = {
-    0: "Ожидание",
-    1: "Транскрибация",
-    2: "Диаризация",
-    3: "Анализ",
-    4: "Готово",
+# stage_name показывает, что происходит СЕЙЧАС — считаем его от status, а не
+# от stage. stage — это last-completed чекпоинт (0-4, см. pipeline.py), он
+# намеренно НЕ бампается в начале этапа, поэтому во время работы файла
+# отстаёт от текущей стадии на единицу и не годится для текстовой подписи.
+STATUS_LABELS = {
+    "queued": "Ожидание",
+    "transcribing": "Транскрибация",
+    "diarizing": "Диаризация",
+    "analyzing": "Анализ",
+    "done": "Готово",
+    "failed": "Ошибка",
 }
 
 # Inactivity timeout: 5 minutes
@@ -97,7 +102,7 @@ class WebSocketManager:
             "status": status,
             "progress": progress,
             "stage": stage,
-            "stage_name": STAGE_NAMES.get(stage, ""),
+            "stage_name": STATUS_LABELS.get(status, ""),
         }
         data = json.dumps(payload, ensure_ascii=False)
 
@@ -227,7 +232,7 @@ async def _send_current_status(ws: WebSocket, file_id: str) -> None:
             "status": db_file.status,
             "progress": db_file.progress or 0,
             "stage": stage,
-            "stage_name": STAGE_NAMES.get(stage, ""),
+            "stage_name": STATUS_LABELS.get(db_file.status, ""),
         }
         if db_file.status == "failed" and db_file.error_message:
             payload["error"] = db_file.error_message

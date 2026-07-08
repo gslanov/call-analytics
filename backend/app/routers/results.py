@@ -30,12 +30,16 @@ from app.services.llm_service import CRITERIA_LABELS, CRITERIA_SCHEMA
 
 router = APIRouter(tags=["results"])
 
-STAGE_NAMES = {
-    0: "Ожидание",
-    1: "Транскрибация",
-    2: "Диаризация",
-    3: "Анализ",
-    4: "Готово",
+# stage_name — что происходит СЕЙЧАС, считаем от status. stage — это
+# last-completed чекпоинт (см. pipeline.py), во время работы файла отстаёт
+# от текущей стадии на единицу и не годится для текстовой подписи.
+STATUS_LABELS = {
+    "queued": "Ожидание",
+    "transcribing": "Транскрибация",
+    "diarizing": "Диаризация",
+    "analyzing": "Анализ",
+    "done": "Готово",
+    "failed": "Ошибка",
 }
 
 # Whitelist допустимых полей для сортировки (защита от SQL injection)
@@ -692,6 +696,6 @@ def get_file_status(
         "status": db_file.status,
         "progress": db_file.progress or 0,
         "stage": stage,
-        "stage_name": STAGE_NAMES.get(stage, ""),
+        "stage_name": STATUS_LABELS.get(db_file.status, ""),
         "error_message": db_file.error_message if db_file.status == "failed" else None,
     }

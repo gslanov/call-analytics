@@ -8,6 +8,9 @@ Checkpoints (files.stage):
   4 — done (all complete)
 
 Checkpoint recovery: if stage >= N, skip stage N (resume from last checkpoint).
+`stage` is bumped to N only AFTER stage N's result is persisted — never at the
+start of a stage. This makes the checkpoint safe to resume after a mid-stage
+server restart (see PipelineOrchestrator.process_file).
 Graceful degradation:
   LLM fails  → status=done, analysis=None (shows transcript+diarization)
   Diarize fails → status=failed
@@ -74,9 +77,12 @@ class PipelineOrchestrator:
         )
 
         # --- Stage 1: Transcription ---
+        # stage подтверждаем ТОЛЬКО после _save_transcription — иначе рестарт
+        # сервера посреди транскрибации оставляет stage=1 без записи в БД,
+        # и при резюме checkpoint считается "потерянным" (файл падает в failed).
         transcription_result = None
         if db_file.stage < 1:
-            self._set_status(db_file, "transcribing", stage=1, progress=5)
+            self._set_status(db_file, "transcribing", stage=db_file.stage, progress=5)
             try:
                 transcription_result = await self._run_transcription(db_file)
                 self._save_transcription(db_file, transcription_result)
@@ -95,9 +101,10 @@ class PipelineOrchestrator:
             logger.info("Stage 1 skipped (checkpoint): %s", file_id)
 
         # --- Stage 2: Diarization ---
+        # Тот же принцип: stage=2 подтверждаем после _save_diarization.
         diarization_result = None
         if db_file.stage < 2:
-            self._set_status(db_file, "diarizing", stage=2, progress=STAGE_PROGRESS[1] + 5)
+            self._set_status(db_file, "diarizing", stage=db_file.stage, progress=STAGE_PROGRESS[1] + 5)
             try:
                 word_timestamps = transcription_result.word_timestamps if transcription_result else []
                 full_text = transcription_result.full_text if transcription_result else ""
@@ -143,8 +150,18 @@ class PipelineOrchestrator:
             return
 
         # --- Stage 3: LLM Analysis (non-fatal) ---
-        if db_file.stage < 3:
-            self._set_status(db_file, "analyzing", stage=3, progress=STAGE_PROGRESS[2] + 5)
+        # stage=3 подтверждаем в finally, ПОСЛЕ попытки анализа (успешной,
+        # неуспешной или "LLM недоступен") — раньше stage ставился до вызова
+        # LLM, и рестарт сервера посреди анализа оставлял stage=3 без записи
+        # в analyses; при резюме этап молча пропускался, файл уходил в done
+        # без оценки. Дополнительно проверяем наличие записи в analyses (а не
+        # только stage), чтобы самовосстановиться на уже испорченных таким
+        # образом файлах.
+        existing_analysis = self.db.scalar(
+            sa_select(Analysis).where(Analysis.file_id == db_file.id)
+        )
+        if db_file.stage < 3 or existing_analysis is None:
+            self._set_status(db_file, "analyzing", stage=db_file.stage, progress=STAGE_PROGRESS[2] + 5)
             try:
                 analysis_result = await self._run_analysis(db_file, diarization_result)
                 if analysis_result is not None:
@@ -162,8 +179,10 @@ class PipelineOrchestrator:
                     "Stage 3 (LLM) failed for %s: %s — continuing without analysis",
                     file_id, exc,
                 )
+            finally:
+                self._set_status(db_file, "analyzing", stage=3, progress=STAGE_PROGRESS[2] + 5)
         else:
-            logger.info("Stage 3 skipped (checkpoint): %s", file_id)
+            logger.info("Stage 3 skipped (checkpoint + analysis exists): %s", file_id)
 
         # --- Stage 4: Done ---
         self._set_status(db_file, "done", stage=4, progress=STAGE_PROGRESS[4])

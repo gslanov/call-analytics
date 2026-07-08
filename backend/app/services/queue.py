@@ -149,6 +149,18 @@ class QueueManager:
         from app.services.pipeline import PipelineOrchestrator
         from app.database import SessionLocal
 
+        if file_id in self._in_progress:
+            # Дубль в очереди (например, один и тот же файл дважды в батче
+            # upload — см. upload.py) — SELECT FOR UPDATE SKIP LOCKED в
+            # pipeline.process_file не спасает, т.к. блокировка снимается на
+            # первом же commit внутри пайплайна. Без этой проверки два task
+            # гоняют один file_id параллельно: двойные платные вызовы API и
+            # гонка на unique(file_id) при сохранении результатов.
+            logger.warning("File %s already in progress — skipping duplicate enqueue", file_id)
+            self._queue.task_done()
+            sem.release()
+            return
+
         self._in_progress.add(file_id)
         # Для health-эндпоинта показываем «первый из активных»
         self._current = next(iter(self._in_progress), None)

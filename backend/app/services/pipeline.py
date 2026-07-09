@@ -174,7 +174,13 @@ class PipelineOrchestrator:
                         "LLM unavailable for %s — graceful degradation (no analysis)", file_id
                     )
             except Exception as exc:
-                # Non-fatal: log but continue to done
+                # Non-fatal: log but continue to done. rollback() ПЕРЕД логом:
+                # если exc пришёл из сбоя self.db.commit() внутри
+                # _save_analysis/_run_analysis, сессия остаётся в "pending
+                # rollback" состоянии — без явного rollback commit в finally
+                # ниже сам упадёт с PendingRollbackError, замаскировав
+                # исходную ошибку и оставив файл висеть в status=analyzing.
+                self.db.rollback()
                 logger.error(
                     "Stage 3 (LLM) failed for %s: %s — continuing without analysis",
                     file_id, exc,
@@ -723,6 +729,11 @@ class PipelineOrchestrator:
             logger.debug("WS broadcast skipped: %s", exc)
 
     def _fail(self, db_file: File, error: str) -> None:
+        # Сессия могла остаться "грязной" после сбоя предыдущего commit
+        # (например внутри _save_transcription/_save_diarization) — без
+        # rollback commit ниже сам упадёт с PendingRollbackError и
+        # замаскирует исходную ошибку. rollback() на чистой сессии — no-op.
+        self.db.rollback()
         db_file.status = "failed"
         db_file.error_message = error
         db_file.retry_count = (db_file.retry_count or 0) + 1

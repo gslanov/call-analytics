@@ -239,12 +239,18 @@ def process_sftp_files(
 
     db.commit()
 
+    # accepted_file_ids может содержать один и тот же file_id несколько раз
+    # (см. upload.py) — энкьюим каждый ровно один раз.
     q = QueueManager.get_instance()
+    enqueued_ids: set[uuid.UUID] = set()
     for fid_str in accepted_file_ids:
         fid = uuid.UUID(fid_str)
+        if fid in enqueued_ids:
+            continue
         row = db.get(FileModel, fid)
         if row and row.status == "queued":
             q.enqueue_sync(fid)
+            enqueued_ids.add(fid)
 
     return ProcessResponse(
         file_ids=accepted_file_ids,

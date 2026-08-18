@@ -57,6 +57,14 @@ services:
       BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
       CALLTOUCH_WEBHOOK_SECRET: ${CALLTOUCH_WEBHOOK_SECRET:-}
       PIPELINE_CONCURRENCY: ${PIPELINE_CONCURRENCY:-4}
+      # Транскрибация + диаризация одним вызовом мультимодальной модели.
+      # audio_dialog — основной путь (18.08.2026), openai_quad — исторический
+      # (gpt-4o-transcribe ×3 + whisper-1 + мерж), он же fallback.
+      # Откат целиком: TRANSCRIPTION_MODE=openai_quad + recreate.
+      TRANSCRIPTION_MODE: ${TRANSCRIPTION_MODE:-audio_dialog}
+      AUDIO_DIALOG_CHAIN: ${AUDIO_DIALOG_CHAIN:-gemini:gemini-3.7-flash,gemini:gemini-3-flash-preview}
+      AUDIO_DIALOG_FALLBACK_TO_OPENAI: ${AUDIO_DIALOG_FALLBACK_TO_OPENAI:-1}
+      AUDIO_DIALOG_TIMEOUT: ${AUDIO_DIALOG_TIMEOUT:-300}
     depends_on:
       db:
         condition: service_healthy

@@ -76,6 +76,15 @@ class PipelineOrchestrator:
             file_id, db_file.stage, db_file.status,
         )
 
+        # --- Основной путь: audio_dialog (один вызов, аудио → диалог с ролями) ---
+        # Закрывает СРАЗУ оба чекпоинта (stage 1 и 2): один запрос отдаёт и
+        # текст, и роли, и таймкоды, так что делить его на два этапа нечего.
+        # Если не смог — stage остаётся прежним, и ниже штатно отрабатывает
+        # исторический путь OpenAI (gpt-4o-transcribe ×3 + whisper-1 + мерж).
+        from app.config import settings as _settings
+        if _settings.transcription_mode == "audio_dialog" and db_file.stage < 2:
+            await self._try_audio_dialog(db_file)
+
         # --- Stage 1: Transcription ---
         # stage подтверждаем ТОЛЬКО после _save_transcription — иначе рестарт
         # сервера посреди транскрибации оставляет stage=1 без записи в БД,
@@ -197,6 +206,130 @@ class PipelineOrchestrator:
     # ------------------------------------------------------------------
     # Stage runners
     # ------------------------------------------------------------------
+
+    async def _try_audio_dialog(self, db_file: File) -> bool:
+        """Один вызов мультимодальной модели вместо этапов 1 и 2.
+
+        Пишет обе таблицы (transcriptions + diarizations) и выставляет stage=2,
+        поэтому дальше оба этапа штатно пропускаются по чекпоинту.
+
+        Returns:
+            True — получилось, этапы 1-2 закрыты.
+            False — не получилось. stage не тронут, вызывающий код продолжает
+            историческим путём (если audio_dialog_fallback_to_openai=True),
+            иначе файл падает в failed.
+        """
+        import asyncio
+        from app.config import settings
+        from app.services.audio_dialog_service import AudioDialogService
+        from app.services.diarization import (
+            DiarizationResult, DiarizationSegment, TranscriptSegment,
+        )
+
+        if not db_file.audio_path:
+            raise ValueError("audio_path is None — file not on disk?")
+
+        svc = AudioDialogService.get_instance()
+        if not svc.is_configured():
+            logger.warning(
+                "audio_dialog включён, но нет ни одного канала с ключом — "
+                "работаем историческим путём"
+            )
+            return False
+
+        self._set_status(db_file, "transcribing", stage=db_file.stage, progress=5)
+        names = self._operator_name_hints()
+
+        try:
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: svc.transcribe_dialog(
+                    db_file.audio_path,
+                    duration_sec=db_file.duration_sec,
+                    operator_names=names,
+                ),
+            )
+        except Exception as exc:
+            # rollback: транзакция могла остаться грязной после _set_status
+            self.db.rollback()
+            if settings.audio_dialog_fallback_to_openai:
+                logger.warning(
+                    "audio_dialog не смог для %s (%s) — откатываюсь на "
+                    "исторический путь OpenAI", db_file.id, exc,
+                )
+                return False
+            self._fail(db_file, f"Транскрибация (audio_dialog): {exc}")
+            logger.error("audio_dialog failed for %s: %s", db_file.id, exc, exc_info=True)
+            raise
+
+        # Этап 1: транскрипция. word_timestamps пустые — модель отдаёт метки на
+        # уровне реплик, а не слов; ниже они лежат в сегментах диаризации.
+        from app.services.whisper_service import TranscriptionResult
+        self._save_transcription(
+            db_file, TranscriptionResult(full_text=result.full_text, word_timestamps=[])
+        )
+        self._set_status(db_file, "transcribing", stage=1, progress=STAGE_PROGRESS[1])
+
+        # Этап 2: диаризация из тех же сегментов, без единого доп. запроса.
+        # method="audio_dialog" важен: по нему этап 3 НЕ запускает тройной мерж
+        # (текст уже размечен и с пунктуацией), а идёт обычной веткой с
+        # IVR-фильтром.
+        transcript_segments = [
+            TranscriptSegment(
+                speaker=s.speaker, start=s.start, end=s.end, text=s.text,
+            )
+            for s in result.segments
+        ]
+        speakers = {s.speaker for s in result.segments if s.speaker != "unknown"}
+        diar = DiarizationResult(
+            segments=[
+                DiarizationSegment(speaker=s.speaker, start=s.start, end=s.end)
+                for s in result.segments
+            ],
+            transcript_segments=transcript_segments,
+            method="audio_dialog",
+            confidence=None,
+            num_speakers=len(speakers) or 1,
+            warnings=[f"audio_dialog via {result.channel}/{result.model_used}"],
+        )
+        self._save_diarization(db_file, diar)
+        self._set_status(db_file, "diarizing", stage=2, progress=STAGE_PROGRESS[2])
+
+        logger.info(
+            "audio_dialog: %s обработан за один вызов (%s/%s, %d реплик)",
+            db_file.id, result.channel, result.model_used, len(transcript_segments),
+        )
+        return True
+
+    def _operator_name_hints(self) -> list[str]:
+        """Имена и фамилии операторов из БД — подсказка модели.
+
+        Раньше список был зашит в промпт и успел устареть: 18.08 в нём не было
+        Игнатовой Лады, и модель услышала «Влада» вместо «Лада». Тянем из
+        таблицы, служебные записи отбрасываем.
+        """
+        from app.models import Operator
+
+        _SKIP = {
+            "менеджер", "неизвестный", "оператор",
+            "postdeploy_smoke", "postdeploy", "smoke", "test",
+        }
+        try:
+            rows = self.db.scalars(sa_select(Operator.name)).all()
+        except Exception as exc:
+            logger.warning("Не смог прочитать operators для подсказки: %s", exc)
+            return []
+
+        out: list[str] = []
+        for full in rows:
+            for token in (full or "").replace("_", " ").split():
+                t = token.strip()
+                if len(t) < 3 or t.lower() in _SKIP or not t[0].isalpha():
+                    continue
+                if t not in out:
+                    out.append(t)
+        return out[:40]
 
     async def _run_transcription(self, db_file: File) -> Any:
         """Run Whisper transcription (sync, runs in thread)."""

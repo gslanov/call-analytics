@@ -375,11 +375,6 @@ export function ResultsTable({
                               {audioType(r.diarization_method).label}
                             </span>
                           )}
-                          {r.analysis?.llm_model && (
-                            <span className="text-[10px] text-purple-500">
-                              {r.analysis.llm_model}
-                            </span>
-                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3"><ScorePill value={r.analysis?.standard} /></td>

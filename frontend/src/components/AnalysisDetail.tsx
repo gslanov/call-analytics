@@ -203,11 +203,6 @@ export function AnalysisDetail({ fileId, onBack, onReject, onDelete, onReviewed 
               {new Date(detail.created_at).toLocaleDateString('ru-RU', {
                 day: '2-digit', month: 'long', year: 'numeric',
               })}
-              {detail.analysis?.llm_model && (
-                <span className="ml-2 text-purple-500 text-xs">
-                  {detail.analysis.llm_model}
-                </span>
-              )}
             </p>
           </div>
           <div className="flex items-center gap-3">

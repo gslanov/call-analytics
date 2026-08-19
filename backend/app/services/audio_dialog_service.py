@@ -108,6 +108,40 @@ class AudioDialogResult:
     segments: list[AudioDialogSegment]
     model_used: str
     channel: str
+    crosschecked: bool = False
+
+
+_CROSSCHECK_PROMPT = """Ты сверяешь две расшифровки ОДНОЙ И ТОЙ ЖЕ телефонной записи.
+
+ЭТАЛОН — дословная расшифровка от другой модели. Ролей и таймкодов в ней нет,
+зато она НЕ склонна выдумывать: что услышала, то и записала.
+
+РАЗМЕТКА — диалог с ролями и таймкодами. Роли и время в ней надёжные, но она
+иногда ДОДУМЫВАЕТ реплики, которых в записи не было.
+
+ЗАДАЧА: собрать финальную версию.
+
+Правила:
+1. Таймкоды и роли бери из РАЗМЕТКИ.
+2. Текст сверяй с ЭТАЛОНОМ. Реплику, которой в ЭТАЛОНЕ нет даже близко по
+   смыслу, УДАЛИ целиком — это выдумка. Мелкие расхождения в словах не
+   считаются: там, где ЭТАЛОН точнее, бери формулировку из него.
+3. Если в ЭТАЛОНЕ есть слова, которых нет в РАЗМЕТКЕ, добавь их в подходящую
+   по смыслу реплику. Роль определи по содержанию.
+4. НИЧЕГО не придумывай сам. Не дополняй разговор «как обычно бывает».
+5. Если ЭТАЛОН пуст или в нём нет человеческой речи (гудки, тишина, фразы
+   автоответчика вроде «продолжаем дозваниваться», «абонент не отвечает»),
+   верни РОВНО одну строку: NO_DIALOG
+
+ЭТАЛОН:
+{reference}
+
+РАЗМЕТКА:
+{dialog}
+
+Верни ТОЛЬКО строки формата, без пояснений:
+[M:SS] ОПЕРАТОР: текст
+[M:SS] КЛИЕНТ: текст"""
 
 
 class AudioDialogService:
@@ -382,6 +416,129 @@ class AudioDialogService:
                     type(exc).__name__, exc, delay,
                 )
                 time.sleep(delay)
+
+        assert last_exc is not None
+        raise last_exc
+
+    def crosscheck(
+        self,
+        dialog: AudioDialogResult,
+        reference_text: str,
+        *,
+        duration_sec: float | None = None,
+    ) -> AudioDialogResult:
+        """Сверяет диалог с дословной расшифровкой другой модели.
+
+        Зачем: Gemini слышит роли и время, но на записях без речи склонен
+        сочинить «типичный звонок» (инцидент 19.08). gpt-4o-transcribe ролей не
+        даёт, зато не выдумывает. Сверка берёт у каждого сильную сторону:
+        роли и таймкоды из Gemini, факт сказанного — из эталона.
+
+        Ловит обе ошибки:
+          - выдуманные реплики (в эталоне их нет) — вычищаются;
+          - пропущенный разговор (Gemini вернул пусто, а речь была) — эталон
+            заставляет собрать диалог.
+
+        При любой неудаче возвращает исходный dialog: сверка — страховка, она
+        не должна ронять обработку.
+        """
+        ref = (reference_text or "").strip()
+
+        # Эталон пуст — речи в записи не было, что бы там ни «услышал» Gemini.
+        if not ref:
+            if dialog.segments:
+                logger.warning(
+                    "Сверка: эталон пуст, а в разметке %d реплик — считаем выдумкой",
+                    len(dialog.segments),
+                )
+            return AudioDialogResult(
+                full_text="", segments=[],
+                model_used=dialog.model_used, channel=dialog.channel,
+                crosschecked=True,
+            )
+
+        try:
+            text, model = self._chat_text(
+                _CROSSCHECK_PROMPT.format(reference=ref, dialog=dialog.full_text or "(пусто)")
+            )
+        except Exception as exc:
+            logger.warning("Сверка не удалась (%s) — оставляем разметку как есть", exc)
+            return dialog
+
+        if _is_no_dialog(text):
+            logger.info("Сверка: живой речи в записи нет")
+            return AudioDialogResult(
+                full_text="", segments=[],
+                model_used=dialog.model_used, channel=dialog.channel,
+                crosschecked=True,
+            )
+
+        segments = self._parse(text, duration_sec)
+        if len(segments) < MIN_SEGMENTS:
+            logger.warning(
+                "Сверка вернула %d реплик — не доверяем, оставляем исходную разметку",
+                len(segments),
+            )
+            return dialog
+
+        try:
+            self._reject_if_hallucinated(segments, duration_sec)
+        except RuntimeError as exc:
+            logger.warning("Результат сверки сам похож на выдумку (%s) — откат", exc)
+            return dialog
+
+        removed = len(dialog.segments) - len(segments)
+        if removed > 0:
+            logger.info("Сверка убрала %d недостоверных реплик", removed)
+        elif removed < 0:
+            logger.info("Сверка добавила %d реплик из эталона", -removed)
+
+        return AudioDialogResult(
+            full_text="\n".join(
+                f"[{_fmt_ts(s.start)}] {_role_ru(s.speaker)}: {s.text}" for s in segments
+            ),
+            segments=segments,
+            model_used=f"{dialog.model_used}+crosscheck",
+            channel=dialog.channel,
+            crosschecked=True,
+        )
+
+    def _chat_text(self, prompt: str) -> tuple[str, str]:
+        """Текстовый запрос по той же цепочке кандидатов, что и аудио."""
+        candidates = self._build_candidates()
+        if not candidates:
+            raise RuntimeError("нет доступных каналов для сверки")
+
+        last_exc: Exception | None = None
+        for cand in candidates:
+            try:
+                kwargs: dict[str, Any] = dict(
+                    model=cand["model"],
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0,
+                    timeout=settings.audio_dialog_timeout,
+                )
+                if cand["channel"] == "openrouter":
+                    kwargs["extra_body"] = (
+                        {"reasoning": {"effort": "low"}} if _needs_reasoning(cand["model"])
+                        else {"reasoning": {"enabled": False}}
+                    )
+                else:
+                    kwargs["reasoning_effort"] = "low"
+
+                resp = cand["client"].chat.completions.create(**kwargs)
+                if not resp.choices:
+                    raise RuntimeError("пустой choices")
+                content = (resp.choices[0].message.content or "").strip()
+                if not content:
+                    raise RuntimeError("пустой content")
+                return content, cand["model"]
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "Сверка %s/%s failed: %s", cand["channel"], cand["model"], exc,
+                )
+                continue
 
         assert last_exc is not None
         raise last_exc

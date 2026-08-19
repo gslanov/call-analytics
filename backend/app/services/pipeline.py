@@ -240,8 +240,8 @@ class PipelineOrchestrator:
         self._set_status(db_file, "transcribing", stage=db_file.stage, progress=5)
         names = self._operator_name_hints()
 
+        loop = asyncio.get_running_loop()
         try:
-            loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: svc.transcribe_dialog(
@@ -262,6 +262,27 @@ class PipelineOrchestrator:
             self._fail(db_file, f"Транскрибация (audio_dialog): {exc}")
             logger.error("audio_dialog failed for %s: %s", db_file.id, exc, exc_info=True)
             raise
+
+        # Сверка с независимой расшифровкой: Gemini даёт роли и время, но на
+        # записях без речи умеет сочинить разговор (инцидент 19.08).
+        # gpt-4o-transcribe ролей не даёт, зато не выдумывает — один проход
+        # по файлу, и сверка вычищает то, чего в записи не было.
+        # Не смогли получить эталон (нет баланса OpenAI, сбой) — не падаем,
+        # работаем на одном Gemini, как раньше.
+        if settings.audio_dialog_crosscheck:
+            reference = await self._get_reference_text(db_file)
+            if reference is not None:
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: svc.crosscheck(
+                        result, reference, duration_sec=db_file.duration_sec
+                    ),
+                )
+            else:
+                logger.warning(
+                    "Сверка пропущена для %s — эталонная расшифровка недоступна",
+                    db_file.id,
+                )
 
         # Этап 1: транскрипция. word_timestamps пустые — модель отдаёт метки на
         # уровне реплик, а не слов; ниже они лежат в сегментах диаризации.
@@ -301,6 +322,35 @@ class PipelineOrchestrator:
             db_file.id, result.channel, result.model_used, len(transcript_segments),
         )
         return True
+
+    async def _get_reference_text(self, db_file: File) -> str | None:
+        """Дословная расшифровка от gpt-4o-transcribe — эталон для сверки.
+
+        ОДИН проход по файлу (исторический путь делал четыре). Ролей и
+        таймкодов не даёт, но не выдумывает — именно это и нужно, чтобы
+        поймать сочинённые реплики.
+
+        Returns:
+            Текст, либо None если получить не удалось (пустой баланс OpenAI,
+            сбой сети). None означает «сверку пропускаем», а не «звонок плохой».
+        """
+        import asyncio
+        from app.services.whisper_service import WhisperService
+
+        whisper = WhisperService.get_instance()
+        if whisper._get_client() is None:
+            return None
+        try:
+            loop = asyncio.get_running_loop()
+            res = await loop.run_in_executor(
+                None, whisper.transcribe, db_file.audio_path
+            )
+            return (res.full_text or "").strip()
+        except Exception as exc:
+            logger.warning(
+                "Эталонная расшифровка для %s недоступна: %s", db_file.id, exc
+            )
+            return None
 
     def _operator_name_hints(self) -> list[str]:
         """Имена и фамилии операторов из БД — подсказка модели.

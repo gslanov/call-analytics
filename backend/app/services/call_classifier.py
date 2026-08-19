@@ -70,8 +70,12 @@ def classify_call(segments: list[dict[str, Any]]) -> str:
     Returns:
         "classical" | "no_answer" | "voicemail" | "internal" | "short"
     """
+    # Пустая расшифровка = в записи не было живой речи (гудки, тишина,
+    # автоответчик — audio_dialog вернул NO_DIALOG). Оценивать нечего:
+    # оператор не произнёс ни слова. Помечаем как недозвон, а не "short" —
+    # длительность тут ни при чём.
     if not segments:
-        return "short"
+        return "no_answer"
 
     full_text = " ".join((s.get("text") or "").lower() for s in segments)
     duration = max((float(s.get("end") or 0) for s in segments), default=0.0)
@@ -106,8 +110,15 @@ def classify_call(segments: list[dict[str, Any]]) -> str:
     if internal_hits >= 2 and not has_classical_marker:
         return "internal"
 
-    # 4. Слишком короткий — нечего оценивать
-    if duration < 30 and seg_count <= 6:
-        return "short"
-
+    # 4. Длительность больше НЕ является причиной отсева (19.08.2026).
+    #
+    # Раньше звонок короче 30 секунд с 6 и менее репликами уходил в "short" и
+    # не оценивался. Это отсекало содержательные короткие разговоры: клиент
+    # берёт трубку, подтверждает заказ одним словом и кладёт — оператор при
+    # этом успевает и поздороваться, и представиться, и попрощаться, то есть
+    # РОП есть что оценивать.
+    #
+    # Записи без речи сюда не доходят: пустые отсеиваются выше (no_answer),
+    # IVR и автоответчик — по своим фразам. Так что всё, что дошло досюда,
+    # содержит живой разговор любой длины и подлежит оценке.
     return "classical"

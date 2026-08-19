@@ -3,6 +3,21 @@
 .env.local
 .env.*.local
 
+# Секреты: ключи API, бэкапы .env, выгрузки credentials.
+# Ключи живут ТОЛЬКО в .env на сервере и в менеджере паролей — в репозиторий
+# они не попадают ни в каком виде. Бэкапы вида .env.backup-pre-* создаются
+# на проде при каждой подмене ключа, и их особенно легко закоммитить случайно.
+.env.backup*
+.env.bak
+*.pem
+*.key
+*_key.txt
+*_secret*
+openai_key*
+gemini_key*
+credentials*.json
+secrets/
+
 # Python
 __pycache__/
 *.py[cod]

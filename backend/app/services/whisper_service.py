@@ -43,6 +43,22 @@ TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
 DOMAIN_PROMPT = ""
 
 
+def _is_quota_exhausted(exc: Exception) -> bool:
+    """Баланс кончился (в отличие от обычного rate limit, который пройдёт).
+
+    OpenAI отдаёт это как 429, поэтому по коду статуса не отличить — смотрим
+    на тело ответа.
+    """
+    s = str(exc).lower()
+    return any(k in s for k in (
+        "insufficient_quota",
+        "credit_balance_exhausted",
+        "no credits remaining",
+        "exceeded your current quota",
+        "billing",
+    ))
+
+
 class TranscriptionResult:
     """Result of a transcription."""
 
@@ -132,6 +148,18 @@ class WhisperService:
                 return result
             except Exception as exc:
                 last_exc = exc
+
+                # Кончились деньги — ретраить бессмысленно, ответ не изменится.
+                # 429 тут не «слишком часто», а «баланс нулевой», и пять
+                # попыток с backoff съедают ~80 секунд на КАЖДЫЙ звонок.
+                # Ровно это тормозило обработку 18.08 и 19.08.
+                if _is_quota_exhausted(exc):
+                    logger.error(
+                        "Whisper API: баланс OpenAI исчерпан — ретраи не помогут, "
+                        "прекращаю попытки"
+                    )
+                    break
+
                 is_rate_limit = isinstance(exc, RateLimitError) if RateLimitError else False
                 is_5xx = (
                     isinstance(exc, APIStatusError)

@@ -93,6 +93,14 @@ MAX_CHARS_PER_SEC = 30
 # свалила их в одну-две метки (наблюдали 15 реплик на двух таймкодах).
 MIN_DISTINCT_STARTS = 3
 
+# Признаки слипшегося диалога (весь разговор одним куском вместо реплик).
+# Калибровано на 373 звонках прода: 82% укладываются в 400 символов на самую
+# длинную реплику, 97% — в 600. Порог 800 плюс требование «мало реплик для
+# такой длительности» ловит только настоящие склейки.
+MAX_SEGMENT_CHARS = 800
+MAX_SEC_PER_SEGMENT = 15
+MIN_DURATION_FOR_COLLAPSE_CHECK = 60
+
 
 @dataclass
 class AudioDialogSegment:
@@ -594,6 +602,25 @@ class AudioDialogService:
                 f"{len(segments)} реплик всего на {distinct_starts} метках "
                 f"времени — модель не привязала их к записи, похоже на выдумку"
             )
+
+        # Слипшийся диалог: на длинных записях модель иногда сваливает весь
+        # разговор в одну реплику вместе с ответами клиента. Роли тогда не
+        # разделены, таймкоды бесполезны, плеер в UI бесполезен.
+        # Наблюдали 221 секунду в ДВУХ репликах по 3341 символу.
+        #
+        # Длинная реплика сама по себе законна — оператор перечисляет состав
+        # заказа. Поэтому признак парный: реплика огромная И реплик мало для
+        # такой длительности. На 373 звонках прода критерий ловит ровно 2
+        # настоящие склейки и не трогает 3 звонка с длинными перечислениями.
+        if duration_sec >= MIN_DURATION_FOR_COLLAPSE_CHECK and segments:
+            longest = max(len(s.text) for s in segments)
+            sec_per_segment = duration_sec / len(segments)
+            if longest > MAX_SEGMENT_CHARS and sec_per_segment > MAX_SEC_PER_SEGMENT:
+                raise RuntimeError(
+                    f"диалог слипся: {len(segments)} реплик на {duration_sec:.0f} с "
+                    f"(самая длинная {longest} симв, {sec_per_segment:.0f} с на реплику) "
+                    f"— роли и таймкоды непригодны"
+                )
 
     @staticmethod
     def _parse(text: str, duration_sec: float | None) -> list[AudioDialogSegment]:
